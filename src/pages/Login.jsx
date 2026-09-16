@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../services/api';
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -17,8 +17,14 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const data = await loginUser(formData);
+      const data = await loginUser({
+        username: formData.username.trim(),
+        password: formData.password,
+      });
       localStorage.setItem('token', data.token);
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
@@ -39,16 +45,18 @@ const Login = () => {
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="username">Username</label>
             <input
-              type="email"
-              id="email"
-              name="email"
+              type="text"
+              id="username"
+              name="username"
               className="form-input"
-              value={formData.email}
+              value={formData.username}
               onChange={handleChange}
-              placeholder="name@example.com"
+              placeholder="Enter your username"
+              autoComplete="username"
               required
+              autoFocus
             />
           </div>
           
@@ -62,6 +70,7 @@ const Login = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
+              autoComplete="current-password"
               required
             />
           </div>
@@ -80,3 +89,4 @@ const Login = () => {
 };
 
 export default Login;
+
