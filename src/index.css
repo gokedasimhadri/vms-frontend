@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 
 :root {
   /* Premium Dark Theme Colors */
@@ -19,7 +19,7 @@
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
   
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
 }
 
 * {
