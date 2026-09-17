@@ -829,22 +829,22 @@
   text-transform: uppercase;
   letter-spacing: 0.6px;
   padding: 10px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .vms-table td {
   padding: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: #cbd5e1;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
 }
 
 .vms-table tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .reg-badge {
-  background: rgba(99, 102, 241, 0.15);
-  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4338ca;
   font-family: monospace;
   font-weight: 700;
   font-size: 0.82rem;
@@ -866,7 +866,7 @@
 
 .route-name {
   font-weight: 500;
-  color: #f1f5f9;
+  color: #0f172a;
 }
 
 .student-count {
@@ -875,7 +875,7 @@
 }
 
 .branch-cell {
-  color: #94a3b8;
+  color: #475569;
   font-size: 0.8rem;
 }
 
