@@ -1584,8 +1584,8 @@
 
 /* Left Accordion Column */
 .legacy-accordion-column {
-  width: 230px;
-  min-width: 230px;
+  width: 250px;
+  min-width: 250px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1600,7 +1600,7 @@
 }
 
 .group-box-header {
-  background-color: #0d233b;
+  background-color: #243342;
   color: #ffffff;
   padding: 8px 12px;
   font-size: 13px;
@@ -1634,7 +1634,7 @@
 }
 
 .row-badge {
-  background-color: #0d233b;
+  background-color: #55687d;
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
@@ -1660,7 +1660,7 @@
 }
 
 .legacy-card-header {
-  background-color: #0d233b;
+  background-color: #243342;
   color: #ffffff;
   font-size: 13.5px;
   font-weight: 600;
@@ -2014,15 +2014,15 @@
 }
 
 .admin-ribbon-tab:hover:not(.active) {
-  color: #0b5299;
-  background: #f8fafc;
+  color: #ffffff;
+  background: #1c2834;
 }
 
 .admin-ribbon-tab.active {
-  background: transparent;
-  color: #0b5299;
+  background: #ffffff;
+  color: #243342;
   font-weight: 700;
-  border-bottom: 3px solid #2563eb;
+  border-bottom: none;
   box-shadow: none;
   transform: none;
 }
@@ -2036,22 +2036,22 @@
 }
 
 .admin-action-btn {
-  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  background: #26c6da;
   color: #ffffff;
   border: none;
   border-radius: 4px;
-  padding: 8px 18px;
+  padding: 8px 20px;
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(38, 198, 218, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.15s ease;
 }
 
 .admin-action-btn:hover {
-  background: linear-gradient(135deg, #0369a1, #0284c7);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.4);
+  background: #00acc1;
+  transform: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 
 .admin-action-btn:active {
@@ -2220,33 +2220,41 @@
 
 /* Action Icons (Edit / Remove) */
 .admin-icon-btn {
-  background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 3px;
+  padding: 6px 8px;
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
+  line-height: 1;
 }
 
 .admin-icon-btn.edit {
-  color: #0b5299;
+  background-color: #4dd0e1;
+  color: #ffffff;
 }
 
 .admin-icon-btn.edit:hover {
-  background: #e0f2fe;
-  color: #0b5299;
+  background-color: #26c6da;
 }
 
 .admin-icon-btn.remove {
-  color: #ef4444;
+  background-color: #ef5350;
+  color: #ffffff;
 }
 
 .admin-icon-btn.remove:hover {
-  background: #fee2e2;
-  color: #dc2626;
+  background-color: #e53935;
+}
+
+.admin-data-table th:nth-last-child(1),
+.admin-data-table th:nth-last-child(2),
+.admin-data-table td:nth-last-child(1),
+.admin-data-table td:nth-last-child(2) {
+  text-align: center;
+  width: 75px;
 }
 
 /* Table Footer & Pagination */

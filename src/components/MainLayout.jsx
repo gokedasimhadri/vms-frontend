@@ -23,6 +23,7 @@ const MainLayout = ({
         setActiveTab={setActiveTab}
         staffSummary={staffSummary}
         vehiclesSummary={vehiclesSummary}
+        user={user}
       />
 
       {/* ================= RIGHT: Header + Content ================= */}

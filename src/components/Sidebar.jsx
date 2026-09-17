@@ -1,22 +1,23 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, User, Users, Bus, FileText, Fuel,
   Droplet, Settings, Wrench, AlertTriangle, Battery, Disc
 } from 'lucide-react';
 
-const referenceMenuItems = [
-  { id: 'Dashboard', label: 'Dashboard', icon: 'speedometer' },
-  { id: 'Admin', label: 'Admin', icon: 'user' },
-  { id: 'Staff', label: 'Staff', icon: 'users' },
-  { id: 'Vehicles', label: 'Vehicles', icon: 'bus' },
-  { id: 'Certificates', label: 'Certificates', icon: 'file' },
-  { id: 'Fuels', label: 'Fuels', icon: 'fuel' },
-  { id: 'Ad-Blue', label: 'Ad-Blue', icon: 'droplet' },
-  { id: 'Services', label: 'Services', icon: 'gear' },
-  { id: 'Repair Bills', label: 'Repair Bills', icon: 'wrench' },
-  { id: 'Bus Breakdown', label: 'Bus Breakdown', icon: 'alert' },
-  { id: 'Batteries', label: 'Batteries', icon: 'battery' },
-  { id: 'Vehicle Tyres', label: 'Vehicle Tyres', icon: 'disc' },
+export const referenceMenuItems = [
+  { id: 'Dashboard', label: 'Dashboard', icon: 'speedometer', path: '/dashboard' },
+  { id: 'Admin', label: 'Admin', icon: 'user', path: '/admin' },
+  { id: 'Staff', label: 'Staff', icon: 'users', path: '/staff' },
+  { id: 'Vehicles', label: 'Vehicles', icon: 'bus', path: '/vehicles' },
+  { id: 'Certificates', label: 'Certificates', icon: 'file', path: '/certificates' },
+  { id: 'Fuels', label: 'Fuels', icon: 'fuel', path: '/fuels' },
+  { id: 'Ad-Blue', label: 'Ad-Blue', icon: 'droplet', path: '/ad-blue' },
+  { id: 'Services', label: 'Services', icon: 'gear', path: '/services' },
+  { id: 'Repair Bills', label: 'Repair Bills', icon: 'wrench', path: '/repair-bills' },
+  { id: 'Bus Breakdown', label: 'Bus Breakdown', icon: 'alert', path: '/bus-breakdown' },
+  { id: 'Batteries', label: 'Batteries', icon: 'battery', path: '/batteries' },
+  { id: 'Vehicle Tyres', label: 'Vehicle Tyres', icon: 'disc', path: '/vehicle-tyres' },
 ];
 
 const Sidebar = ({
@@ -25,8 +26,23 @@ const Sidebar = ({
   activeTab,
   setActiveTab,
   staffSummary,
-  vehiclesSummary
+  vehiclesSummary,
+  user
 }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const loggedUser = user || (() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  const accountName = loggedUser?.name || loggedUser?.username || 'ADITYA DEGREE COLLEGE HR';
+
   return (
     <aside className={`sidebar-left ${mobileLeftOpen ? 'open' : ''}`}>
       {/* Top Blue Profile Header (Yellow Bus Logo + Brand Name + System Subtitle) */}
@@ -39,8 +55,8 @@ const Sidebar = ({
           />
         </div>
         <div className="brand-text-wrapper">
-          <span className="brand-title" title="ADITYA DEGREE COLLEGE">
-            ADITYA DEGREE COLLEGE HR
+          <span className="brand-title" title={accountName}>
+            {accountName}
           </span>
           <span className="system-subtitle-tag">Vehicle Management System</span>
         </div>
@@ -65,11 +81,19 @@ const Sidebar = ({
               disc: Disc
             }[item.icon];
 
+            const isActive = activeTab
+              ? activeTab === item.id
+              : location.pathname === item.path;
+
             return (
               <button
                 key={item.id}
-                className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                onClick={() => { setActiveTab(item.id); setMobileLeftOpen(false); }}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => {
+                  if (setActiveTab) setActiveTab(item.id);
+                  if (setMobileLeftOpen) setMobileLeftOpen(false);
+                  navigate(item.path);
+                }}
               >
                 <span className="nav-icon-wrapper">
                   {IconComponent && <IconComponent size={18} />}
