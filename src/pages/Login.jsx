@@ -25,7 +25,7 @@ const Login = () => {
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {

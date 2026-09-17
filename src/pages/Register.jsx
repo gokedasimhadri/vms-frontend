@@ -20,7 +20,7 @@ const Register = () => {
     try {
       await registerUser(formData);
       setSuccess('Account created successfully! Redirecting...');
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate('/'), 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -88,7 +88,7 @@ const Register = () => {
         </form>
         
         <div className="auth-footer">
-          Already have an account? <Link to="/login">Sign in</Link>
+          Already have an account? <Link to="/">Sign in</Link>
         </div>
       </div>
     </div>

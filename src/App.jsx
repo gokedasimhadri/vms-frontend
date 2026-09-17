@@ -7,23 +7,24 @@ import './App.css';
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token');
   if (!token) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
   return children;
+}
+
+function HomeRoute() {
+  const token = localStorage.getItem('token');
+  if (token) {
+    return <Dashboard />;
+  }
+  return <Login />;
 }
 
 function App() {
   return (
     <div className="app-container">
       <Routes>
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
+        <Route path="/" element={<HomeRoute />} />
         <Route 
           path="/dashboard" 
           element={
@@ -32,7 +33,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/register" element={<Register />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
