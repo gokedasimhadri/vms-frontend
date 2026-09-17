@@ -394,9 +394,9 @@ const Dashboard = () => {
     try {
       const typeKey = subTab === 'Stages' ? 'stages'
         : subTab === 'Routes' ? 'routes'
-        : subTab === 'Route_Details' ? 'route_details'
-        : 'transfers';
-      const res = await getAdminData(typeKey, branch, user?.username);
+          : subTab === 'Route_Details' ? 'route_details'
+            : 'transfers';
+      const res = await getAdminData(typeKey, branch);
       setAdminData(res?.data || []);
       setAdminCurrentPage(1);
     } catch (err) {
@@ -603,8 +603,8 @@ const Dashboard = () => {
     try {
       const typeKey = adminSubTab === 'Stages' ? 'stages'
         : adminSubTab === 'Routes' ? 'routes'
-        : adminSubTab === 'Route_Details' ? 'route_details'
-        : 'transfers';
+          : adminSubTab === 'Route_Details' ? 'route_details'
+            : 'transfers';
       await deleteAdminItem(typeKey, id);
       fetchAdminData(adminSubTab, selectedBranch);
     } catch (err) {
@@ -717,18 +717,6 @@ const Dashboard = () => {
 
     return (
       <div className="admin-page-container">
-        {/* Breadcrumb pill */}
-        <div className="admin-breadcrumb-wrapper">
-          <div className="admin-breadcrumb-badge">
-            <div className="admin-breadcrumb-icon">
-              <svg width="15" height="15" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="admin-breadcrumb-text">{currentConfig.title}</div>
-          </div>
-        </div>
-
         {/* Subtabs Ribbon */}
         {currentConfig.subTabs.length > 1 && (
           <div className="admin-subtabs-ribbon">
@@ -752,7 +740,7 @@ const Dashboard = () => {
                   className={`admin-ribbon-tab ${activeSub === tab.id ? 'active' : ''}`}
                   onClick={() => setModuleSubTab(tab.id)}
                 >
-                  {tab.label}
+                  <span>{tab.label}</span>
                 </button>
               ))}
             </div>
@@ -948,18 +936,28 @@ const Dashboard = () => {
 
 
       <div className="dashboard-grid-layout">
-        {/* ================= LEFT SIDEBAR (Existing Design, Reference Content) ================= */}
+        {/* ================= LEFT SIDEBAR (LIGHT MODE & INTERACTIVE) ================= */}
         <aside className={`sidebar-left ${mobileLeftOpen ? 'open' : ''}`}>
-          {/* Top Profile Header (Avatar AD + Name + Role) */}
+          {/* Top Blue Profile Header (Yellow Bus Logo + Brand Name + System Subtitle) */}
           <div className="sidebar-brand">
-            <div className="user-avatar-circle">
-              {user?.username ? user.username.slice(0, 2).toUpperCase() : 'AD'}
+            <div className="bus-logo-badge">
+              <img
+                src="/yellow_bus_logo.png"
+                alt="Vehicle Bus Logo"
+                className="bus-logo-img"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  if (e.target.parentNode) {
+                    e.target.parentNode.innerHTML = `<svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#fef08a" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8m-8 4h8m-9 8h10M5 3h14a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>`;
+                  }
+                }}
+              />
             </div>
-            <div className="user-text-details">
-              <span className="user-display-name" title={user?.name || user?.username || 'Admin User'}>
-                {user?.name || user?.username || 'Admin User'}
+            <div className="brand-text-wrapper">
+              <span className="brand-title" title="ADITYA DEGREE COLLEGE">
+                ADITYA DEGREE COLLEGE
               </span>
-              <span className="user-role-tag">{user?.role || 'BRANCH_ADMIN'}</span>
+              <span className="system-subtitle-tag">Vehicle Management System</span>
             </div>
           </div>
 
@@ -1058,18 +1056,6 @@ const Dashboard = () => {
           {activeTab === 'Admin' ? (
             /* ADMIN VIEW AS PER REFERENCE IMAGE */
             <div className="admin-page-container">
-              {/* Breadcrumb pill: [ 👤 | Admin ] */}
-              <div className="admin-breadcrumb-wrapper">
-                <div className="admin-breadcrumb-badge">
-                  <div className="admin-breadcrumb-icon">
-                    <svg width="15" height="15" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="admin-breadcrumb-text">Admin</div>
-                </div>
-              </div>
-
               {/* Subtabs Ribbon: [ ◀ ] [ Stages ] [ Routes ] [ Route_Details ] [ Transfers ] [ ▶ ] */}
               <div className="admin-subtabs-ribbon">
                 <button
@@ -1085,14 +1071,19 @@ const Dashboard = () => {
                   ◀
                 </button>
                 <div className="admin-ribbon-tabs">
-                  {['Stages', 'Routes', 'Route_Details', 'Transfers'].map((tab) => (
+                  {[
+                    { id: 'Stages', label: 'Stages' },
+                    { id: 'Routes', label: 'Routes' },
+                    { id: 'Route_Details', label: 'Route Details' },
+                    { id: 'Transfers', label: 'Transfers' },
+                  ].map((tab) => (
                     <button
-                      key={tab}
+                      key={tab.id}
                       type="button"
-                      className={`admin-ribbon-tab ${adminSubTab === tab ? 'active' : ''}`}
-                      onClick={() => setAdminSubTab(tab)}
+                      className={`admin-ribbon-tab ${adminSubTab === tab.id ? 'active' : ''}`}
+                      onClick={() => setAdminSubTab(tab.id)}
                     >
-                      {tab}
+                      <span>{tab.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1439,17 +1430,11 @@ const Dashboard = () => {
 
               {/* Stage's Data Modal Popup matching reference */}
               {showNewStageModal && (
-                <div className="stage-modal-backdrop" onClick={() => setShowNewStageModal(false)}>
-                  <div className="stage-modal-card" onClick={(e) => e.stopPropagation()}>
-                    <div className="stage-modal-header">
-                      <h3>Stage's Data</h3>
-                      <button
-                        type="button"
-                        className="stage-modal-close-x"
-                        onClick={() => setShowNewStageModal(false)}
-                      >
-                        ×
-                      </button>
+                <div className="admin-modal-backdrop" onClick={() => setShowNewStageModal(false)}>
+                  <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
+                    <div className="admin-modal-header">
+                      <h3>Add New Stage</h3>
+                      <button type="button" className="admin-modal-close-btn" onClick={() => setShowNewStageModal(false)}>×</button>
                     </div>
                     <form onSubmit={handleCreateStage}>
                       <div className="stage-modal-body">
