@@ -11,6 +11,8 @@ import {
   deleteAdminItem,
   getStageFormOptions,
   getStaffData,
+  createStaffItem,
+  deleteStaffItem,
   getVehiclesData,
   getCertificatesData,
   getFuelsData,
@@ -26,14 +28,22 @@ const SIDEBAR_MODULE_CONFIG = {
   Staff: {
     title: 'Staff Directory',
     subTabs: [
-      { id: 'bus', label: 'Bus Staff' },
-      { id: 'office', label: 'Office Staff' },
-      { id: 'cleaner', label: 'Bus Cleaners' },
-      { id: 'designations', label: 'Designations' },
+      { id: 'Designations', label: 'Designations' },
+      { id: 'Office_Staff', label: 'Office_Staff' },
+      { id: 'BusStaff_Information', label: 'BusStaff_Information' },
+      { id: 'BusCleaner_Information', label: 'BusCleaner_Information' },
+      { id: 'Opting_Staff_Information', label: 'Opting_Staff_Information' },
+      { id: 'Staff_Meeting_Register', label: 'Staff_Meeting_Register' },
+      { id: 'Staff_Remarks', label: 'Staff_Remarks' },
     ],
     apiFn: (subTab, branch) => getStaffData(subTab, branch),
     columns: (subTab) => {
-      if (subTab === 'office') {
+      if (subTab === 'Designations') {
+        return [
+          { key: 'name', label: 'Designation Name' },
+        ];
+      }
+      if (subTab === 'Office_Staff') {
         return [
           { key: 'staffname', label: 'Staff Name' },
           { key: 'designation', label: 'Designation' },
@@ -44,22 +54,62 @@ const SIDEBAR_MODULE_CONFIG = {
           { key: 'dateofjoin', label: 'Date of Join' },
         ];
       }
-      if (subTab === 'designations') {
+      if (subTab === 'BusStaff_Information') {
         return [
-          { key: 'name', label: 'Designation Name' },
+          { key: 'staffname', label: 'Staff Name' },
+          { key: 'designation', label: 'Designation' },
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'mobile', label: 'Mobile' },
+          { key: 'licienseno', label: 'License No' },
+          { key: 'valid', label: 'License Validity' },
+          { key: 'vehicleno', label: 'Vehicle No' },
+          { key: 'salary', label: 'Salary' },
+        ];
+      }
+      if (subTab === 'BusCleaner_Information') {
+        return [
+          { key: 'cleanername', label: 'Cleaner Name' },
+          { key: 'designation', label: 'Designation' },
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'mobile', label: 'Mobile' },
+          { key: 'aadharno', label: 'Aadhar No' },
+          { key: 'dateofjoin', label: 'Date of Join' },
+        ];
+      }
+      if (subTab === 'Opting_Staff_Information') {
+        return [
+          { key: 'staffname', label: 'Staff Name' },
+          { key: 'designation', label: 'Designation' },
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'mobile', label: 'Mobile' },
+          { key: 'vehicleno', label: 'Vehicle No' },
+        ];
+      }
+      if (subTab === 'Staff_Meeting_Register') {
+        return [
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'date', label: 'Date' },
+          { key: 'points', label: 'Meeting Points' },
+          { key: 'file', label: 'Attachment' },
+        ];
+      }
+      if (subTab === 'Staff_Remarks') {
+        return [
+          { key: 'staffname', label: 'Staff Name' },
+          { key: 'designation', label: 'Designation' },
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'date', label: 'Date' },
+          { key: 'remarks', label: 'Remarks' },
           { key: 'description', label: 'Description' },
         ];
       }
       return [
-        { key: 'staffname', label: 'Staff Name' },
-        { key: 'designation', label: 'Designation' },
-        { key: 'society', label: 'Society' },
-        { key: 'branch', label: 'Branch' },
-        { key: 'mobile', label: 'Mobile' },
-        { key: 'licienseno', label: 'License No' },
-        { key: 'valid', label: 'License Validity' },
-        { key: 'vehicleno', label: 'Vehicle No' },
-        { key: 'salary', label: 'Salary' },
+        { key: 'name', label: 'Name' },
       ];
     }
   },
@@ -351,6 +401,12 @@ const Dashboard = () => {
   const [moduleEntriesPerPage, setModuleEntriesPerPage] = useState(10);
   const [moduleCurrentPage, setModuleCurrentPage] = useState(1);
   const [moduleCopiedNotification, setModuleCopiedNotification] = useState(false);
+
+  // Staff Modal States
+  const [showNewStaffModal, setShowNewStaffModal] = useState(false);
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffSubmitting, setNewStaffSubmitting] = useState(false);
+  const [staffSuccessToast, setStaffSuccessToast] = useState('');
 
   // Mobile toggle
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
@@ -737,6 +793,47 @@ const Dashboard = () => {
     window.print();
   };
 
+  const handleDeleteStaffRecord = async (subTab, id) => {
+    if (!window.confirm('Are you sure you want to remove this record?')) return;
+    try {
+      await deleteStaffItem(subTab, id);
+      moduleCacheRef.current = {};
+      fetchModuleData(activeTab, subTab, selectedBranch, true);
+    } catch (err) {
+      console.error('Error deleting staff item:', err);
+      alert('Failed to delete item.');
+    }
+  };
+
+  const handleCreateStaffRecord = async (e) => {
+    e.preventDefault();
+    if (!newStaffName.trim()) {
+      alert('Please enter a name');
+      return;
+    }
+    setNewStaffSubmitting(true);
+    try {
+      const activeSub = moduleSubTab || 'Designations';
+      await createStaffItem(activeSub, {
+        name: newStaffName.trim(),
+        staffname: newStaffName.trim(),
+        cleanername: newStaffName.trim(),
+        branch: selectedBranch !== 'ALL' && selectedBranch !== 'College' ? selectedBranch : undefined
+      });
+      setShowNewStaffModal(false);
+      setNewStaffName('');
+      setStaffSuccessToast('Record created successfully!');
+      setTimeout(() => setStaffSuccessToast(''), 3000);
+      moduleCacheRef.current = {};
+      fetchModuleData(activeTab, activeSub, selectedBranch, true);
+    } catch (err) {
+      console.error('Failed to create staff record:', err);
+      alert('Error creating record: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setNewStaffSubmitting(false);
+    }
+  };
+
   // Menu items from reference image
 
   const referenceMenuItems = [
@@ -765,6 +862,16 @@ const Dashboard = () => {
 
     return (
       <div className="admin-page-container">
+        {/* Module Header Badge matching Reference Image */}
+        <div className="module-top-badge-wrapper">
+          <div className="module-top-badge">
+            <div className="module-top-badge-icon">
+              {activeTab === 'Staff' ? <Users size={16} /> : <FileText size={16} />}
+            </div>
+            <div className="module-top-badge-label">{activeTab}</div>
+          </div>
+        </div>
+
         {/* Subtabs Ribbon */}
         {currentConfig.subTabs.length > 1 && (
           <div className="admin-subtabs-ribbon">
@@ -807,7 +914,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Action Buttons */}
+        {/* Action Buttons: View Data / Add New */}
         <div className="admin-actions-bar">
           <button
             type="button"
@@ -825,9 +932,21 @@ const Dashboard = () => {
               'View Data'
             )}
           </button>
-          <span style={{ fontSize: '13px', color: '#94a3b8', marginLeft: '6px' }}>
-            Showing {paginatedModuleData.length} of {filteredModuleData.length} records
-          </span>
+          <button
+            type="button"
+            className="admin-action-btn"
+            onClick={() => {
+              setNewStaffName('');
+              setShowNewStaffModal(true);
+            }}
+          >
+            Add New
+          </button>
+          {staffSuccessToast && (
+            <span style={{ color: '#10b981', fontSize: '13px', fontWeight: '600', marginLeft: '10px' }}>
+              {staffSuccessToast}
+            </span>
+          )}
         </div>
 
         {/* Data Table Card */}
@@ -906,13 +1025,18 @@ const Dashboard = () => {
                   {activeCols.map(col => (
                     <th key={col.key}>{col.label}</th>
                   ))}
+                  <th>Edit</th>
+                  <th>Remove</th>
                 </tr>
               </thead>
               <tbody>
                 {moduleLoading ? (
                   <tr>
-                    <td colSpan={activeCols.length + 1} className="empty-cell">
-                      Loading {currentConfig.title} records...
+                    <td colSpan={activeCols.length + 3} className="admin-loading-cell">
+                      <div className="admin-table-loader-box">
+                        <div className="admin-spinner" />
+                        <p className="admin-loader-text">Loading {activeSub} records, please wait...</p>
+                      </div>
                     </td>
                   </tr>
                 ) : paginatedModuleData.length > 0 ? (
@@ -924,11 +1048,38 @@ const Dashboard = () => {
                           {String(row[col.key] ?? '-')}
                         </td>
                       ))}
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-icon-btn edit"
+                          title="Edit"
+                          onClick={() => {
+                            setNewStaffName(row.name || row.staffname || '');
+                            setShowNewStaffModal(true);
+                          }}
+                        >
+                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-icon-btn remove"
+                          title="Remove"
+                          onClick={() => handleDeleteStaffRecord(activeSub, row._id || row.id)}
+                        >
+                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={activeCols.length + 1} className="empty-cell">
+                    <td colSpan={activeCols.length + 3} className="empty-cell">
                       No data available in table
                     </td>
                   </tr>
@@ -972,6 +1123,56 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Add New Staff Modal */}
+        {showNewStaffModal && (
+          <div className="stage-modal-backdrop" onClick={() => setShowNewStaffModal(false)}>
+            <div className="stage-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+              <div className="stage-modal-header">
+                <h3>{activeSub === 'Designations' ? 'Designation' : `Add ${activeSub.replace(/_/g, ' ')}`}</h3>
+                <button
+                  type="button"
+                  className="stage-modal-close"
+                  onClick={() => setShowNewStaffModal(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <form onSubmit={handleCreateStaffRecord}>
+                <div className="stage-modal-body">
+                  <div className="stage-form-stack">
+                    <div className="stage-form-group">
+                      <label>{activeSub === 'Designations' ? 'Designation Name :' : 'Name :'}</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder={activeSub === 'Designations' ? 'e.g. BUS SUPERVISOR' : 'Enter Name'}
+                        value={newStaffName}
+                        onChange={(e) => setNewStaffName(e.target.value)}
+                      />
+                    </div>
+                    <div className="stage-modal-actions" style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                      <button
+                        type="submit"
+                        className="admin-action-btn"
+                        disabled={newStaffSubmitting}
+                      >
+                        {newStaffSubmitting ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        type="button"
+                        className="stage-btn-close"
+                        onClick={() => setShowNewStaffModal(false)}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1693,77 +1894,6 @@ const Dashboard = () => {
                   <div className="metric-single-center">
                     <div className="metric-stat-number" style={{ fontSize: '2.4rem' }}>{exceededTrips}</div>
                     <div className="metric-stat-label">Exceeded Trips</div>
-                  </div>
-                </div>
-              </section>
-
-              {/* CONTENT PART 3: Category Summary Badges from Left Side of Reference Image */}
-              <section className="kpi-cards-grid">
-                <div className="kpi-card">
-                  <div className="kpi-top">
-                    <span className="kpi-label">ADMIN SUMMARY</span>
-                    <span className="badge-purple">Transfers: {adminSummary.transfers}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Hand Overs:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{adminSummary.handOvers}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Issues:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{adminSummary.issues}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-top">
-                    <span className="kpi-label">STAFF SUMMARY</span>
-                    <span className="badge-purple">Total: {staffSummary.officeStaff + staffSummary.busStaff}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Office Staff:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{staffSummary.officeStaff}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Bus Staff:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{staffSummary.busStaff}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-top">
-                    <span className="kpi-label">VEHICLES SUMMARY</span>
-                    <span className="badge-purple">Active Fleet</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Branch Vehicle Info:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{vehiclesSummary.branchVehicleInfo}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Vehicle Accidents:</span>
-                      <strong style={{ color: '#f87171' }}>{vehiclesSummary.vehicleAccidents}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-top">
-                    <span className="kpi-label">FUELS & LICENSE</span>
-                    <span className="badge-purple">Operational</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Bus Fillings:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{fuelsSummary.busFillings}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>License Expired:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>0</strong>
-                    </div>
                   </div>
                 </div>
               </section>

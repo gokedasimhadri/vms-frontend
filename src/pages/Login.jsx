@@ -82,7 +82,7 @@ const Login = () => {
           letterSpacing: "0.5px",
           zIndex: 3
         }}>
-          Designed and developed by IT Application
+          Designed and developed by IT Applications
         </div>
         <div className="auth-card" style={{
           zIndex: 2,

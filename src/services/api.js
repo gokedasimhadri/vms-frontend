@@ -90,12 +90,23 @@ export const deleteAdminItem = async (type, id) => {
 };
 
 // Staff API
-export const getStaffData = async (type = 'bus', branch) => {
+export const getStaffData = async (type = 'Designations', branch) => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
   const response = await api.get('/staff', { params });
   return response.data;
 };
+
+export const createStaffItem = async (type, data) => {
+  const response = await api.post(`/staff/${type}`, data);
+  return response.data;
+};
+
+export const deleteStaffItem = async (type, id) => {
+  const response = await api.delete(`/staff/${type}/${id}`);
+  return response.data;
+};
+
 
 // Vehicles API
 export const getVehiclesData = async (type = 'branch', branch) => {
