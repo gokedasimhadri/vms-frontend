@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../services/api';
 
 const Login = () => {
@@ -79,10 +79,6 @@ const Login = () => {
             {isLoading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
-        
-        <div className="auth-footer">
-          Don't have an account? <Link to="/register">Create one now</Link>
-        </div>
       </div>
     </div>
   );
