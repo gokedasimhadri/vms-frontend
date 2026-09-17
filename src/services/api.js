@@ -9,6 +9,22 @@ const api = axios.create({
   },
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      if (user.username) config.headers['x-user-username'] = user.username;
+      if (user.branch) config.headers['x-user-branch'] = user.branch;
+    } catch (e) {}
+  }
+  return config;
+});
+
 export const loginUser = async (credentials) => {
   const response = await api.post('/login', credentials);
   return response.data;
@@ -25,10 +41,23 @@ export const getDashboardOverview = async (branch) => {
   return response.data;
 };
 
-export const getAdminData = async (type = 'stages', branch) => {
+export const getAdminData = async (type = 'stages', branch, username) => {
   const params = { type };
   if (branch && branch !== 'ALL') {
     params.branch = branch;
+  }
+  let userIdent = username;
+  if (!userIdent) {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const u = JSON.parse(userStr);
+        userIdent = u.username;
+      } catch (e) {}
+    }
+  }
+  if (userIdent) {
+    params.username = userIdent;
   }
   const response = await api.get('/dashboard/admin-data', { params });
   return response.data;
@@ -36,6 +65,22 @@ export const getAdminData = async (type = 'stages', branch) => {
 
 export const createStage = async (stageData) => {
   const response = await api.post('/dashboard/admin/stages', stageData);
+  return response.data;
+};
+
+export const getStageFormOptions = async (username) => {
+  let userIdent = username;
+  if (!userIdent) {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const u = JSON.parse(userStr);
+        userIdent = u.username;
+      } catch (e) {}
+    }
+  }
+  const params = userIdent ? { username: userIdent } : {};
+  const response = await api.get('/dashboard/admin/stage-form-options', { params });
   return response.data;
 };
 

@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Premium Dark Theme Colors */
-  --bg-primary: #0f1115;
-  --bg-secondary: #1a1c23;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
+  /* Premium Light Theme Colors */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
   
   --accent-primary: #0b5299; /* Aditya Blue */
   --accent-secondary: #d06C38; /* Aditya Orange */
@@ -16,10 +16,10 @@
   --error: #ef4444;
   --success: #10b981;
   
-  /* Glassmorphism Variables */
-  --glass-bg: rgba(26, 28, 35, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+  /* Light Card & Shadow Variables */
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: #e2e8f0;
+  --glass-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
   
   --font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
 }

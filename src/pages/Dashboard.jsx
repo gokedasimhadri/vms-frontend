@@ -5,6 +5,7 @@ import {
   getAdminData,
   createStage,
   deleteAdminItem,
+  getStageFormOptions,
   getStaffData,
   getVehiclesData,
   getCertificatesData,
@@ -322,13 +323,15 @@ const Dashboard = () => {
     society: 'ADITYA ACADEMY',
     branch: '',
     regno: '',
+    sequenceno: '',
     name: '',
-    sequenceno: '1',
-    amount: '6000',
-    students: '1'
+    amount: '',
+    students: ''
   });
   const [stageSubmitting, setStageSubmitting] = useState(false);
   const [stageSuccessToast, setStageSuccessToast] = useState('');
+  const [societiesList, setSocietiesList] = useState([]);
+  const [formBranchesList, setFormBranchesList] = useState([]);
 
   // Dynamic Sidebar Module States (Staff, Vehicles, Certificates, Fuels, etc.)
   const [moduleSubTab, setModuleSubTab] = useState('');
@@ -391,8 +394,8 @@ const Dashboard = () => {
     try {
       const typeKey = subTab === 'Stages' ? 'stages'
         : subTab === 'Routes' ? 'routes'
-        : subTab === 'Route_Details' ? 'route_details'
-        : 'transfers';
+          : subTab === 'Route_Details' ? 'route_details'
+            : 'transfers';
       const res = await getAdminData(typeKey, branch);
       setAdminData(res?.data || []);
       setAdminCurrentPage(1);
@@ -408,7 +411,7 @@ const Dashboard = () => {
     if (activeTab === 'Admin') {
       fetchAdminData(adminSubTab, selectedBranch);
     }
-  }, [activeTab, adminSubTab, selectedBranch]);
+  }, [activeTab, adminSubTab, selectedBranch, user]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -416,9 +419,33 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const branchesList = user?.branches && user.branches.length > 0
-    ? user.branches
-    : (user?.branch ? [user.branch] : []);
+  const loadStageFormOptions = async () => {
+    try {
+      const data = await getStageFormOptions(user?.username);
+      if (data) {
+        if (data.societies && data.societies.length > 0) {
+          setSocietiesList(data.societies);
+        }
+        if (data.branches && data.branches.length > 0) {
+          setFormBranchesList(data.branches);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading stage form options:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'Admin' || showNewStageModal) {
+      loadStageFormOptions();
+    }
+  }, [activeTab, showNewStageModal, user]);
+
+  const branchesList = formBranchesList.length > 0
+    ? formBranchesList
+    : (user?.branches && user.branches.length > 0
+      ? user.branches
+      : (user?.branch ? [user.branch] : []));
 
   // Content data from backend matching reference image
   const certAlerts = dashboardData?.certificateAlerts || { rta: 0, pollution: 2, fitness: 0, roadTax: 0, roadPermit: 0, insurance: 7 };
@@ -531,28 +558,41 @@ const Dashboard = () => {
 
   const handleCreateStage = async (e) => {
     e.preventDefault();
+    if (!stageFormData.branch) {
+      alert('Please select a Branch');
+      return;
+    }
+    if (!stageFormData.name.trim()) {
+      alert('Please enter a Stage Name');
+      return;
+    }
     setStageSubmitting(true);
     try {
       await createStage({
-        ...stageFormData,
-        branch: stageFormData.branch || (selectedBranch !== 'ALL' ? selectedBranch : 'ADITYA CAMPUS')
+        society: stageFormData.society || 'ADITYA ACADEMY',
+        branch: stageFormData.branch,
+        regno: (stageFormData.regno || '').trim().toUpperCase(),
+        sequenceno: (stageFormData.sequenceno || '').trim(),
+        name: (stageFormData.name || '').trim(),
+        amount: (stageFormData.amount || '0').trim(),
+        students: (stageFormData.students || '0').trim()
       });
       setShowNewStageModal(false);
       setStageFormData({
         society: 'ADITYA ACADEMY',
-        branch: selectedBranch !== 'ALL' ? selectedBranch : '',
+        branch: selectedBranch !== 'ALL' && selectedBranch !== 'College' ? selectedBranch : (branchesList[0] || ''),
         regno: '',
+        sequenceno: '',
         name: '',
-        sequenceno: '1',
-        amount: '6000',
-        students: '1'
+        amount: '',
+        students: ''
       });
-      setStageSuccessToast('New stage created successfully!');
+      setStageSuccessToast('Stage saved successfully!');
       setTimeout(() => setStageSuccessToast(''), 3000);
       fetchAdminData(adminSubTab, selectedBranch);
     } catch (err) {
       console.error('Failed to create stage:', err);
-      alert('Error creating stage. Please check inputs.');
+      alert('Error creating stage: ' + (err.response?.data?.message || err.message));
     } finally {
       setStageSubmitting(false);
     }
@@ -563,8 +603,8 @@ const Dashboard = () => {
     try {
       const typeKey = adminSubTab === 'Stages' ? 'stages'
         : adminSubTab === 'Routes' ? 'routes'
-        : adminSubTab === 'Route_Details' ? 'route_details'
-        : 'transfers';
+          : adminSubTab === 'Route_Details' ? 'route_details'
+            : 'transfers';
       await deleteAdminItem(typeKey, id);
       fetchAdminData(adminSubTab, selectedBranch);
     } catch (err) {
@@ -677,18 +717,6 @@ const Dashboard = () => {
 
     return (
       <div className="admin-page-container">
-        {/* Breadcrumb pill */}
-        <div className="admin-breadcrumb-wrapper">
-          <div className="admin-breadcrumb-badge">
-            <div className="admin-breadcrumb-icon">
-              <svg width="15" height="15" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="admin-breadcrumb-text">{currentConfig.title}</div>
-          </div>
-        </div>
-
         {/* Subtabs Ribbon */}
         {currentConfig.subTabs.length > 1 && (
           <div className="admin-subtabs-ribbon">
@@ -712,7 +740,7 @@ const Dashboard = () => {
                   className={`admin-ribbon-tab ${activeSub === tab.id ? 'active' : ''}`}
                   onClick={() => setModuleSubTab(tab.id)}
                 >
-                  {tab.label}
+                  <span>{tab.label}</span>
                 </button>
               ))}
             </div>
@@ -908,18 +936,28 @@ const Dashboard = () => {
 
 
       <div className="dashboard-grid-layout">
-        {/* ================= LEFT SIDEBAR (Existing Design, Reference Content) ================= */}
+        {/* ================= LEFT SIDEBAR (LIGHT MODE & INTERACTIVE) ================= */}
         <aside className={`sidebar-left ${mobileLeftOpen ? 'open' : ''}`}>
-          {/* Top Profile Header (Avatar AD + Name + Role) */}
+          {/* Top Blue Profile Header (Yellow Bus Logo + Brand Name + System Subtitle) */}
           <div className="sidebar-brand">
-            <div className="user-avatar-circle">
-              {user?.username ? user.username.slice(0, 2).toUpperCase() : 'AD'}
+            <div className="bus-logo-badge">
+              <img
+                src="/yellow_bus_logo.png"
+                alt="Vehicle Bus Logo"
+                className="bus-logo-img"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  if (e.target.parentNode) {
+                    e.target.parentNode.innerHTML = `<svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#fef08a" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8m-8 4h8m-9 8h10M5 3h14a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>`;
+                  }
+                }}
+              />
             </div>
-            <div className="user-text-details">
-              <span className="user-display-name" title={user?.name || user?.username || 'Admin User'}>
-                {user?.name || user?.username || 'Admin User'}
+            <div className="brand-text-wrapper">
+              <span className="brand-title" title="ADITYA DEGREE COLLEGE">
+                ADITYA DEGREE COLLEGE
               </span>
-              <span className="user-role-tag">{user?.role || 'BRANCH_ADMIN'}</span>
+              <span className="system-subtitle-tag">Vehicle Management System</span>
             </div>
           </div>
 
@@ -1018,18 +1056,6 @@ const Dashboard = () => {
           {activeTab === 'Admin' ? (
             /* ADMIN VIEW AS PER REFERENCE IMAGE */
             <div className="admin-page-container">
-              {/* Breadcrumb pill: [ 👤 | Admin ] */}
-              <div className="admin-breadcrumb-wrapper">
-                <div className="admin-breadcrumb-badge">
-                  <div className="admin-breadcrumb-icon">
-                    <svg width="15" height="15" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="admin-breadcrumb-text">Admin</div>
-                </div>
-              </div>
-
               {/* Subtabs Ribbon: [ ◀ ] [ Stages ] [ Routes ] [ Route_Details ] [ Transfers ] [ ▶ ] */}
               <div className="admin-subtabs-ribbon">
                 <button
@@ -1045,14 +1071,19 @@ const Dashboard = () => {
                   ◀
                 </button>
                 <div className="admin-ribbon-tabs">
-                  {['Stages', 'Routes', 'Route_Details', 'Transfers'].map((tab) => (
+                  {[
+                    { id: 'Stages', label: 'Stages' },
+                    { id: 'Routes', label: 'Routes' },
+                    { id: 'Route_Details', label: 'Route Details' },
+                    { id: 'Transfers', label: 'Transfers' },
+                  ].map((tab) => (
                     <button
-                      key={tab}
+                      key={tab.id}
                       type="button"
-                      className={`admin-ribbon-tab ${adminSubTab === tab ? 'active' : ''}`}
-                      onClick={() => setAdminSubTab(tab)}
+                      className={`admin-ribbon-tab ${adminSubTab === tab.id ? 'active' : ''}`}
+                      onClick={() => setAdminSubTab(tab.id)}
                     >
-                      {tab}
+                      <span>{tab.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1075,14 +1106,31 @@ const Dashboard = () => {
                 <button
                   type="button"
                   className="admin-action-btn"
+                  disabled={adminLoading}
                   onClick={() => fetchAdminData(adminSubTab, selectedBranch)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                 >
-                  View Data
+                  {adminLoading ? (
+                    <>
+                      <span className="btn-spinner" />
+                      <span>Loading...</span>
+                    </>
+                  ) : (
+                    'View Data'
+                  )}
                 </button>
                 <button
                   type="button"
                   className="admin-action-btn"
-                  onClick={() => setShowNewStageModal(true)}
+                  onClick={() => {
+                    loadStageFormOptions();
+                    setStageFormData(prev => ({
+                      ...prev,
+                      society: prev.society || (societiesList[0] || 'ADITYA ACADEMY'),
+                      branch: prev.branch || (selectedBranch !== 'ALL' && selectedBranch !== 'College' ? selectedBranch : (branchesList[0] || ''))
+                    }));
+                    setShowNewStageModal(true);
+                  }}
                 >
                   New {adminSubTab === 'Stages' ? 'Stage' : adminSubTab === 'Routes' ? 'Route' : adminSubTab === 'Transfers' ? 'Transfer' : 'Detail'}
                 </button>
@@ -1090,6 +1138,34 @@ const Dashboard = () => {
                   <span style={{ color: '#10b981', fontSize: '13px', fontWeight: '600', marginLeft: '10px' }}>
                     ✓ {stageSuccessToast}
                   </span>
+                )}
+                {branchesList.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Branch:</span>
+                    <select
+                      value={selectedBranch}
+                      onChange={(e) => {
+                        const newBranch = e.target.value;
+                        setSelectedBranch(newBranch);
+                        fetchAdminData(adminSubTab, newBranch);
+                      }}
+                      style={{
+                        background: '#141721',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#f8fafc',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '0.82rem',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="ALL">All Authorized Branches ({branchesList.length})</option>
+                      {branchesList.map((b, i) => (
+                        <option key={i} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
                 )}
               </div>
 
@@ -1218,8 +1294,11 @@ const Dashboard = () => {
                     <tbody>
                       {adminLoading ? (
                         <tr>
-                          <td colSpan="10" className="empty-cell">
-                            Loading {adminSubTab} records...
+                          <td colSpan="11" className="admin-loading-cell">
+                            <div className="admin-table-loader-box">
+                              <div className="admin-spinner" />
+                              <p className="admin-loader-text">Loading {adminSubTab} records, please wait...</p>
+                            </div>
                           </td>
                         </tr>
                       ) : paginatedAdminData.length > 0 ? (
@@ -1349,7 +1428,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* New Stage Modal */}
+              {/* Stage's Data Modal Popup matching reference */}
               {showNewStageModal && (
                 <div className="admin-modal-backdrop" onClick={() => setShowNewStageModal(false)}>
                   <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
@@ -1358,94 +1437,105 @@ const Dashboard = () => {
                       <button type="button" className="admin-modal-close-btn" onClick={() => setShowNewStageModal(false)}>×</button>
                     </div>
                     <form onSubmit={handleCreateStage}>
-                      <div className="admin-modal-body">
-                        <div className="admin-form-grid">
-                          <div className="admin-form-field">
+                      <div className="stage-modal-body">
+                        <div className="stage-form-stack">
+                          <div className="stage-form-group">
                             <label>Society</label>
-                            <input
-                              type="text"
+                            <select
                               required
                               value={stageFormData.society}
                               onChange={(e) => setStageFormData({ ...stageFormData, society: e.target.value })}
-                            />
+                            >
+                              {societiesList.length > 0 ? (
+                                societiesList.map((s, i) => (
+                                  <option key={i} value={s}>{s}</option>
+                                ))
+                              ) : (
+                                <>
+                                  <option value="ADITYA ACADEMY">ADITYA ACADEMY</option>
+                                  <option value="SAROJINI EDUCATIONAL SOCIETY">SAROJINI EDUCATIONAL SOCIETY</option>
+                                </>
+                              )}
+                            </select>
                           </div>
-                          <div className="admin-form-field">
-                            <label>Branch</label>
-                            <input
-                              type="text"
+
+                          <div className="stage-form-group">
+                            <label>Branch :</label>
+                            <select
                               required
-                              placeholder="e.g. G MAMIDADA SCHOOL-AA"
                               value={stageFormData.branch}
                               onChange={(e) => setStageFormData({ ...stageFormData, branch: e.target.value })}
-                            />
+                            >
+                              <option value="">Select Branch</option>
+                              {branchesList.map((b, i) => (
+                                <option key={i} value={b}>{b}</option>
+                              ))}
+                            </select>
                           </div>
-                          <div className="admin-form-field">
-                            <label>Vehicle Reg.No</label>
+
+                          <div className="stage-form-group">
+                            <label>Registration No :</label>
                             <input
                               type="text"
-                              required
-                              placeholder="e.g. AP05TA6816"
                               value={stageFormData.regno}
                               onChange={(e) => setStageFormData({ ...stageFormData, regno: e.target.value.toUpperCase() })}
                             />
                           </div>
-                          <div className="admin-form-field">
-                            <label>Stage Name</label>
+
+                          <div className="stage-form-group">
+                            <label>Stages Sequence NO :</label>
                             <input
                               type="text"
-                              required
-                              placeholder="e.g. MAIN ROAD JN"
-                              value={stageFormData.name}
-                              onChange={(e) => setStageFormData({ ...stageFormData, name: e.target.value })}
-                            />
-                          </div>
-                          <div className="admin-form-field">
-                            <label>Stages Sequence NO</label>
-                            <input
-                              type="number"
-                              min="1"
-                              required
                               value={stageFormData.sequenceno}
                               onChange={(e) => setStageFormData({ ...stageFormData, sequenceno: e.target.value })}
                             />
                           </div>
-                          <div className="admin-form-field">
-                            <label>Amount (₹)</label>
+
+                          <div className="stage-form-group">
+                            <label>Stage Name :</label>
                             <input
-                              type="number"
-                              min="0"
+                              type="text"
                               required
+                              value={stageFormData.name}
+                              onChange={(e) => setStageFormData({ ...stageFormData, name: e.target.value })}
+                            />
+                          </div>
+
+                          <div className="stage-form-group">
+                            <label>Amount :</label>
+                            <input
+                              type="text"
                               value={stageFormData.amount}
                               onChange={(e) => setStageFormData({ ...stageFormData, amount: e.target.value })}
                             />
                           </div>
-                          <div className="admin-form-field full-span">
-                            <label>No' of Students</label>
+
+                          <div className="stage-form-group">
+                            <label>No'of Students :</label>
                             <input
-                              type="number"
-                              min="0"
-                              required
+                              type="text"
                               value={stageFormData.students}
                               onChange={(e) => setStageFormData({ ...stageFormData, students: e.target.value })}
                             />
                           </div>
+
+                          <div className="stage-modal-actions">
+                            <button
+                              type="submit"
+                              className="stage-modal-btn-save"
+                              disabled={stageSubmitting}
+                            >
+                              {stageSubmitting ? 'saving...' : 'save'}
+                            </button>
+                            <button
+                              type="button"
+                              className="stage-modal-btn-close"
+                              onClick={() => setShowNewStageModal(false)}
+                            >
+                              Close
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="admin-modal-footer">
-                        <button
-                          type="button"
-                          className="admin-modal-btn-cancel"
-                          onClick={() => setShowNewStageModal(false)}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="admin-modal-btn-submit"
-                          disabled={stageSubmitting}
-                        >
-                          {stageSubmitting ? 'Saving...' : 'Save Stage'}
-                        </button>
                       </div>
                     </form>
                   </div>
