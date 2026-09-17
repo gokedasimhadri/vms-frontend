@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getDashboardOverview,
@@ -333,6 +333,12 @@ const Dashboard = () => {
   const [societiesList, setSocietiesList] = useState([]);
   const [formBranchesList, setFormBranchesList] = useState([]);
 
+  // In-memory data caches to prevent redundant server calls on tab switching
+  const overviewCacheRef = useRef({});
+  const adminCacheRef = useRef({});
+  const moduleCacheRef = useRef({});
+  const stageOptionsCacheRef = useRef(null);
+
   // Dynamic Sidebar Module States (Staff, Vehicles, Certificates, Fuels, etc.)
   const [moduleSubTab, setModuleSubTab] = useState('');
   const [moduleData, setModuleData] = useState([]);
@@ -376,10 +382,18 @@ const Dashboard = () => {
     fetchData(selectedBranch);
   }, [selectedBranch]);
 
-  const fetchData = async (branch) => {
+  const fetchData = async (branch, forceRefresh = false) => {
+    const cacheKey = branch || 'ALL';
+    if (!forceRefresh && overviewCacheRef.current[cacheKey]) {
+      setDashboardData(overviewCacheRef.current[cacheKey]);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const data = await getDashboardOverview(branch);
+      overviewCacheRef.current[cacheKey] = data;
       setDashboardData(data);
     } catch (err) {
       console.error('Error fetching dashboard overview:', err);
@@ -388,16 +402,26 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch admin data on tab change or branch change
-  const fetchAdminData = async (subTab, branch) => {
+  // Fetch admin data on tab change or branch change with in-memory caching
+  const fetchAdminData = async (subTab, branch, forceRefresh = false) => {
+    const cacheKey = `${subTab}_${branch || 'ALL'}`;
+    if (!forceRefresh && adminCacheRef.current[cacheKey]) {
+      setAdminData(adminCacheRef.current[cacheKey]);
+      setAdminCurrentPage(1);
+      setAdminLoading(false);
+      return;
+    }
+
     setAdminLoading(true);
     try {
       const typeKey = subTab === 'Stages' ? 'stages'
         : subTab === 'Routes' ? 'routes'
           : subTab === 'Route_Details' ? 'route_details'
             : 'transfers';
-      const res = await getAdminData(typeKey, branch);
-      setAdminData(res?.data || []);
+      const res = await getAdminData(typeKey, branch, user?.username);
+      const data = res?.data || [];
+      adminCacheRef.current[cacheKey] = data;
+      setAdminData(data);
       setAdminCurrentPage(1);
     } catch (err) {
       console.error('Error fetching admin data:', err);
@@ -419,10 +443,17 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const loadStageFormOptions = async () => {
+  const loadStageFormOptions = async (forceRefresh = false) => {
+    if (!forceRefresh && stageOptionsCacheRef.current) {
+      const cached = stageOptionsCacheRef.current;
+      if (cached.societies) setSocietiesList(cached.societies);
+      if (cached.branches) setFormBranchesList(cached.branches);
+      return;
+    }
     try {
       const data = await getStageFormOptions(user?.username);
       if (data) {
+        stageOptionsCacheRef.current = data;
         if (data.societies && data.societies.length > 0) {
           setSocietiesList(data.societies);
         }
@@ -589,7 +620,8 @@ const Dashboard = () => {
       });
       setStageSuccessToast('Stage saved successfully!');
       setTimeout(() => setStageSuccessToast(''), 3000);
-      fetchAdminData(adminSubTab, selectedBranch);
+      adminCacheRef.current = {};
+      fetchAdminData(adminSubTab, selectedBranch, true);
     } catch (err) {
       console.error('Failed to create stage:', err);
       alert('Error creating stage: ' + (err.response?.data?.message || err.message));
@@ -606,22 +638,34 @@ const Dashboard = () => {
           : adminSubTab === 'Route_Details' ? 'route_details'
             : 'transfers';
       await deleteAdminItem(typeKey, id);
-      fetchAdminData(adminSubTab, selectedBranch);
+      adminCacheRef.current = {};
+      fetchAdminData(adminSubTab, selectedBranch, true);
     } catch (err) {
       console.error('Error deleting record:', err);
       alert('Error deleting record.');
     }
   };
 
-  // Dynamic module fetching and handlers
-  const fetchModuleData = async (tabName, subTab, branch) => {
+  // Dynamic module fetching with in-memory caching
+  const fetchModuleData = async (tabName, subTab, branch, forceRefresh = false) => {
     const config = SIDEBAR_MODULE_CONFIG[tabName];
     if (!config) return;
+    const activeSub = subTab || config.subTabs[0].id;
+    const cacheKey = `${tabName}_${activeSub}_${branch || 'ALL'}`;
+
+    if (!forceRefresh && moduleCacheRef.current[cacheKey]) {
+      setModuleData(moduleCacheRef.current[cacheKey]);
+      setModuleCurrentPage(1);
+      setModuleLoading(false);
+      return;
+    }
+
     setModuleLoading(true);
     try {
-      const activeSub = subTab || config.subTabs[0].id;
       const res = await config.apiFn(activeSub, branch);
-      setModuleData(res?.data || []);
+      const data = res?.data || [];
+      moduleCacheRef.current[cacheKey] = data;
+      setModuleData(data);
       setModuleCurrentPage(1);
     } catch (err) {
       console.error(`Error fetching ${tabName} data:`, err);
@@ -764,9 +808,18 @@ const Dashboard = () => {
           <button
             type="button"
             className="admin-action-btn"
-            onClick={() => fetchModuleData(activeTab, activeSub, selectedBranch)}
+            disabled={moduleLoading}
+            onClick={() => fetchModuleData(activeTab, activeSub, selectedBranch, true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
           >
-            View Data
+            {moduleLoading ? (
+              <>
+                <span className="btn-spinner" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              'View Data'
+            )}
           </button>
           <span style={{ fontSize: '13px', color: '#94a3b8', marginLeft: '6px' }}>
             Showing {paginatedModuleData.length} of {filteredModuleData.length} records
@@ -1107,7 +1160,7 @@ const Dashboard = () => {
                   type="button"
                   className="admin-action-btn"
                   disabled={adminLoading}
-                  onClick={() => fetchAdminData(adminSubTab, selectedBranch)}
+                  onClick={() => fetchAdminData(adminSubTab, selectedBranch, true)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                 >
                   {adminLoading ? (
