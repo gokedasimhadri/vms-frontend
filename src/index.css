@@ -7,9 +7,11 @@
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   
-  --accent-primary: #6366f1; /* Indigo */
-  --accent-hover: #4f46e5;
-  --accent-glow: rgba(99, 102, 241, 0.5);
+  --accent-primary: #0b5299; /* Aditya Blue */
+  --accent-secondary: #d06C38; /* Aditya Orange */
+  --accent-hover: #083d73;
+  --accent-glow: rgba(11, 82, 153, 0.5);
+  --accent-gradient: linear-gradient(to right, #d06C38, #0b5299);
   
   --error: #ef4444;
   --success: #10b981;
