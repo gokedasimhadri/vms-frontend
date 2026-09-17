@@ -6,6 +6,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -28,33 +29,16 @@
     --radius: 0.5rem;
   }
  
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
-}
-
-@layer base {
   body {
     @apply text-foreground;
     background-color: var(--bg-primary);
+  }
+
+  /* Force all native selects and options to be light */
+  select, option {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    border: 1px solid #d1d5db !important;
   }
 }
 
@@ -65,11 +49,14 @@
   --text-primary: #0f172a;
   --text-secondary: #64748b;
   
-  --accent-primary: #0b5299; /* Aditya Blue */
-  --accent-secondary: #d06C38; /* Aditya Orange */
-  --accent-hover: #083d73;
+  --accent-primary: #0b5299; /* Brand Blue */
+  --accent-secondary: #d06c38; /* Brand Orange */
+  --accent-hover: #083d73; /* Darker Brand Blue */
   --accent-glow: rgba(11, 82, 153, 0.5);
-  --accent-gradient: linear-gradient(to right, #d06C38, #0b5299);
+  --accent-gradient: linear-gradient(to right, #d06c38, #0b5299);
+  
+  --brand-navy: #0d233b;
+  --brand-gold: #be9337;
   
   --error: #ef4444;
   --success: #10b981;
@@ -114,3 +101,6 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   letter-spacing: -0.025em;
 }
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, User, Users, Bus, FileText, Fuel, 
-  Droplet, Settings, Wrench, AlertTriangle, Battery, Disc, LogOut 
+import {
+  LayoutDashboard, User, Users, Bus, FileText, Fuel,
+  Droplet, Settings, Wrench, AlertTriangle, Battery, Disc, LogOut,
+  Layers, MapPin, ListTodo, ArrowLeftRight, Menu, Bell, HelpCircle, ChevronRight
 } from 'lucide-react';
+import CustomTabs from '../components/CustomTabs';
+import Sidebar from '../components/Sidebar';
+import Header from '../components/Header';
+import MainLayout from '../components/MainLayout';
 import {
   getDashboardOverview,
   getAdminData,
@@ -695,22 +700,7 @@ const Dashboard = () => {
 
   // Menu items from reference image
 
-  const referenceMenuItems = [
-    { id: 'Dashboard', label: 'Dashboard', icon: 'speedometer' },
-    { id: 'Admin', label: 'Admin', icon: 'user' },
-    { id: 'Staff', label: 'Staff', icon: 'users' },
-    { id: 'Vehicles', label: 'Vehicles', icon: 'bus' },
-    { id: 'Certificates', label: 'Certificates', icon: 'file' },
-    { id: 'Fuels', label: 'Fuels', icon: 'fuel' },
-    { id: 'Ad-Blue', label: 'Ad-Blue', icon: 'droplet' },
-    { id: 'Services', label: 'Services', icon: 'gear' },
-    { id: 'Repair Bills', label: 'Repair Bills', icon: 'wrench' },
-    { id: 'Bus Breakdown', label: 'Bus Breakdown', icon: 'alert' },
-    { id: 'Batteries', label: 'Batteries', icon: 'battery' },
-    { id: 'Vehicle Tyres', label: 'Vehicle Tyres', icon: 'disc' },
-  ];
-
-
+  // Menu items extracted to Sidebar component
   const renderSidebarModuleView = () => {
     const currentConfig = SIDEBAR_MODULE_CONFIG[activeTab];
     if (!currentConfig) return null;
@@ -723,43 +713,12 @@ const Dashboard = () => {
       <div className="admin-page-container">
         {/* Subtabs Ribbon */}
         {currentConfig.subTabs.length > 1 && (
-          <div className="admin-subtabs-ribbon">
-            <button
-              type="button"
-              className="admin-ribbon-arrow"
-              title="Previous Tab"
-              onClick={() => {
-                const tabs = currentConfig.subTabs;
-                const idx = tabs.findIndex(s => s.id === activeSub);
-                setModuleSubTab(tabs[(idx - 1 + tabs.length) % tabs.length].id);
-              }}
-            >
-              ◀
-            </button>
-            <div className="admin-ribbon-tabs">
-              {currentConfig.subTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`admin-ribbon-tab ${activeSub === tab.id ? 'active' : ''}`}
-                  onClick={() => setModuleSubTab(tab.id)}
-                >
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="admin-ribbon-arrow"
-              title="Next Tab"
-              onClick={() => {
-                const tabs = currentConfig.subTabs;
-                const idx = tabs.findIndex(s => s.id === activeSub);
-                setModuleSubTab(tabs[(idx + 1) % tabs.length].id);
-              }}
-            >
-              ▶
-            </button>
+          <div className="flex justify-center mb-6 mt-4">
+            <CustomTabs
+              activeTab={activeSub}
+              onChange={(id) => setModuleSubTab(id)}
+              tabs={currentConfig.subTabs}
+            />
           </div>
         )}
 
@@ -939,807 +898,140 @@ const Dashboard = () => {
       </div>
 
 
-      <div className="dashboard-grid-layout">
-        {/* ================= LEFT SIDEBAR (LIGHT MODE & INTERACTIVE) ================= */}
-        <aside className={`sidebar-left ${mobileLeftOpen ? 'open' : ''}`}>
-          {/* Top Blue Profile Header (Yellow Bus Logo + Brand Name + System Subtitle) */}
-          <div className="sidebar-brand">
-            <div className="bus-logo-badge">
-              <img
-                src="/yellow_bus_logo.png"
-                alt="Vehicle Bus Logo"
-                className="bus-logo-img"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  if (e.target.parentNode) {
-                    e.target.parentNode.innerHTML = `<svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#fef08a" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8m-8 4h8m-9 8h10M5 3h14a2 2 0 012 2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>`;
-                  }
-                }}
-              />
-            </div>
-            <div className="brand-text-wrapper">
-              <span className="brand-title" title="ADITYA DEGREE COLLEGE">
-                ADITYA DEGREE COLLEGE
-              </span>
-              <span className="system-subtitle-tag">Vehicle Management System</span>
-            </div>
-          </div>
-
-          <div className="sidebar-section">
-            <span className="sidebar-heading">MAIN MENU</span>
-            <nav className="nav-menu">
-              {referenceMenuItems.map(item => {
-                const IconComponent = {
-                  speedometer: LayoutDashboard,
-                  user: User,
-                  users: Users,
-                  bus: Bus,
-                  file: FileText,
-                  fuel: Fuel,
-                  droplet: Droplet,
-                  gear: Settings,
-                  wrench: Wrench,
-                  alert: AlertTriangle,
-                  battery: Battery,
-                  disc: Disc
-                }[item.icon];
-
-                return (
-                  <button
-                    key={item.id}
-                    className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                    onClick={() => { setActiveTab(item.id); setMobileLeftOpen(false); }}
-                  >
-                    <span className="nav-icon-wrapper">
-                      {IconComponent && <IconComponent size={18} />}
-                    </span>
-                    <span>{item.label}</span>
-                    {item.id === 'Staff' && <span className="nav-count">{staffSummary.busStaff}</span>}
-                    {item.id === 'Vehicles' && <span className="nav-count">{vehiclesSummary.branchVehicleInfo}</span>}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          <div className="sidebar-footer">
-            <button className="sidebar-logout-btn" onClick={handleLogout} title="Sign Out">
-              <LogOut size={18} />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </aside>
-
-        {/* ================= MAIN DASHBOARD CENTER ================= */}
-        <main className="dashboard-main-content">
-          {activeTab === 'Admin' ? (
-            /* ADMIN VIEW AS PER REFERENCE IMAGE */
-            <div className="admin-page-container">
-              {/* Subtabs Ribbon: [ ◀ ] [ Stages ] [ Routes ] [ Route_Details ] [ Transfers ] [ ▶ ] */}
-              <div className="admin-subtabs-ribbon">
-                <button
-                  type="button"
-                  className="admin-ribbon-arrow"
-                  title="Previous Tab"
-                  onClick={() => {
-                    const tabs = ['Stages', 'Routes', 'Route_Details', 'Transfers'];
-                    const idx = tabs.indexOf(adminSubTab);
-                    setAdminSubTab(tabs[(idx - 1 + tabs.length) % tabs.length]);
-                  }}
-                >
-                  ◀
-                </button>
-                <div className="admin-ribbon-tabs">
-                  {[
-                    { id: 'Stages', label: 'Stages' },
-                    { id: 'Routes', label: 'Routes' },
-                    { id: 'Route_Details', label: 'Route Details' },
-                    { id: 'Transfers', label: 'Transfers' },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      className={`admin-ribbon-tab ${adminSubTab === tab.id ? 'active' : ''}`}
-                      onClick={() => setAdminSubTab(tab.id)}
-                    >
-                      <span>{tab.label}</span>
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  className="admin-ribbon-arrow"
-                  title="Next Tab"
-                  onClick={() => {
-                    const tabs = ['Stages', 'Routes', 'Route_Details', 'Transfers'];
-                    const idx = tabs.indexOf(adminSubTab);
-                    setAdminSubTab(tabs[(idx + 1) % tabs.length]);
-                  }}
-                >
-                  ▶
-                </button>
-              </div>
-
-              {/* Action Buttons: [ View Data ] [ New Stage ] */}
-              <div className="admin-actions-bar">
-                <button
-                  type="button"
-                  className="admin-action-btn"
-                  disabled={adminLoading}
-                  onClick={() => fetchAdminData(adminSubTab, selectedBranch)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                >
-                  {adminLoading ? (
-                    <>
-                      <span className="btn-spinner" />
-                      <span>Loading...</span>
-                    </>
-                  ) : (
-                    'View Data'
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="admin-action-btn"
-                  onClick={() => {
-                    loadStageFormOptions();
-                    setStageFormData(prev => ({
-                      ...prev,
-                      society: prev.society || (societiesList[0] || 'ADITYA ACADEMY'),
-                      branch: prev.branch || (selectedBranch !== 'ALL' && selectedBranch !== 'College' ? selectedBranch : (branchesList[0] || ''))
-                    }));
-                    setShowNewStageModal(true);
-                  }}
-                >
-                  New {adminSubTab === 'Stages' ? 'Stage' : adminSubTab === 'Routes' ? 'Route' : adminSubTab === 'Transfers' ? 'Transfer' : 'Detail'}
-                </button>
-                {stageSuccessToast && (
-                  <span style={{ color: '#10b981', fontSize: '13px', fontWeight: '600', marginLeft: '10px' }}>
-                    ✓ {stageSuccessToast}
-                  </span>
-                )}
-                {branchesList.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-                    <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Branch:</span>
-                    <select
-                      value={selectedBranch}
-                      onChange={(e) => {
-                        const newBranch = e.target.value;
-                        setSelectedBranch(newBranch);
-                        fetchAdminData(adminSubTab, newBranch);
-                      }}
-                      style={{
-                        background: '#141721',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#f8fafc',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        fontSize: '0.82rem',
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="ALL">All Authorized Branches ({branchesList.length})</option>
-                      {branchesList.map((b, i) => (
-                        <option key={i} value={b}>{b}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {/* Data Table Card matching reference image */}
-              <div className="admin-table-card">
-                <div className="admin-table-toolbar">
-                  {/* Export Buttons */}
-                  <div className="admin-export-group">
-                    <button type="button" className="admin-export-btn" onClick={handleCopyAdminTable} title="Copy to clipboard">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                      Copy
-                    </button>
-                    <button type="button" className="admin-export-btn" onClick={handlePrintAdminTable} title="Print table">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                      Print
-                    </button>
-                    <button type="button" className="admin-export-btn" onClick={handleExportAdminCSV} title="Export CSV">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                      csv
-                    </button>
-                    <button type="button" className="admin-export-btn" onClick={handleExportAdminCSV} title="Export PDF">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                      pdf
-                    </button>
-                    <button type="button" className="admin-export-btn" onClick={handleExportAdminCSV} title="Export Excel">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                      Excel
-                    </button>
-                    {adminCopiedNotification && (
-                      <span className="admin-toast-feedback">Copied!</span>
-                    )}
-                  </div>
-
-                  {/* Entries control */}
-                  <div className="admin-entries-control">
-                    <span>Show</span>
-                    <select
-                      value={adminEntriesPerPage}
-                      onChange={(e) => {
-                        setAdminEntriesPerPage(Number(e.target.value));
-                        setAdminCurrentPage(1);
-                      }}
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                    <span>entries</span>
-                  </div>
-
-                  {/* Search */}
-                  <div className="admin-search-control">
-                    <label>Search:</label>
-                    <input
-                      type="text"
-                      value={adminSearchQuery}
-                      onChange={(e) => {
-                        setAdminSearchQuery(e.target.value);
-                        setAdminCurrentPage(1);
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Table responsive */}
-                <div className="admin-table-responsive">
-                  <table className="admin-data-table">
-                    <thead>
-                      {adminSubTab === 'Stages' && (
-                        <tr>
-                          <th className="sortable">▴ S.No</th>
-                          <th>Society</th>
-                          <th>Branch</th>
-                          <th>Vehicle Reg.No</th>
-                          <th>Stage Name</th>
-                          <th>Stages Sequence NO</th>
-                          <th>Amount</th>
-                          <th>No'of Students</th>
-                          <th>Edit</th>
-                          <th>Remove</th>
-                        </tr>
-                      )}
-                      {adminSubTab === 'Routes' && (
-                        <tr>
-                          <th className="sortable">▴ S.No</th>
-                          <th>Society</th>
-                          <th>Branch</th>
-                          <th>Route Name</th>
-                          <th>Distance</th>
-                          <th>Vehicle Reg.No</th>
-                          <th>Edit</th>
-                          <th>Remove</th>
-                        </tr>
-                      )}
-                      {adminSubTab === 'Route_Details' && (
-                        <tr>
-                          <th className="sortable">▴ S.No</th>
-                          <th>Society</th>
-                          <th>Branch</th>
-                          <th>Route Name</th>
-                          <th>Start Point</th>
-                          <th>Distance</th>
-                          <th>Vehicle Reg.No</th>
-                          <th>Start Time</th>
-                          <th>Edit</th>
-                          <th>Remove</th>
-                        </tr>
-                      )}
-                      {adminSubTab === 'Transfers' && (
-                        <tr>
-                          <th className="sortable">▴ S.No</th>
-                          <th>Society</th>
-                          <th>Branch</th>
-                          <th>Make</th>
-                          <th>Model</th>
-                          <th>Vehicle Reg.No</th>
-                          <th>Transfer Branch</th>
-                          <th>Transfer Date</th>
-                          <th>CMR</th>
-                          <th>Edit</th>
-                          <th>Remove</th>
-                        </tr>
-                      )}
-                    </thead>
-                    <tbody>
-                      {adminLoading ? (
-                        <tr>
-                          <td colSpan="11" className="admin-loading-cell">
-                            <div className="admin-table-loader-box">
-                              <div className="admin-spinner" />
-                              <p className="admin-loader-text">Loading {adminSubTab} records, please wait...</p>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : paginatedAdminData.length > 0 ? (
-                        paginatedAdminData.map((row, idx) => (
-                          <tr key={row.id || idx}>
-                            <td>{(adminCurrentPage - 1) * adminEntriesPerPage + idx + 1}</td>
-                            <td>{row.society || '-'}</td>
-                            <td>{row.branch || '-'}</td>
-                            {adminSubTab === 'Stages' && (
-                              <>
-                                <td><strong>{row.regno || '-'}</strong></td>
-                                <td>{row.name || '-'}</td>
-                                <td>{row.sequenceno || '-'}</td>
-                                <td>{row.amount || '0'}</td>
-                                <td>{row.students || '0'}</td>
-                              </>
-                            )}
-                            {adminSubTab === 'Routes' && (
-                              <>
-                                <td><strong>{row.routename || '-'}</strong></td>
-                                <td>{row.distance || '0'}</td>
-                                <td>{row.routeregno || '-'}</td>
-                              </>
-                            )}
-                            {adminSubTab === 'Route_Details' && (
-                              <>
-                                <td><strong>{row.routename || '-'}</strong></td>
-                                <td>{row.startpoint || '-'}</td>
-                                <td>{row.distance || '0'}</td>
-                                <td>{row.regno || '-'}</td>
-                                <td>{row.starttime || '-'}</td>
-                              </>
-                            )}
-                            {adminSubTab === 'Transfers' && (
-                              <>
-                                <td>{row.make || '-'}</td>
-                                <td>{row.model || '-'}</td>
-                                <td><strong>{row.regno || '-'}</strong></td>
-                                <td>{row.transferbranch || '-'}</td>
-                                <td>{row.transferdate || '-'}</td>
-                                <td>{row.cmr || '-'}</td>
-                              </>
-                            )}
-                            <td>
-                              <button
-                                type="button"
-                                className="admin-icon-btn edit"
-                                title="Edit"
-                                onClick={() => {
-                                  if (adminSubTab === 'Stages') {
-                                    setStageFormData({
-                                      society: row.society || 'ADITYA ACADEMY',
-                                      branch: row.branch || '',
-                                      regno: row.regno || '',
-                                      name: row.name || '',
-                                      sequenceno: row.sequenceno || '1',
-                                      amount: row.amount || '6000',
-                                      students: row.students || '1'
-                                    });
-                                    setShowNewStageModal(true);
-                                  }
-                                }}
-                              >
-                                <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                            </td>
-                            <td>
-                              <button
-                                type="button"
-                                className="admin-icon-btn remove"
-                                title="Remove"
-                                onClick={() => handleDeleteAdminRecord(row.id)}
-                              >
-                                <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="10" className="empty-cell">
-                            No data available in table
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Table Footer */}
-                <div className="admin-table-footer">
-                  <div>
-                    Showing {filteredAdminData.length === 0 ? 0 : (adminCurrentPage - 1) * adminEntriesPerPage + 1} to {Math.min(adminCurrentPage * adminEntriesPerPage, filteredAdminData.length)} of {filteredAdminData.length} entries
-                  </div>
-                  <div className="admin-pagination-group">
-                    <button
-                      type="button"
-                      className="admin-pbtn"
-                      disabled={adminCurrentPage === 1}
-                      onClick={() => setAdminCurrentPage(p => Math.max(1, p - 1))}
-                    >
-                      Previous
-                    </button>
-                    {Array.from({ length: Math.min(5, totalAdminPages) }, (_, i) => i + 1).map(num => (
-                      <button
-                        key={num}
-                        type="button"
-                        className={`admin-pbtn ${adminCurrentPage === num ? 'active' : ''}`}
-                        onClick={() => setAdminCurrentPage(num)}
-                      >
-                        {num}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className="admin-pbtn"
-                      disabled={adminCurrentPage >= totalAdminPages}
-                      onClick={() => setAdminCurrentPage(p => Math.min(totalAdminPages, p + 1))}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stage's Data Modal Popup matching reference */}
-              {showNewStageModal && (
-                <div className="admin-modal-backdrop" onClick={() => setShowNewStageModal(false)}>
-                  <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
-                    <div className="admin-modal-header">
-                      <h3>Add New Stage</h3>
-                      <button type="button" className="admin-modal-close-btn" onClick={() => setShowNewStageModal(false)}>×</button>
-                    </div>
-                    <form onSubmit={handleCreateStage}>
-                      <div className="stage-modal-body">
-                        <div className="stage-form-stack">
-                          <div className="stage-form-group">
-                            <label>Society</label>
-                            <select
-                              required
-                              value={stageFormData.society}
-                              onChange={(e) => setStageFormData({ ...stageFormData, society: e.target.value })}
-                            >
-                              {societiesList.length > 0 ? (
-                                societiesList.map((s, i) => (
-                                  <option key={i} value={s}>{s}</option>
-                                ))
-                              ) : (
-                                <>
-                                  <option value="ADITYA ACADEMY">ADITYA ACADEMY</option>
-                                  <option value="SAROJINI EDUCATIONAL SOCIETY">SAROJINI EDUCATIONAL SOCIETY</option>
-                                </>
-                              )}
-                            </select>
-                          </div>
-
-                          <div className="stage-form-group">
-                            <label>Branch :</label>
-                            <select
-                              required
-                              value={stageFormData.branch}
-                              onChange={(e) => setStageFormData({ ...stageFormData, branch: e.target.value })}
-                            >
-                              <option value="">Select Branch</option>
-                              {branchesList.map((b, i) => (
-                                <option key={i} value={b}>{b}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="stage-form-group">
-                            <label>Registration No :</label>
-                            <input
-                              type="text"
-                              value={stageFormData.regno}
-                              onChange={(e) => setStageFormData({ ...stageFormData, regno: e.target.value.toUpperCase() })}
-                            />
-                          </div>
-
-                          <div className="stage-form-group">
-                            <label>Stages Sequence NO :</label>
-                            <input
-                              type="text"
-                              value={stageFormData.sequenceno}
-                              onChange={(e) => setStageFormData({ ...stageFormData, sequenceno: e.target.value })}
-                            />
-                          </div>
-
-                          <div className="stage-form-group">
-                            <label>Stage Name :</label>
-                            <input
-                              type="text"
-                              required
-                              value={stageFormData.name}
-                              onChange={(e) => setStageFormData({ ...stageFormData, name: e.target.value })}
-                            />
-                          </div>
-
-                          <div className="stage-form-group">
-                            <label>Amount :</label>
-                            <input
-                              type="text"
-                              value={stageFormData.amount}
-                              onChange={(e) => setStageFormData({ ...stageFormData, amount: e.target.value })}
-                            />
-                          </div>
-
-                          <div className="stage-form-group">
-                            <label>No'of Students :</label>
-                            <input
-                              type="text"
-                              value={stageFormData.students}
-                              onChange={(e) => setStageFormData({ ...stageFormData, students: e.target.value })}
-                            />
-                          </div>
-
-                          <div className="stage-modal-actions">
-                            <button
-                              type="submit"
-                              className="stage-modal-btn-save"
-                              disabled={stageSubmitting}
-                            >
-                              {stageSubmitting ? 'saving...' : 'save'}
-                            </button>
-                            <button
-                              type="button"
-                              className="stage-modal-btn-close"
-                              onClick={() => setShowNewStageModal(false)}
-                            >
-                              Close
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : SIDEBAR_MODULE_CONFIG[activeTab] ? (
-            renderSidebarModuleView()
-          ) : (
-            /* DASHBOARD OVERVIEW CONTENT */
-            <>
-              <header className="dashboard-topbar">
-
-                <div className="topbar-search-box">
-                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Search services, vehicle no, branch..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+      <MainLayout
+        mobileLeftOpen={mobileLeftOpen}
+        setMobileLeftOpen={setMobileLeftOpen}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        staffSummary={staffSummary}
+        vehiclesSummary={vehiclesSummary}
+        user={user}
+        handleLogout={handleLogout}
+      >
+            {activeTab === 'Admin' ? (
+              /* ADMIN VIEW AS PER REFERENCE IMAGE */
+              <div className="admin-page-container">
+                {/* Subtabs Ribbon: [ ◀ ] [ Stages ] [ Routes ] [ Route_Details ] [ Transfers ] [ ▶ ] */}
+                <div className="flex justify-center mb-6 mt-4">
+                  <CustomTabs
+                    activeTab={adminSubTab}
+                    onChange={setAdminSubTab}
+                    tabs={[
+                      { id: 'Stages', label: 'Stages', icon: Layers },
+                      { id: 'Routes', label: 'Routes', icon: MapPin },
+                      { id: 'Route_Details', label: 'Route Details', icon: ListTodo },
+                      { id: 'Transfers', label: 'Transfers', icon: ArrowLeftRight },
+                    ]}
                   />
                 </div>
-                {branchesList.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.82rem', color: '#64748b' }}>Branch:</span>
-                    <select
-                      value={selectedBranch}
-                      onChange={(e) => setSelectedBranch(e.target.value)}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: '#334155',
-                        padding: '8px 14px',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="ALL">All Authorized Branches ({branchesList.length})</option>
-                      {branchesList.map((b, i) => (
-                        <option key={i} value={b}>{b}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </header>
 
-
-              {/* Welcome Banner Card */}
-              <section className="welcome-banner-card">
-                <div className="welcome-left">
-                  <h1>Welcome, {user?.name || user?.username || 'Fleet Administrator'}</h1>
-                  <p>
-                    Active Branch: <strong className="highlight-tag">{selectedBranch === 'ALL' ? 'All Aditya Branches' : selectedBranch}</strong>
-                    {' '}• Vehicle Management System Matrix
-                  </p>
-                </div>
-                <div className="welcome-right">
-                  <div className="quick-meta-pill">
-                    <span>Role:</span>
-                    <span className="badge-purple">{user?.role || 'BRANCH_ADMIN'}</span>
-                  </div>
-                </div>
-              </section>
-
-              {/* CONTENT PART 1: Certificate(Alerts) - 6 Metrics Grid */}
-              <section className="content-card-panel full-width">
-                <div className="panel-header">
-                  <div>
-                    <h3>Certificate(Alerts)</h3>
-                    <p className="panel-sub">RTA inspections and vehicle compliance alerts</p>
-                  </div>
-                </div>
-                <div className="metrics-grid-6">
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.rta}</div>
-                    <div className="metric-stat-label">RTA</div>
-                  </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.pollution}</div>
-                    <div className="metric-stat-label">Pollution</div>
-                  </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.fitness}</div>
-                    <div className="metric-stat-label">Fitness</div>
-                  </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.roadTax}</div>
-                    <div className="metric-stat-label">Road Tax</div>
-                  </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.roadPermit}</div>
-                    <div className="metric-stat-label">Road Permit</div>
-                  </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.insurance}</div>
-                    <div className="metric-stat-label">Insurance</div>
-                  </div>
-                </div>
-              </section>
-
-              {/* CONTENT PART 2: KMPL PERFORMANCE & EXCEEDED TRIPS (2 Columns Split) */}
-              <section className="dashboard-content-split">
-                {/* KMPL PERFORMANCE- Grade Wise */}
-                <div className="content-card-panel flex-2">
-                  <div className="panel-header">
-                    <div>
-                      <h3>KMPL PERFORMANCE- Grade Wise</h3>
-                      <p className="panel-sub">Fuel economy grade distribution</p>
+                {/* Action Buttons: [ View Data ] [ New Stage ] */}
+                <div className="admin-actions-bar">
+                  <button
+                    type="button"
+                    className="admin-action-btn"
+                    disabled={adminLoading}
+                    onClick={() => fetchAdminData(adminSubTab, selectedBranch)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    {adminLoading ? (
+                      <>
+                        <span className="btn-spinner" />
+                        <span>Loading...</span>
+                      </>
+                    ) : (
+                      'View Data'
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-action-btn"
+                    onClick={() => {
+                      loadStageFormOptions();
+                      setStageFormData(prev => ({
+                        ...prev,
+                        society: prev.society || (societiesList[0] || 'ADITYA ACADEMY'),
+                        branch: prev.branch || (selectedBranch !== 'ALL' && selectedBranch !== 'College' ? selectedBranch : (branchesList[0] || ''))
+                      }));
+                      setShowNewStageModal(true);
+                    }}
+                  >
+                    New {adminSubTab === 'Stages' ? 'Stage' : adminSubTab === 'Routes' ? 'Route' : adminSubTab === 'Transfers' ? 'Transfer' : 'Detail'}
+                  </button>
+                  {stageSuccessToast && (
+                    <span style={{ color: '#10b981', fontSize: '13px', fontWeight: '600', marginLeft: '10px' }}>
+                      ✓ {stageSuccessToast}
+                    </span>
+                  )}
+                  {branchesList.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Branch:</span>
+                      <select
+                        value={selectedBranch}
+                        onChange={(e) => {
+                          const newBranch = e.target.value;
+                          setSelectedBranch(newBranch);
+                          fetchAdminData(adminSubTab, newBranch);
+                        }}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          color: '#334155',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          fontSize: '0.82rem',
+                          outline: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="ALL">All Authorized Branches ({branchesList.length})</option>
+                        {branchesList.map((b, i) => (
+                          <option key={i} value={b}>{b}</option>
+                        ))}
+                      </select>
                     </div>
-                  </div>
-                  <div className="metrics-grid-4">
-                    <div className="metric-stat-item">
-                      <div className="metric-stat-number">{kmpl.aGrade}</div>
-                      <div className="metric-stat-label">A Grade</div>
-                    </div>
-                    <div className="metric-stat-item">
-                      <div className="metric-stat-number">{kmpl.bGrade}</div>
-                      <div className="metric-stat-label">B Grade</div>
-                    </div>
-                    <div className="metric-stat-item">
-                      <div className="metric-stat-number">{kmpl.cGrade}</div>
-                      <div className="metric-stat-label">C Grade</div>
-                    </div>
-                    <div className="metric-stat-item">
-                      <div className="metric-stat-number">{kmpl.dGrade}</div>
-                      <div className="metric-stat-label">D Grade</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Exceeded Vehicle Trips */}
-                <div className="content-card-panel flex-1">
-                  <div className="panel-header">
-                    <div>
-                      <h3>Exceeded Vehicle Trips</h3>
-                      <p className="panel-sub">Route threshold exceedance</p>
-                    </div>
-                  </div>
-                  <div className="metric-single-center">
-                    <div className="metric-stat-number" style={{ fontSize: '2.4rem' }}>{exceededTrips}</div>
-                    <div className="metric-stat-label">Exceeded Trips</div>
-                  </div>
-                </div>
-              </section>
-
-              {/* CONTENT PART 3: Category Summary Badges from Left Side of Reference Image */}
-              <section className="kpi-cards-grid">
-                <div className="kpi-card">
-                  <div className="kpi-top">
-                    <span className="kpi-label">ADMIN SUMMARY</span>
-                    <span className="badge-purple">Transfers: {adminSummary.transfers}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Hand Overs:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{adminSummary.handOvers}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Issues:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{adminSummary.issues}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-top">
-                    <span className="kpi-label">STAFF SUMMARY</span>
-                    <span className="badge-purple">Total: {staffSummary.officeStaff + staffSummary.busStaff}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Office Staff:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{staffSummary.officeStaff}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Bus Staff:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{staffSummary.busStaff}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-top">
-                    <span className="kpi-label">VEHICLES SUMMARY</span>
-                    <span className="badge-purple">Active Fleet</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Branch Vehicle Info:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{vehiclesSummary.branchVehicleInfo}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Vehicle Accidents:</span>
-                      <strong style={{ color: '#f87171' }}>{vehiclesSummary.vehicleAccidents}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-top">
-                    <span className="kpi-label">FUELS & LICENSE</span>
-                    <span className="badge-purple">Operational</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Bus Fillings:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>{fuelsSummary.busFillings}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>License Expired:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>0</strong>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* CONTENT PART 4: Vehicle Services Data Table (From Reference Image 2) */}
-              <section className="content-card-panel full-width">
-                <div className="panel-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
-                  <div>
-                    <h3>Vehicle Services</h3>
-                    <p className="panel-sub">Complete vehicle maintenance, servicing parts, and meter readings</p>
-                  </div>
-
-                  {/* Table Toolbar */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', gap: '4px', position: 'relative' }}>
-                      <button className="export-btn" onClick={handleCopyTable}>Copy</button>
-                      <button className="export-btn" onClick={handlePrint}>Print</button>
-                      <button className="export-btn" onClick={handleExportCSV}>csv</button>
-                      <button className="export-btn" onClick={handleExportCSV}>pdf</button>
-                      <button className="export-btn" onClick={handleExportCSV}>Excel</button>
-                      {copiedNotification && <span className="copy-toast">Copied!</span>}
+                {/* Data Table Card matching reference image */}
+                <div className="admin-table-card">
+                  <div className="admin-table-toolbar">
+                    {/* Export Buttons */}
+                    <div className="admin-export-group">
+                      <button type="button" className="admin-export-btn" onClick={handleCopyAdminTable} title="Copy to clipboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Copy
+                      </button>
+                      <button type="button" className="admin-export-btn" onClick={handlePrintAdminTable} title="Print table">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        Print
+                      </button>
+                      <button type="button" className="admin-export-btn" onClick={handleExportAdminCSV} title="Export CSV">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        csv
+                      </button>
+                      <button type="button" className="admin-export-btn" onClick={handleExportAdminCSV} title="Export PDF">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        pdf
+                      </button>
+                      <button type="button" className="admin-export-btn" onClick={handleExportAdminCSV} title="Export Excel">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                        Excel
+                      </button>
+                      {adminCopiedNotification && (
+                        <span className="admin-toast-feedback">Copied!</span>
+                      )}
                     </div>
 
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {/* Entries control */}
+                    <div className="admin-entries-control">
                       <span>Show</span>
                       <select
-                        style={{ background: '#0b0d13', border: '1px solid rgba(255,255,255,0.1)', color: '#f8fafc', padding: '4px 8px', borderRadius: '4px', outline: 'none' }}
-                        value={entriesPerPage}
-                        onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                        value={adminEntriesPerPage}
+                        onChange={(e) => {
+                          setAdminEntriesPerPage(Number(e.target.value));
+                          setAdminCurrentPage(1);
+                        }}
                       >
                         <option value={10}>10</option>
                         <option value={25}>25</option>
@@ -1748,95 +1040,657 @@ const Dashboard = () => {
                       </select>
                       <span>entries</span>
                     </div>
-                  </div>
-                </div>
 
-                {/* Table */}
-                <div className="table-responsive">
-                  <table className="vms-table">
-                    <thead>
-                      <tr>
-                        <th>▴ Society</th>
-                        <th>Branch</th>
-                        <th>Model</th>
-                        <th>Vehicle No.</th>
-                        <th>Date</th>
-                        <th>Servicing Parts & Oils</th>
-                        <th>Periodical Duration</th>
-                        <th>Last Servicing Reading</th>
-                        <th>Present Servicing Reading</th>
-                        <th>KMS</th>
-                        <th>Remainder Reading</th>
-                        <th>Remarks</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {isLoading ? (
-                        <tr>
-                          <td colSpan="12" className="table-loading">Loading vehicle services...</td>
-                        </tr>
-                      ) : paginatedServices.length > 0 ? (
-                        paginatedServices.map((row, idx) => (
-                          <tr key={row.id || idx}>
-                            <td>{row.society}</td>
-                            <td>{row.branch}</td>
-                            <td>{row.model}</td>
-                            <td><span className="reg-badge sm">{row.vehicleno}</span></td>
-                            <td>{row.date}</td>
-                            <td><strong>{row.parts}</strong></td>
-                            <td>{row.duration}</td>
-                            <td>{row.lastreading}</td>
-                            <td>{row.presentreading}</td>
-                            <td>{row.kms}</td>
-                            <td>{row.remainder}</td>
-                            <td>{row.remarks || '-'}</td>
+                    {/* Search */}
+                    <div className="admin-search-control">
+                      <label>Search:</label>
+                      <input
+                        type="text"
+                        value={adminSearchQuery}
+                        onChange={(e) => {
+                          setAdminSearchQuery(e.target.value);
+                          setAdminCurrentPage(1);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Table responsive */}
+                  <div className="admin-table-responsive">
+                    <table className="admin-data-table">
+                      <thead>
+                        {adminSubTab === 'Stages' && (
+                          <tr>
+                            <th className="sortable">▴ S.No</th>
+                            <th>Society</th>
+                            <th>Branch</th>
+                            <th>Vehicle Reg.No</th>
+                            <th>Stage Name</th>
+                            <th>Stages Sequence NO</th>
+                            <th>Amount</th>
+                            <th>No'of Students</th>
+                            <th>Edit</th>
+                            <th>Remove</th>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="12" className="table-empty">No matching records found.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                        )}
+                        {adminSubTab === 'Routes' && (
+                          <tr>
+                            <th className="sortable">▴ S.No</th>
+                            <th>Society</th>
+                            <th>Branch</th>
+                            <th>Route Name</th>
+                            <th>Distance</th>
+                            <th>Vehicle Reg.No</th>
+                            <th>Edit</th>
+                            <th>Remove</th>
+                          </tr>
+                        )}
+                        {adminSubTab === 'Route_Details' && (
+                          <tr>
+                            <th className="sortable">▴ S.No</th>
+                            <th>Society</th>
+                            <th>Branch</th>
+                            <th>Route Name</th>
+                            <th>Start Point</th>
+                            <th>Distance</th>
+                            <th>Vehicle Reg.No</th>
+                            <th>Start Time</th>
+                            <th>Edit</th>
+                            <th>Remove</th>
+                          </tr>
+                        )}
+                        {adminSubTab === 'Transfers' && (
+                          <tr>
+                            <th className="sortable">▴ S.No</th>
+                            <th>Society</th>
+                            <th>Branch</th>
+                            <th>Make</th>
+                            <th>Model</th>
+                            <th>Vehicle Reg.No</th>
+                            <th>Transfer Branch</th>
+                            <th>Transfer Date</th>
+                            <th>CMR</th>
+                            <th>Edit</th>
+                            <th>Remove</th>
+                          </tr>
+                        )}
+                      </thead>
+                      <tbody>
+                        {adminLoading ? (
+                          <tr>
+                            <td colSpan="11" className="admin-loading-cell">
+                              <div className="admin-table-loader-box">
+                                <div className="admin-spinner" />
+                                <p className="admin-loader-text">Loading {adminSubTab} records, please wait...</p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : paginatedAdminData.length > 0 ? (
+                          paginatedAdminData.map((row, idx) => (
+                            <tr key={row.id || idx}>
+                              <td>{(adminCurrentPage - 1) * adminEntriesPerPage + idx + 1}</td>
+                              <td>{row.society || '-'}</td>
+                              <td>{row.branch || '-'}</td>
+                              {adminSubTab === 'Stages' && (
+                                <>
+                                  <td><strong>{row.regno || '-'}</strong></td>
+                                  <td>{row.name || '-'}</td>
+                                  <td>{row.sequenceno || '-'}</td>
+                                  <td>{row.amount || '0'}</td>
+                                  <td>{row.students || '0'}</td>
+                                </>
+                              )}
+                              {adminSubTab === 'Routes' && (
+                                <>
+                                  <td><strong>{row.routename || '-'}</strong></td>
+                                  <td>{row.distance || '0'}</td>
+                                  <td>{row.routeregno || '-'}</td>
+                                </>
+                              )}
+                              {adminSubTab === 'Route_Details' && (
+                                <>
+                                  <td><strong>{row.routename || '-'}</strong></td>
+                                  <td>{row.startpoint || '-'}</td>
+                                  <td>{row.distance || '0'}</td>
+                                  <td>{row.regno || '-'}</td>
+                                  <td>{row.starttime || '-'}</td>
+                                </>
+                              )}
+                              {adminSubTab === 'Transfers' && (
+                                <>
+                                  <td>{row.make || '-'}</td>
+                                  <td>{row.model || '-'}</td>
+                                  <td><strong>{row.regno || '-'}</strong></td>
+                                  <td>{row.transferbranch || '-'}</td>
+                                  <td>{row.transferdate || '-'}</td>
+                                  <td>{row.cmr || '-'}</td>
+                                </>
+                              )}
+                              <td>
+                                <button
+                                  type="button"
+                                  className="admin-icon-btn edit"
+                                  title="Edit"
+                                  onClick={() => {
+                                    if (adminSubTab === 'Stages') {
+                                      setStageFormData({
+                                        society: row.society || 'ADITYA ACADEMY',
+                                        branch: row.branch || '',
+                                        regno: row.regno || '',
+                                        name: row.name || '',
+                                        sequenceno: row.sequenceno || '1',
+                                        amount: row.amount || '6000',
+                                        students: row.students || '1'
+                                      });
+                                      setShowNewStageModal(true);
+                                    }
+                                  }}
+                                >
+                                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="admin-icon-btn remove"
+                                  title="Remove"
+                                  onClick={() => handleDeleteAdminRecord(row.id)}
+                                >
+                                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="10" className="empty-cell">
+                              No data available in table
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Table Footer */}
+                  <div className="admin-table-footer">
+                    <div>
+                      Showing {filteredAdminData.length === 0 ? 0 : (adminCurrentPage - 1) * adminEntriesPerPage + 1} to {Math.min(adminCurrentPage * adminEntriesPerPage, filteredAdminData.length)} of {filteredAdminData.length} entries
+                    </div>
+                    <div className="admin-pagination-group">
+                      <button
+                        type="button"
+                        className="admin-pbtn"
+                        disabled={adminCurrentPage === 1}
+                        onClick={() => setAdminCurrentPage(p => Math.max(1, p - 1))}
+                      >
+                        Previous
+                      </button>
+                      {Array.from({ length: Math.min(5, totalAdminPages) }, (_, i) => i + 1).map(num => (
+                        <button
+                          key={num}
+                          type="button"
+                          className={`admin-pbtn ${adminCurrentPage === num ? 'active' : ''}`}
+                          onClick={() => setAdminCurrentPage(num)}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className="admin-pbtn"
+                        disabled={adminCurrentPage >= totalAdminPages}
+                        onClick={() => setAdminCurrentPage(p => Math.min(totalAdminPages, p + 1))}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Pagination Controls */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap', gap: '10px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  <div>
-                    Showing {filteredServices.length === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1} to {Math.min(currentPage * entriesPerPage, filteredServices.length)} of {filteredServices.length} entries
+                {/* Stage's Data Modal Popup matching reference */}
+                {showNewStageModal && (
+                  <div className="admin-modal-backdrop" onClick={() => setShowNewStageModal(false)}>
+                    <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
+                      <div className="admin-modal-header">
+                        <h3>Add New Stage</h3>
+                        <button type="button" className="admin-modal-close-btn" onClick={() => setShowNewStageModal(false)}>×</button>
+                      </div>
+                      <form onSubmit={handleCreateStage}>
+                        <div className="stage-modal-body">
+                          <div className="stage-form-stack">
+                            <div className="stage-form-group">
+                              <label>Society</label>
+                              <select
+                                required
+                                value={stageFormData.society}
+                                onChange={(e) => setStageFormData({ ...stageFormData, society: e.target.value })}
+                              >
+                                {societiesList.length > 0 ? (
+                                  societiesList.map((s, i) => (
+                                    <option key={i} value={s}>{s}</option>
+                                  ))
+                                ) : (
+                                  <>
+                                    <option value="ADITYA ACADEMY">ADITYA ACADEMY</option>
+                                    <option value="SAROJINI EDUCATIONAL SOCIETY">SAROJINI EDUCATIONAL SOCIETY</option>
+                                  </>
+                                )}
+                              </select>
+                            </div>
+
+                            <div className="stage-form-group">
+                              <label>Branch :</label>
+                              <select
+                                required
+                                value={stageFormData.branch}
+                                onChange={(e) => setStageFormData({ ...stageFormData, branch: e.target.value })}
+                              >
+                                <option value="">Select Branch</option>
+                                {branchesList.map((b, i) => (
+                                  <option key={i} value={b}>{b}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="stage-form-group">
+                              <label>Registration No :</label>
+                              <input
+                                type="text"
+                                value={stageFormData.regno}
+                                onChange={(e) => setStageFormData({ ...stageFormData, regno: e.target.value.toUpperCase() })}
+                              />
+                            </div>
+
+                            <div className="stage-form-group">
+                              <label>Stages Sequence NO :</label>
+                              <input
+                                type="text"
+                                value={stageFormData.sequenceno}
+                                onChange={(e) => setStageFormData({ ...stageFormData, sequenceno: e.target.value })}
+                              />
+                            </div>
+
+                            <div className="stage-form-group">
+                              <label>Stage Name :</label>
+                              <input
+                                type="text"
+                                required
+                                value={stageFormData.name}
+                                onChange={(e) => setStageFormData({ ...stageFormData, name: e.target.value })}
+                              />
+                            </div>
+
+                            <div className="stage-form-group">
+                              <label>Amount :</label>
+                              <input
+                                type="text"
+                                value={stageFormData.amount}
+                                onChange={(e) => setStageFormData({ ...stageFormData, amount: e.target.value })}
+                              />
+                            </div>
+
+                            <div className="stage-form-group">
+                              <label>No'of Students :</label>
+                              <input
+                                type="text"
+                                value={stageFormData.students}
+                                onChange={(e) => setStageFormData({ ...stageFormData, students: e.target.value })}
+                              />
+                            </div>
+
+                            <div className="stage-modal-actions">
+                              <button
+                                type="submit"
+                                className="stage-modal-btn-save"
+                                disabled={stageSubmitting}
+                              >
+                                {stageSubmitting ? 'saving...' : 'save'}
+                              </button>
+                              <button
+                                type="button"
+                                className="stage-modal-btn-close"
+                                onClick={() => setShowNewStageModal(false)}
+                              >
+                                Close
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button
-                      className="paginate-btn"
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    >
-                      Previous
-                    </button>
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(num => (
-                      <button
-                        key={num}
-                        className={`paginate-btn ${currentPage === num ? 'active' : ''}`}
-                        onClick={() => setCurrentPage(num)}
+                )}
+              </div>
+            ) : SIDEBAR_MODULE_CONFIG[activeTab] ? (
+              renderSidebarModuleView()
+            ) : (
+              /* DASHBOARD OVERVIEW CONTENT */
+              <>
+                <header className="dashboard-topbar">
+                  <div className="topbar-search-box">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Search services, vehicle no, branch..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  {/* Branch Dropdown */}
+                  {branchesList.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedBranch}
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                        className="bg-slate-50 border border-slate-200 text-slate-700 py-1.5 px-3 rounded-lg text-sm outline-none cursor-pointer hover:bg-slate-100 transition-colors"
                       >
-                        {num}
-                      </button>
-                    ))}
-                    <button
-                      className="paginate-btn"
-                      disabled={currentPage >= totalPages}
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    >
-                      Next
-                    </button>
+                        <option value="ALL">All Authorized Branches ({branchesList.length})</option>
+                        {branchesList.map((b, i) => (
+                          <option key={i} value={b}>{b}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </header>
+
+
+                {/* Welcome Banner Card */}
+                <section className="welcome-banner-card">
+                  <div className="welcome-left">
+                    <h1>Welcome, {user?.name || user?.username || 'Fleet Administrator'}</h1>
+                    <p>
+                      Active Branch: <strong className="highlight-tag">{selectedBranch === 'ALL' ? 'All Aditya Branches' : selectedBranch}</strong>
+                      {' '}• Vehicle Management System Matrix
+                    </p>
                   </div>
-                </div>
-              </section>
-            </>
-          )}
-        </main>
-      </div>
+                  <div className="welcome-right">
+                    <div className="quick-meta-pill">
+                      <span>Role:</span>
+                      <span className="badge-purple">{user?.role || 'BRANCH_ADMIN'}</span>
+                    </div>
+                  </div>
+                </section>
+
+                {/* CONTENT PART 1: Certificate(Alerts) - 6 Metrics Grid */}
+                <section className="content-card-panel full-width">
+                  <div className="panel-header">
+                    <div>
+                      <h3>Certificate(Alerts)</h3>
+                      <p className="panel-sub">RTA inspections and vehicle compliance alerts</p>
+                    </div>
+                  </div>
+                  <div className="metrics-grid-6">
+                    <div className="metric-stat-item">
+                      <div className="metric-stat-number">{certAlerts.rta}</div>
+                      <div className="metric-stat-label">RTA</div>
+                    </div>
+                    <div className="metric-stat-item">
+                      <div className="metric-stat-number">{certAlerts.pollution}</div>
+                      <div className="metric-stat-label">Pollution</div>
+                    </div>
+                    <div className="metric-stat-item">
+                      <div className="metric-stat-number">{certAlerts.fitness}</div>
+                      <div className="metric-stat-label">Fitness</div>
+                    </div>
+                    <div className="metric-stat-item">
+                      <div className="metric-stat-number">{certAlerts.roadTax}</div>
+                      <div className="metric-stat-label">Road Tax</div>
+                    </div>
+                    <div className="metric-stat-item">
+                      <div className="metric-stat-number">{certAlerts.roadPermit}</div>
+                      <div className="metric-stat-label">Road Permit</div>
+                    </div>
+                    <div className="metric-stat-item">
+                      <div className="metric-stat-number">{certAlerts.insurance}</div>
+                      <div className="metric-stat-label">Insurance</div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* CONTENT PART 2: KMPL PERFORMANCE & EXCEEDED TRIPS (2 Columns Split) */}
+                <section className="dashboard-content-split">
+                  {/* KMPL PERFORMANCE- Grade Wise */}
+                  <div className="content-card-panel flex-2">
+                    <div className="panel-header">
+                      <div>
+                        <h3>KMPL PERFORMANCE- Grade Wise</h3>
+                        <p className="panel-sub">Fuel economy grade distribution</p>
+                      </div>
+                    </div>
+                    <div className="metrics-grid-4">
+                      <div className="metric-stat-item">
+                        <div className="metric-stat-number">{kmpl.aGrade}</div>
+                        <div className="metric-stat-label">A Grade</div>
+                      </div>
+                      <div className="metric-stat-item">
+                        <div className="metric-stat-number">{kmpl.bGrade}</div>
+                        <div className="metric-stat-label">B Grade</div>
+                      </div>
+                      <div className="metric-stat-item">
+                        <div className="metric-stat-number">{kmpl.cGrade}</div>
+                        <div className="metric-stat-label">C Grade</div>
+                      </div>
+                      <div className="metric-stat-item">
+                        <div className="metric-stat-number">{kmpl.dGrade}</div>
+                        <div className="metric-stat-label">D Grade</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Exceeded Vehicle Trips */}
+                  <div className="content-card-panel flex-1">
+                    <div className="panel-header">
+                      <div>
+                        <h3>Exceeded Vehicle Trips</h3>
+                        <p className="panel-sub">Route threshold exceedance</p>
+                      </div>
+                    </div>
+                    <div className="metric-single-center">
+                      <div className="metric-stat-number" style={{ fontSize: '2.4rem' }}>{exceededTrips}</div>
+                      <div className="metric-stat-label">Exceeded Trips</div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* CONTENT PART 3: Category Summary Badges from Left Side of Reference Image */}
+                <section className="kpi-cards-grid">
+                  <div className="kpi-card">
+                    <div className="kpi-top">
+                      <span className="kpi-label">ADMIN SUMMARY</span>
+                      <span className="badge-purple">Transfers: {adminSummary.transfers}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Hand Overs:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{adminSummary.handOvers}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Issues:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{adminSummary.issues}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="kpi-card">
+                    <div className="kpi-top">
+                      <span className="kpi-label">STAFF SUMMARY</span>
+                      <span className="badge-purple">Total: {staffSummary.officeStaff + staffSummary.busStaff}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Office Staff:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{staffSummary.officeStaff}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Bus Staff:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{staffSummary.busStaff}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="kpi-card">
+                    <div className="kpi-top">
+                      <span className="kpi-label">VEHICLES SUMMARY</span>
+                      <span className="badge-purple">Active Fleet</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Branch Vehicle Info:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{vehiclesSummary.branchVehicleInfo}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Vehicle Accidents:</span>
+                        <strong style={{ color: '#f87171' }}>{vehiclesSummary.vehicleAccidents}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="kpi-card">
+                    <div className="kpi-top">
+                      <span className="kpi-label">FUELS & LICENSE</span>
+                      <span className="badge-purple">Operational</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Bus Fillings:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>{fuelsSummary.busFillings}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>License Expired:</span>
+                        <strong style={{ color: 'var(--text-primary)' }}>0</strong>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* CONTENT PART 4: Vehicle Services Data Table (From Reference Image 2) */}
+                <section className="content-card-panel full-width">
+                  <div className="panel-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <h3>Vehicle Services</h3>
+                      <p className="panel-sub">Complete vehicle maintenance, servicing parts, and meter readings</p>
+                    </div>
+
+                    {/* Table Toolbar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '4px', position: 'relative' }}>
+                        <button className="export-btn" onClick={handleCopyTable}>Copy</button>
+                        <button className="export-btn" onClick={handlePrint}>Print</button>
+                        <button className="export-btn" onClick={handleExportCSV}>csv</button>
+                        <button className="export-btn" onClick={handleExportCSV}>pdf</button>
+                        <button className="export-btn" onClick={handleExportCSV}>Excel</button>
+                        {copiedNotification && <span className="copy-toast">Copied!</span>}
+                      </div>
+
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>Show</span>
+                        <select
+                          style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '4px 8px', borderRadius: '4px', outline: 'none' }}
+                          value={entriesPerPage}
+                          onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                        >
+                          <option value={10}>10</option>
+                          <option value={25}>25</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                        <span>entries</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="table-responsive">
+                    <table className="vms-table">
+                      <thead>
+                        <tr>
+                          <th>▴ Society</th>
+                          <th>Branch</th>
+                          <th>Model</th>
+                          <th>Vehicle No.</th>
+                          <th>Date</th>
+                          <th>Servicing Parts & Oils</th>
+                          <th>Periodical Duration</th>
+                          <th>Last Servicing Reading</th>
+                          <th>Present Servicing Reading</th>
+                          <th>KMS</th>
+                          <th>Remainder Reading</th>
+                          <th>Remarks</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {isLoading ? (
+                          <tr>
+                            <td colSpan="12" className="table-loading">Loading vehicle services...</td>
+                          </tr>
+                        ) : paginatedServices.length > 0 ? (
+                          paginatedServices.map((row, idx) => (
+                            <tr key={row.id || idx}>
+                              <td>{row.society}</td>
+                              <td>{row.branch}</td>
+                              <td>{row.model}</td>
+                              <td><span className="reg-badge sm">{row.vehicleno}</span></td>
+                              <td>{row.date}</td>
+                              <td><strong>{row.parts}</strong></td>
+                              <td>{row.duration}</td>
+                              <td>{row.lastreading}</td>
+                              <td>{row.presentreading}</td>
+                              <td>{row.kms}</td>
+                              <td>{row.remainder}</td>
+                              <td>{row.remarks || '-'}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="12" className="table-empty">No matching records found.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap', gap: '10px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    <div>
+                      Showing {filteredServices.length === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1} to {Math.min(currentPage * entriesPerPage, filteredServices.length)} of {filteredServices.length} entries
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        className="paginate-btn"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      >
+                        Previous
+                      </button>
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(num => (
+                        <button
+                          key={num}
+                          className={`paginate-btn ${currentPage === num ? 'active' : ''}`}
+                          onClick={() => setCurrentPage(num)}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                      <button
+                        className="paginate-btn"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
+      </MainLayout>
     </div>
   );
 };
