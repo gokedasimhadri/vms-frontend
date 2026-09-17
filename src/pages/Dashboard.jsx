@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  LayoutDashboard, User, Users, Bus, FileText, Fuel, 
+  Droplet, Settings, Wrench, AlertTriangle, Battery, Disc, LogOut 
+} from 'lucide-react';
 import {
   getDashboardOverview,
   getAdminData,
@@ -964,88 +968,43 @@ const Dashboard = () => {
           <div className="sidebar-section">
             <span className="sidebar-heading">MAIN MENU</span>
             <nav className="nav-menu">
-              {referenceMenuItems.map(item => (
-                <button
-                  key={item.id}
-                  className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                  onClick={() => { setActiveTab(item.id); setMobileLeftOpen(false); }}
-                >
-                  <span className="nav-icon-wrapper">
-                    {item.icon === 'speedometer' && (
-                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                    {item.icon === 'user' && (
-                      <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    {item.icon === 'users' && (
-                      <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                      </svg>
-                    )}
-                    {item.icon === 'bus' && (
-                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
-                    )}
-                    {item.icon === 'file' && (
-                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    )}
-                    {item.icon === 'fuel' && (
-                      <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19 11h-1V5c0-1.1-.9-2-2-2H8C6.9 3 6 3.9 6 5v16h10v-6h1v4c0 1.1.9 2 2 2s2-.9 2-2v-6c0-1.1-.9-2-2-2zm-5 4H8V5h6v10z" />
-                      </svg>
-                    )}
-                    {item.icon === 'droplet' && (
-                      <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 2a1 1 0 01.832.445l4.5 7A1 1 0 0114.5 11h-9a1 1 0 01-.832-1.555l4.5-7A1 1 0 0110 2z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    {item.icon === 'gear' && (
-                      <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    {item.icon === 'wrench' && (
-                      <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12-5.472a7.5 7.5 0 0010.63 0l.37.37a8.25 8.25 0 11-11.37 0l.37-.37z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    {item.icon === 'alert' && (
-                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                    )}
-                    {item.icon === 'battery' && (
-                      <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17 5v16c0 .55-.45 1-1 1H8c-.55 0-1-.45-1-1V5c0-.55.45-1 1-1h2V2h4v2h2c.55 0 1 .45 1 1z" />
-                      </svg>
-                    )}
-                    {item.icon === 'disc' && (
-                      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <circle cx="12" cy="12" r="9" strokeWidth="2" />
-                        <circle cx="12" cy="12" r="3" strokeWidth="2" />
-                      </svg>
-                    )}
-                  </span>
-                  <span>{item.label}</span>
-                  {item.id === 'Staff' && <span className="nav-count">{staffSummary.busStaff}</span>}
-                  {item.id === 'Vehicles' && <span className="nav-count">{vehiclesSummary.branchVehicleInfo}</span>}
-                </button>
-              ))}
+              {referenceMenuItems.map(item => {
+                const IconComponent = {
+                  speedometer: LayoutDashboard,
+                  user: User,
+                  users: Users,
+                  bus: Bus,
+                  file: FileText,
+                  fuel: Fuel,
+                  droplet: Droplet,
+                  gear: Settings,
+                  wrench: Wrench,
+                  alert: AlertTriangle,
+                  battery: Battery,
+                  disc: Disc
+                }[item.icon];
+
+                return (
+                  <button
+                    key={item.id}
+                    className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                    onClick={() => { setActiveTab(item.id); setMobileLeftOpen(false); }}
+                  >
+                    <span className="nav-icon-wrapper">
+                      {IconComponent && <IconComponent size={18} />}
+                    </span>
+                    <span>{item.label}</span>
+                    {item.id === 'Staff' && <span className="nav-count">{staffSummary.busStaff}</span>}
+                    {item.id === 'Vehicles' && <span className="nav-count">{vehiclesSummary.branchVehicleInfo}</span>}
+                  </button>
+                );
+              })}
             </nav>
           </div>
 
           <div className="sidebar-footer">
             <button className="sidebar-logout-btn" onClick={handleLogout} title="Sign Out">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+              <LogOut size={18} />
               <span>Sign Out</span>
             </button>
           </div>
@@ -1562,14 +1521,14 @@ const Dashboard = () => {
                 </div>
                 {branchesList.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Branch:</span>
+                    <span style={{ fontSize: '0.82rem', color: '#64748b' }}>Branch:</span>
                     <select
                       value={selectedBranch}
                       onChange={(e) => setSelectedBranch(e.target.value)}
                       style={{
-                        background: '#141721',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#f8fafc',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: '#334155',
                         padding: '8px 14px',
                         borderRadius: '8px',
                         fontSize: '0.82rem',
