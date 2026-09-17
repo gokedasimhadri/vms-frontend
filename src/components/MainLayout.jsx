@@ -25,14 +25,13 @@ const MainLayout = ({
         vehiclesSummary={vehiclesSummary}
       />
 
-      {/* ================= MAIN DASHBOARD CENTER ================= */}
-      <main className="dashboard-main-content" style={{ padding: 0, gap: 0 }}>
+      {/* ================= RIGHT: Header + Content ================= */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <Header user={user} handleLogout={handleLogout} />
-
-        <div style={{ padding: '24px 28px', flex: 1, display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {children}
         </div>
-      </main>
+      </div>
     </div>
   );
 };

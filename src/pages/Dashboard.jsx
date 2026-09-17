@@ -961,57 +961,7 @@ const Dashboard = () => {
         user={user}
         handleLogout={handleLogout}
       >
-            {activeTab === 'Admin' ? (
-              /* ADMIN VIEW AS PER REFERENCE IMAGE */
-              <div className="admin-page-container">
-                {/* Subtabs Ribbon: [ ◀ ] [ Stages ] [ Routes ] [ Route_Details ] [ Transfers ] [ ▶ ] */}
-                <div className="flex justify-center mb-6 mt-4">
-                  <CustomTabs
-                    activeTab={adminSubTab}
-                    onChange={setAdminSubTab}
-                    tabs={[
-                      { id: 'Stages', label: 'Stages', icon: Layers },
-                      { id: 'Routes', label: 'Routes', icon: MapPin },
-                      { id: 'Route_Details', label: 'Route Details', icon: ListTodo },
-                      { id: 'Transfers', label: 'Transfers', icon: ArrowLeftRight },
-                    ]}
-                  />
-                </div>
-
-                {/* Action Buttons: [ View Data ] [ New Stage ] */}
-                <div className="admin-actions-bar">
-                  <button
-                    type="button"
-                    className="admin-action-btn"
-                    disabled={adminLoading}
-                    onClick={() => fetchAdminData(adminSubTab, selectedBranch)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                  >
-                    {adminLoading ? (
-                      <>
-                        <span className="btn-spinner" />
-                        <span>Loading...</span>
-                      </>
-                    ) : (
-                      'View Data'
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          <div className="sidebar-footer">
-            <button className="sidebar-logout-btn" onClick={handleLogout} title="Sign Out">
-              <LogOut size={18} />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </aside>
-
-        {/* ================= MAIN DASHBOARD CENTER ================= */}
-        <main className="dashboard-main-content">
-          {activeTab === 'Admin' ? (
+        {activeTab === 'Admin' ? (
             /* ADMIN VIEW AS PER REFERENCE IMAGE */
             <div className="admin-page-container">
               {/* Subtabs Ribbon: [ ◀ ] [ Stages ] [ Routes ] [ Route_Details ] [ Transfers ] [ ▶ ] */}
@@ -1076,35 +1026,36 @@ const Dashboard = () => {
                   ) : (
                     'View Data'
                   )}
-                  {branchesList.length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Branch:</span>
-                      <select
-                        value={selectedBranch}
-                        onChange={(e) => {
-                          const newBranch = e.target.value;
-                          setSelectedBranch(newBranch);
-                          fetchAdminData(adminSubTab, newBranch);
-                        }}
-                        style={{
-                          background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          color: '#334155',
-                          padding: '6px 12px',
-                          borderRadius: '6px',
-                          fontSize: '0.82rem',
-                          outline: 'none',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="ALL">All Authorized Branches ({branchesList.length})</option>
-                        {branchesList.map((b, i) => (
-                          <option key={i} value={b}>{b}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
+                </button>
+                {branchesList.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Branch:</span>
+                    <select
+                      value={selectedBranch}
+                      onChange={(e) => {
+                        const newBranch = e.target.value;
+                        setSelectedBranch(newBranch);
+                        fetchAdminData(adminSubTab, newBranch);
+                      }}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: '#334155',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '0.82rem',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="ALL">All Authorized Branches ({branchesList.length})</option>
+                      {branchesList.map((b, i) => (
+                        <option key={i} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
 
                 {/* Data Table Card matching reference image */}
                 <div className="admin-table-card">
