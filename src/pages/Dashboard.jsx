@@ -13,7 +13,6 @@ import {
   updateRoadtaxStatus
 } from '../services/api';
 import ExportButtons from '../components/ExportButtons';
-import { getDashboardOverview } from '../services/api';
 import { exportToCSV, exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
 
 const Dashboard = () => {
