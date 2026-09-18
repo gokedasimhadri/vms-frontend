@@ -226,21 +226,67 @@ export const SIDEBAR_MODULE_CONFIG = {
   'Ad-Blue': {
     title: 'Ad-Blue Management',
     subTabs: [
-      { id: 'AdBlueBusfill', label: 'Bus Fillings' },
-      { id: 'AdBlueBunk', label: 'Ad-Blue Bunks' },
-      { id: 'AdBlue', label: 'Ad-Blue Brands' },
+      { id: 'adblue', label: 'Ad_Suppliers' },
+      { id: 'adbluebunk', label: 'Ad_Bunk' },
+      { id: 'adbluefuelfill', label: 'Ad_Bunk_Fillings' },
+      {
+        id: 'adbluebusfill',
+        label: 'Ad_Bus_Fillings',
+        nestedTabs: [
+          { id: 'entry_data', label: 'Entry Data' },
+          { id: 'generate_report', label: 'Generate Report' },
+          { id: 'search_bus_report', label: 'Search Bus Report' },
+        ]
+      },
     ],
     apiFn: (subTab, branch) => getAdBlueData(subTab, branch),
-    columns: () => [
-      { key: 'regno', label: 'Vehicle Reg.No' },
-      { key: 'society', label: 'Society' },
-      { key: 'branch', label: 'Branch' },
-      { key: 'model', label: 'Model' },
-      { key: 'drivername', label: 'Driver' },
-      { key: 'date', label: 'Date' },
-      { key: 'filled_Qty', label: 'Filled Qty' },
-      { key: 'token_no', label: 'Token No' },
-    ]
+    columns: (subTab) => {
+      if (subTab === 'Ad_Suppliers' || subTab === 'adblue') {
+        return [
+          { key: 'name', label: 'Company Name' },
+        ];
+      }
+      if (subTab === 'Ad_Bunk' || subTab === 'adbluebunk') {
+        return [
+          { key: 'branch', label: 'Branch Name' },
+          { key: 'capacity', label: 'Bunk Capacity' },
+        ];
+      }
+      if (subTab === 'Ad_Bunk_Fillings' || subTab === 'adbluefuelfill') {
+        return [
+          { key: 'bunkname', label: 'Bunk' },
+          { key: 'bunksupplier', label: 'Fuel Supplier' },
+          { key: 'billno', label: 'Bill No.' },
+          { key: 'billdate', label: 'Bill Date' },
+          { key: 'filldate', label: 'Filling Date' },
+          { key: 'tankerno', label: 'Tanker Register No' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'rate', label: 'Rate Per Liter' },
+          { key: 'trate', label: 'Total Rate' },
+        ];
+      }
+      if (subTab === 'Ad_Bus_Fillings' || subTab === 'adbluebusfill') {
+        return [
+          { key: 'regno', label: 'Register No.' },
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'model', label: 'Model' },
+          { key: 'drivername', label: 'Driver Name' },
+          { key: 'fuelsupplier', label: 'Ad-Blue Supplier' },
+          { key: 'capacity', label: 'Tank capacity' },
+          { key: 'date', label: 'Date' },
+          { key: 'token_no', label: 'Token No.' },
+          { key: 'token_issued_by', label: 'Token Issued By' },
+          { key: 'omr', label: 'OMR' },
+          { key: 'cmr', label: 'CMR' },
+          { key: 'kms', label: 'KMS' },
+          { key: 'filled_Qty', label: 'Filled Qty' },
+        ];
+      }
+      return [
+        { key: 'name', label: 'Name' },
+      ];
+    }
   },
   Services: {
     title: 'Services & Maintenance',

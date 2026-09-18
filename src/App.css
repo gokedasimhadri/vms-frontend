@@ -2059,6 +2059,180 @@
   transform: translateY(0);
 }
 
+/* Full-width Rectangular Ribbon Tabs */
+.module-nav-ribbon-container {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.module-nav-ribbon {
+  display: flex;
+  width: 100%;
+  background-color: #263544;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.module-nav-tab {
+  flex: 1;
+  min-width: 130px;
+  padding: 11px 18px;
+  background-color: #263544;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.module-nav-tab:last-child {
+  border-right: none;
+}
+
+.module-nav-tab:hover:not(.active) {
+  background-color: #314356;
+}
+
+.module-nav-tab.active {
+  background-color: #ffffff;
+  color: #0d233b;
+  font-weight: 700;
+}
+
+/* Second-Level / Nested Subtabs Ribbon (e.g. for Ad_Bus_Fillings) */
+.module-nested-nav-ribbon {
+  display: flex;
+  width: 100%;
+  background-color: #263544;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.module-nested-nav-tab {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 18px;
+  background-color: #263544;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.module-nested-nav-tab:last-child {
+  border-right: none;
+}
+
+.module-nested-nav-tab:hover:not(.active) {
+  background-color: #314356;
+}
+
+.module-nested-nav-tab.active {
+  background-color: #ffffff;
+  color: #0d233b;
+  font-weight: 700;
+}
+
+/* Ad_Bus_Fillings Entry Data Controls */
+.bus-filling-entry-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  margin-bottom: 18px;
+}
+
+.bus-filling-entry-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.bus-filling-entry-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bus-filling-entry-input {
+  height: 34px;
+  width: 220px;
+  padding: 6px 12px;
+  font-size: 13px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #495057;
+  outline: none;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.bus-filling-entry-input:focus {
+  border-color: #5bc0de;
+  box-shadow: 0 0 0 2px rgba(91, 192, 222, 0.25);
+}
+
+.bus-filling-btn-getdata {
+  height: 34px;
+  padding: 0 16px;
+  background-color: #5bc0de;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.bus-filling-btn-getdata:hover:not(:disabled) {
+  background-color: #31b0d5;
+}
+
+.bus-filling-btn-getdata:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.bus-filling-btn-addnew {
+  height: 34px;
+  padding: 0 16px;
+  background-color: #5bc0de;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.bus-filling-btn-addnew:hover {
+  background-color: #31b0d5;
+}
+
 /* White Data Table Card */
 .admin-table-card,
 .admin-table-container {
@@ -2258,7 +2432,7 @@
 .admin-icon-btn {
   border: none;
   cursor: pointer;
-  padding: 6px 8px;
+  padding: 6px 10px;
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
@@ -2268,29 +2442,33 @@
 }
 
 .admin-icon-btn.edit {
-  background-color: #4dd0e1;
+  background-color: #5bc0de;
+  border: 1px solid #46b8da;
   color: #ffffff;
 }
 
 .admin-icon-btn.edit:hover {
-  background-color: #26c6da;
+  background-color: #31b0d5;
 }
 
 .admin-icon-btn.remove {
-  background-color: #ef5350;
+  background-color: #d9534f;
+  border: 1px solid #d43f3a;
   color: #ffffff;
 }
 
 .admin-icon-btn.remove:hover {
-  background-color: #e53935;
+  background-color: #c9302c;
 }
 
 .admin-data-table th:nth-last-child(1),
 .admin-data-table th:nth-last-child(2),
 .admin-data-table td:nth-last-child(1),
 .admin-data-table td:nth-last-child(2) {
-  text-align: center;
-  width: 75px;
+  text-align: left;
+  padding-left: 16px;
+  width: 140px;
+  min-width: 120px;
 }
 
 /* Table Footer & Pagination */
