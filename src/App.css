@@ -2537,3 +2537,281 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   BUS BREAKDOWN PAGE STYLES
+   ========================================================= */
+
+.bb-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+/* ── Tab Ribbon ── */
+/* ── Tab centering wrapper (pill-style CustomTabs) ── */
+.bb-tabs-center {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0 6px;
+}
+
+/* ── Content Card ── */
+.bb-content-card {
+  background: #f5f5f5;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 22px 20px 20px;
+}
+
+.bb-content-card.bb-content-card--gap {
+  margin-top: 8px;
+}
+
+/* ── Main Form Grid (3-col) ── */
+.bb-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 20px;
+  margin-bottom: 24px;
+}
+
+.bb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bb-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.bb-field input,
+.bb-field select {
+  padding: 7px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bb-field input:focus,
+.bb-field select:focus {
+  border-color: #0b5299;
+  box-shadow: 0 0 0 2px rgba(11, 82, 153, 0.12);
+}
+
+/* ── Workers Section ── */
+.bb-workers-section {
+  margin-bottom: 18px;
+}
+
+.bb-section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0d233b;
+  text-align: center;
+  margin-bottom: 10px;
+  text-decoration: underline;
+}
+
+.bb-workers-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.bb-add-btn {
+  background: #38bdf8;
+  color: #fff;
+  border: none;
+  padding: 7px 18px;
+  border-radius: 5px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.bb-add-btn:hover { background: #0ea5e9; }
+
+.bb-remove-btn {
+  background: #f87171;
+  color: #fff;
+  border: none;
+  padding: 7px 18px;
+  border-radius: 5px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.bb-remove-btn:hover { background: #ef4444; }
+
+.bb-workers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.bb-workers-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #374151;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.bb-workers-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.bb-worker-input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #f87171;
+  border-radius: 4px;
+  font-size: 0.84rem;
+  background: #fff;
+  outline: none;
+}
+.bb-worker-input:focus {
+  border-color: #0b5299;
+  box-shadow: 0 0 0 2px rgba(11, 82, 153, 0.1);
+}
+
+/* ── Save Row ── */
+.bb-save-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin: 14px 0 22px;
+}
+
+.bb-save-btn {
+  background: #38bdf8;
+  color: #fff;
+  border: none;
+  padding: 9px 32px;
+  border-radius: 5px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.bb-save-btn:hover { background: #0ea5e9; transform: translateY(-1px); }
+.bb-save-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.bb-save-msg {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #059669;
+}
+
+/* ── Table section ── */
+.bb-table-section {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+}
+
+/* ── Action buttons in table ── */
+.bb-del-btn {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  transition: background 0.2s ease;
+}
+.bb-del-btn:hover { background: #fee2e2; }
+
+.bb-print-btn {
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+.bb-print-btn:hover { background: #bae6fd; }
+
+/* ── Generate Report filter row ── */
+.bb-report-filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 10px 0 20px;
+  flex-wrap: wrap;
+}
+
+.bb-report-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bb-report-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.bb-report-field input[type="date"] {
+  padding: 7px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: #fff;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.bb-report-field input[type="date"]:focus {
+  border-color: #0b5299;
+  box-shadow: 0 0 0 2px rgba(11, 82, 153, 0.12);
+}
+
+.bb-getdata-btn {
+  background: #38bdf8;
+  color: #fff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 5px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.bb-getdata-btn:hover { background: #0ea5e9; }
+.bb-getdata-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 900px) {
+  .bb-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .bb-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .bb-tab-btn {
+    font-size: 0.8rem;
+    padding: 10px 8px;
+  }
+}
