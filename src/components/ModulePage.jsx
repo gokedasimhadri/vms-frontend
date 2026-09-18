@@ -342,14 +342,67 @@ const ModulePage = ({ moduleKey }) => {
         )}
 
         {/* Main Data Table Card */}
-        <div className="admin-table-container">
-          <div className="admin-table-header">
-            {moduleKey} - {activeSub} Information
+        <div className="admin-table-card">
+          <div className="admin-card-header-title">
+            {moduleKey} - {activeSub ? activeSub.replace(/_/g, ' ') : ''} Information
           </div>
 
-          {/* Table Controls */}
-          <div className="admin-table-controls">
-            <div className="admin-controls-left">
+          {/* Table Toolbar */}
+          <div className="admin-table-toolbar">
+            {/* Export Buttons */}
+            <div className="admin-export-group">
+              <button
+                type="button"
+                className="admin-export-btn"
+                onClick={() => handleCopyModuleTable(activeCols)}
+                title="Copy to clipboard"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                Copy
+              </button>
+              <button
+                type="button"
+                className="admin-export-btn"
+                onClick={handlePrintModuleTable}
+                title="Print table"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Print
+              </button>
+              <button
+                type="button"
+                className="admin-export-btn"
+                onClick={() => handleExportModuleCSV(activeCols)}
+                title="Export CSV"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                CSV
+              </button>
+              <button
+                type="button"
+                className="admin-export-btn"
+                onClick={() => handleExportModuleCSV(activeCols)}
+                title="Export PDF"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                PDF
+              </button>
+              <button
+                type="button"
+                className="admin-export-btn"
+                onClick={() => handleExportModuleCSV(activeCols)}
+                title="Export Excel"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                Excel
+              </button>
+              {moduleCopiedNotification && (
+                <span className="admin-toast-feedback">Copied!</span>
+              )}
+            </div>
+
+            {/* Entries control */}
+            <div className="admin-entries-control">
               <span>Show</span>
               <select
                 value={moduleEntriesPerPage}
@@ -357,7 +410,6 @@ const ModulePage = ({ moduleKey }) => {
                   setModuleEntriesPerPage(Number(e.target.value));
                   setModuleCurrentPage(1);
                 }}
-                className="admin-select"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -367,35 +419,11 @@ const ModulePage = ({ moduleKey }) => {
               <span>entries</span>
             </div>
 
-            <div className="admin-export-btns">
-              <button
-                type="button"
-                className="admin-export-btn"
-                onClick={() => handleCopyModuleTable(activeCols)}
-              >
-                {moduleCopiedNotification ? 'Copied!' : 'Copy'}
-              </button>
-              <button
-                type="button"
-                className="admin-export-btn"
-                onClick={() => handleExportModuleCSV(activeCols)}
-              >
-                CSV
-              </button>
-              <button
-                type="button"
-                className="admin-export-btn"
-                onClick={handlePrintModuleTable}
-              >
-                Print
-              </button>
-            </div>
-
-            <div className="admin-controls-right">
-              <span>Search:</span>
+            {/* Search control */}
+            <div className="admin-search-control">
+              <label>Search:</label>
               <input
-                type="search"
-                className="admin-search-input"
+                type="text"
                 placeholder="Type to filter..."
                 value={moduleSearchQuery}
                 onChange={e => {
@@ -407,16 +435,16 @@ const ModulePage = ({ moduleKey }) => {
           </div>
 
           {/* Table Element */}
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
+          <div className="admin-table-responsive">
+            <table className="admin-data-table">
               <thead>
                 <tr>
-                  <th style={{ width: '45px' }}>S.No</th>
+                  <th className="sortable" style={{ width: '50px', textAlign: 'center' }}>▴ S.No</th>
                   {activeCols.map((col, idx) => (
                     <th key={col.key || idx}>{col.label}</th>
                   ))}
-                  <th style={{ width: '50px' }}>Edit</th>
-                  <th style={{ width: '60px' }}>Remove</th>
+                  <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                  <th style={{ width: '70px', textAlign: 'center' }}>Remove</th>
                 </tr>
               </thead>
               <tbody>
@@ -430,7 +458,7 @@ const ModulePage = ({ moduleKey }) => {
                 ) : paginatedModuleData.length > 0 ? (
                   paginatedModuleData.map((row, index) => (
                     <tr key={row._id || row.id || index}>
-                      <td>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</td>
+                      <td style={{ textAlign: 'center' }}>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</td>
                       {activeCols.map(col => (
                         <td key={col.key}>
                           {row[col.key] !== undefined && row[col.key] !== null
@@ -438,7 +466,7 @@ const ModulePage = ({ moduleKey }) => {
                             : '-'}
                         </td>
                       ))}
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
                           className="admin-icon-btn edit"
@@ -450,7 +478,7 @@ const ModulePage = ({ moduleKey }) => {
                           </svg>
                         </button>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
                           className="admin-icon-btn remove"
