@@ -37,8 +37,10 @@ export const registerUser = async (userData) => {
 };
 
 // ================= DASHBOARD =================
-export const getDashboardOverview = async (branch) => {
-  const params = branch && branch !== 'ALL' ? { branch } : {};
+export const getDashboardOverview = async (branch, kmplDate) => {
+  const params = {};
+  if (branch && branch !== 'ALL') params.branch = branch;
+  if (kmplDate) params.kmplDate = kmplDate;
   const response = await api.get('/dashboard/overview', { params });
   return response.data;
 };
@@ -50,8 +52,14 @@ export const fetchFitnessExpired = async () => (await api.get('/FitnessExpired')
 export const fetchRoadtaxExpired = async () => (await api.get('/RoadtaxExpired')).data;
 export const fetchRoadpermitExpired = async () => (await api.get('/RoadpermitExpired')).data;
 export const fetchInsuranceExpired = async () => (await api.get('/InsuranceExpired')).data;
-export const fetchBusfilldata = async () => (await api.get('/getBusfilldata')).data;
-export const fetchVehicletripexceed = async () => (await api.get('/vehicletripexceed')).data;
+export const fetchBusfilldata = async (date) => (await api.get('/getBusfilldata', { params: date ? { date } : {} })).data;
+export const fetchVehicletripexceed = async (date, branch) => {
+  const params = {};
+  if (date) params.date = date;
+  if (branch && branch !== 'ALL') params.branch = branch;
+  const res = await api.get('/vehicletripexceed', { params });
+  return res.data;
+};
 export const fetchVehicleservice = async () => (await api.get('/getVehicleservice')).data;
 export const fetchBusbreakedowndata = async () => (await api.get('/getBusbreakedowndata')).data;
 

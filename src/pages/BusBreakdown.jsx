@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import MainLayout from '../components/MainLayout';
 import CustomTabs from '../components/CustomTabs';
+import { TableLoader } from '../components/Loader';
 import {
   getBusBreakdownData,
   createBusBreakdownItem,
@@ -75,7 +76,7 @@ export default function BusBreakdown() {
 
   // Table state
   const [tableData, setTableData] = useState([]);
-  const [tableLoading, setTableLoading] = useState(false);
+  const [tableLoading, setTableLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -490,9 +491,7 @@ export default function BusBreakdown() {
                   </thead>
                   <tbody>
                     {tableLoading ? (
-                      <tr><td colSpan={ALL_COLUMNS.length + 3} className="empty-cell">
-                        <span className="btn-spinner" style={{ marginRight: 8 }} />Loading...
-                      </td></tr>
+                      <TableLoader colSpan={ALL_COLUMNS.length + 3} message="Loading Bus Breakdown records, please wait..." />
                     ) : paginated.length > 0 ? (
                       paginated.map((row, idx) => (
                         <tr key={row._id || row.id || idx}>
@@ -598,9 +597,7 @@ export default function BusBreakdown() {
                 </thead>
                 <tbody>
                   {reportLoading ? (
-                    <tr><td colSpan={ALL_COLUMNS.length + 1} className="empty-cell">
-                      <span className="btn-spinner" style={{ marginRight: 8 }} />Loading...
-                    </td></tr>
+                    <TableLoader colSpan={ALL_COLUMNS.length + 1} message="Loading Bus Breakdown report, please wait..." />
                   ) : paginatedReport.length > 0 ? (
                     paginatedReport.map((row, idx) => (
                       <tr key={row._id || row.id || idx}>

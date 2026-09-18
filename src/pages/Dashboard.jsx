@@ -10,9 +10,12 @@ import {
   fetchRoadtaxExpired,
   fetchRoadpermitExpired,
   fetchInsuranceExpired,
+  fetchBusfilldata,
+  fetchVehicletripexceed,
   updateRoadtaxStatus
 } from '../services/api';
 import ExportButtons from '../components/ExportButtons';
+import { TableLoader } from '../components/Loader';
 import { exportToCSV, exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
 
 const Dashboard = () => {
@@ -21,6 +24,17 @@ const Dashboard = () => {
   const [selectedBranch, setSelectedBranch] = useState('ALL');
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [exceededTripsList, setExceededTripsList] = useState([]);
+
+  // Day-wise KMPL Date filter state (defaults to today)
+  const getTodayDateStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const [kmplDate, setKmplDate] = useState(getTodayDateStr);
 
   // Table search and pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,7 +51,8 @@ const Dashboard = () => {
     records: [],
     loading: false,
     updating: false,
-    updateMessage: ''
+    updateMessage: '',
+    gradeFilter: null
   });
 
   const overviewCacheRef = useRef({});
@@ -64,27 +79,41 @@ const Dashboard = () => {
   }, [navigate]);
 
   useEffect(() => {
-    fetchData(selectedBranch);
+    fetchData(selectedBranch, false, kmplDate);
   }, [selectedBranch]);
 
-  const fetchData = async (branch, forceRefresh = false) => {
-    const cacheKey = branch || 'ALL';
+  const fetchData = async (branch, forceRefresh = false, customKmplDate = kmplDate) => {
+    const cacheKey = `${branch || 'ALL'}_${customKmplDate || 'today'}`;
     if (!forceRefresh && overviewCacheRef.current[cacheKey]) {
-      setDashboardData(overviewCacheRef.current[cacheKey]);
+      setDashboardData(overviewCacheRef.current[cacheKey].data);
+      setExceededTripsList(overviewCacheRef.current[cacheKey].exceededTripsList || []);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      const data = await getDashboardOverview(branch);
-      overviewCacheRef.current[cacheKey] = data;
+      const [data, exceededData] = await Promise.all([
+        getDashboardOverview(branch, customKmplDate),
+        fetchVehicletripexceed(customKmplDate, branch).catch(err => {
+          console.error('Error fetching vehicletripexceed:', err);
+          return [];
+        })
+      ]);
+      const safeExceeded = Array.isArray(exceededData) ? exceededData : [];
+      overviewCacheRef.current[cacheKey] = { data, exceededTripsList: safeExceeded };
       setDashboardData(data);
+      setExceededTripsList(safeExceeded);
     } catch (err) {
       console.error('Error fetching dashboard overview:', err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleKmplDateChange = (newDate) => {
+    setKmplDate(newDate);
+    fetchData(selectedBranch, true, newDate);
   };
 
   const handleLogout = () => {
@@ -93,7 +122,7 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const handleOpenAlertModal = async (type, title) => {
+  const handleOpenAlertModal = async (type, title, gradeFilter = null) => {
     setAlertModal({
       isOpen: true,
       type,
@@ -101,7 +130,8 @@ const Dashboard = () => {
       records: [],
       loading: true,
       updating: false,
-      updateMessage: ''
+      updateMessage: '',
+      gradeFilter
     });
 
     try {
@@ -112,6 +142,19 @@ const Dashboard = () => {
       else if (type === 'fitness') data = await fetchFitnessExpired();
       else if (type === 'roadpermit') data = await fetchRoadpermitExpired();
       else if (type === 'insurance') data = await fetchInsuranceExpired();
+      else if (type === 'exceed') {
+        if (exceededTripsList && exceededTripsList.length > 0) {
+          data = exceededTripsList;
+        } else {
+          data = await fetchVehicletripexceed(kmplDate, selectedBranch);
+        }
+      } else if (type === 'kmpl') {
+        const raw = await fetchBusfilldata(kmplDate);
+        const list = Array.isArray(raw) ? raw : [];
+        data = gradeFilter
+          ? list.filter(r => (r.grade || '').toUpperCase() === gradeFilter.toUpperCase())
+          : list;
+      }
       setAlertModal(prev => ({
         ...prev,
         records: Array.isArray(data) ? data : [],
@@ -163,7 +206,9 @@ const Dashboard = () => {
     insurance: 0
   };
   const kmpl = dashboardData?.kmplPerformance || { aGrade: 0, bGrade: 0, cGrade: 0, dGrade: 0 };
-  const exceededTrips = dashboardData?.exceededTrips || 0;
+  const exceededTrips = exceededTripsList.length > 0
+    ? exceededTripsList.length
+    : (dashboardData?.exceededTrips ?? 0);
   const busBreakdowns = dashboardData?.busBreakdowns || 0;
 
   // Services table filtering and pagination
@@ -339,24 +384,83 @@ const Dashboard = () => {
 
             {/* Card 2: KMPL PERFORMANCE- Grade wise */}
             <div className="legacy-card">
-              <div className="legacy-card-header">
-                <span>KMPL PERFORMANCE- Grade wise</span>
+              <div
+                className="legacy-card-header"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>KMPL PERFORMANCE- Grade wise</span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      color: '#ffffff',
+                      letterSpacing: '0.3px'
+                    }}
+                  >
+                    Day wise
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.85)', fontWeight: 500 }}>Date:</label>
+                  <input
+                    type="date"
+                    value={kmplDate}
+                    onChange={(e) => handleKmplDateChange(e.target.value)}
+                    style={{
+                      padding: '2px 6px',
+                      fontSize: '12px',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      borderRadius: '4px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      color: '#ffffff',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                    title="Select date for day-wise KMPL performance"
+                  />
+                </div>
               </div>
               <div className="legacy-card-body">
                 <div className="metrics-grid-4">
-                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => navigate('/fuels')}>
+                  <div
+                    className="metric-stat-item cursor-pointer hover:bg-emerald-50 transition-colors rounded p-1"
+                    onClick={() => handleOpenAlertModal('kmpl', `KMPL A Grade Fillings (${kmplDate})`, 'A')}
+                    title={`Click to view A Grade vehicles on ${kmplDate}`}
+                  >
                     <div className="metric-stat-number" style={{ color: '#059669' }}>{kmpl.aGrade ?? 0}</div>
                     <div className="metric-stat-label">A Grade</div>
                   </div>
-                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => navigate('/fuels')}>
+                  <div
+                    className="metric-stat-item cursor-pointer hover:bg-sky-50 transition-colors rounded p-1"
+                    onClick={() => handleOpenAlertModal('kmpl', `KMPL B Grade Fillings (${kmplDate})`, 'B')}
+                    title={`Click to view B Grade vehicles on ${kmplDate}`}
+                  >
                     <div className="metric-stat-number" style={{ color: '#0284c7' }}>{kmpl.bGrade ?? 0}</div>
                     <div className="metric-stat-label">B Grade</div>
                   </div>
-                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => navigate('/fuels')}>
+                  <div
+                    className="metric-stat-item cursor-pointer hover:bg-amber-50 transition-colors rounded p-1"
+                    onClick={() => handleOpenAlertModal('kmpl', `KMPL C Grade Fillings (${kmplDate})`, 'C')}
+                    title={`Click to view C Grade vehicles on ${kmplDate}`}
+                  >
                     <div className="metric-stat-number" style={{ color: '#d97706' }}>{kmpl.cGrade ?? 0}</div>
                     <div className="metric-stat-label">C Grade</div>
                   </div>
-                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => navigate('/fuels')}>
+                  <div
+                    className="metric-stat-item cursor-pointer hover:bg-rose-50 transition-colors rounded p-1"
+                    onClick={() => handleOpenAlertModal('kmpl', `KMPL D Grade Fillings (${kmplDate})`, 'D')}
+                    title={`Click to view D Grade vehicles on ${kmplDate}`}
+                  >
                     <div className="metric-stat-number" style={{ color: '#dc2626' }}>{kmpl.dGrade ?? 0}</div>
                     <div className="metric-stat-label">D Grade</div>
                   </div>
@@ -364,32 +468,42 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Card 3: Exceeded Vehicle Trips & Bus Breakdowns */}
+            {/* Card 3: Exceeded Vehicle Trips */}
             <div className="legacy-card">
-              <div className="legacy-card-header">
-                <span>Vehicle Operations & Alerts</span>
+              <div
+                className="legacy-card-header"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <span>Exceeded Vehicle Trips</span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    color: '#ffffff',
+                    letterSpacing: '0.3px'
+                  }}
+                >
+                  Day wise
+                </span>
               </div>
               <div className="legacy-card-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '8px 0' }}>
-                  <div
-                    className="metric-single-center cursor-pointer hover:bg-slate-50 rounded p-2 transition-colors"
-                    onClick={() => navigate('/bus-breakdown')}
-                    title="Click to view Bus Breakdowns"
-                  >
-                    <div className="metric-stat-number" style={{ fontSize: '36px', color: '#e53935' }}>
-                      {busBreakdowns}
-                    </div>
-                    <div className="metric-stat-label">Bus Breakdowns</div>
+                <div
+                  className="metric-single-center cursor-pointer hover:bg-blue-50 rounded p-2 transition-colors"
+                  onClick={() => handleOpenAlertModal('exceed', `Exceeded Vehicle Trips (${kmplDate})`)}
+                  title="Click to view Exceeded Vehicle Trips details"
+                >
+                  <div className="metric-stat-number" style={{ fontSize: '36px', color: '#0b5299' }}>
+                    {exceededTrips}
                   </div>
-                  <div
-                    className="metric-single-center cursor-pointer hover:bg-slate-50 rounded p-2 transition-colors"
-                    onClick={() => navigate('/vehicles')}
-                    title="Click to view Vehicle Trips"
-                  >
-                    <div className="metric-stat-number" style={{ fontSize: '36px', color: '#0b5299' }}>
-                      {exceededTrips}
-                    </div>
-                    <div className="metric-stat-label">Exceeded Trips</div>
+                  <div className="metric-stat-label" style={{ fontWeight: 600, color: '#0b5299' }}>
+                    Exceeded Trips
                   </div>
                 </div>
               </div>
@@ -458,9 +572,7 @@ const Dashboard = () => {
                     </thead>
                     <tbody>
                       {isLoading ? (
-                        <tr>
-                          <td colSpan="11" className="table-status-cell">Loading vehicle services...</td>
-                        </tr>
+                        <TableLoader colSpan={11} message="Loading vehicle services, please wait..." />
                       ) : paginatedServices.length > 0 ? (
                         paginatedServices.map((row, idx) => (
                           <tr key={row.id || idx}>
@@ -601,6 +713,20 @@ const Dashboard = () => {
                       Evaluated against today's date
                     </span>
                   )}
+                  {alertModal.type === 'kmpl' && (
+                    <span
+                      style={{
+                        backgroundColor: '#e0f2fe',
+                        color: '#0369a1',
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontWeight: 500
+                      }}
+                    >
+                      Day wise: {kmplDate}
+                    </span>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -633,7 +759,11 @@ const Dashboard = () => {
                   <button
                     onClick={() => {
                       setAlertModal(prev => ({ ...prev, isOpen: false }));
-                      navigate(`/certificates?tab=${alertModal.type || 'roadtax'}`);
+                      if (alertModal.type === 'kmpl') {
+                        navigate('/fuels');
+                      } else {
+                        navigate(`/certificates?tab=${alertModal.type || 'roadtax'}`);
+                      }
                     }}
                     style={{
                       display: 'flex',
@@ -699,52 +829,160 @@ const Dashboard = () => {
                   </div>
                 ) : alertModal.records.length === 0 ? (
                   <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                    <p style={{ margin: 0, fontSize: '14px' }}>No alert records found matching the criteria for today.</p>
+                    <p style={{ margin: 0, fontSize: '14px' }}>
+                      {alertModal.type === 'kmpl'
+                        ? `No KMPL vehicle fillings recorded on ${kmplDate}${alertModal.gradeFilter ? ` for Grade ${alertModal.gradeFilter}` : ''}.`
+                        : alertModal.type === 'exceed'
+                        ? `No exceeded vehicle trips recorded on ${kmplDate}.`
+                        : 'No alert records found matching the criteria for today.'}
+                    </p>
                   </div>
                 ) : (
                   <div style={{ overflowX: 'auto' }}>
                     <table className="legacy-table" style={{ width: '100%' }}>
                       <thead>
-                        <tr>
-                          <th style={{ width: '40px' }}>#</th>
-                          <th>Vehicle Reg. No</th>
-                          <th>Society</th>
-                          <th>Branch</th>
-                          <th>Model</th>
-                          {alertModal.type === 'roadtax' && <th>Certificate No</th>}
-                          <th>{alertModal.type === 'roadtax' ? 'Due Date (ddate)' : 'Due / Exp Date'}</th>
-                          <th>Valid Till</th>
-                          <th>Status</th>
-                        </tr>
+                        {alertModal.type === 'kmpl' ? (
+                          <tr>
+                            <th style={{ width: '40px' }}>#</th>
+                            <th>Vehicle Reg. No</th>
+                            <th>Branch</th>
+                            <th>Model</th>
+                            <th>Driver</th>
+                            <th>Fuel Qty (L)</th>
+                            <th>KMS</th>
+                            <th>Avg KMPL</th>
+                            <th>Grade</th>
+                            <th>Date</th>
+                          </tr>
+                        ) : alertModal.type === 'exceed' ? (
+                          <tr>
+                            <th style={{ width: '40px' }}>#</th>
+                            <th>Society</th>
+                            <th>Branch</th>
+                            <th>Reg.No</th>
+                            <th>Route</th>
+                            <th>Date</th>
+                            <th>Capacity</th>
+                            <th>Students Strength</th>
+                            <th>Fixed Strength</th>
+                            <th>OMR</th>
+                            <th>CMR</th>
+                            <th>KMS</th>
+                            <th>Distance (kms)</th>
+                            <th>Result</th>
+                            <th>Remarks</th>
+                          </tr>
+                        ) : (
+                          <tr>
+                            <th style={{ width: '40px' }}>#</th>
+                            <th>Vehicle Reg. No</th>
+                            <th>Society</th>
+                            <th>Branch</th>
+                            <th>Model</th>
+                            {alertModal.type === 'roadtax' && <th>Certificate No</th>}
+                            <th>{alertModal.type === 'roadtax' ? 'Due Date (ddate)' : 'Due / Exp Date'}</th>
+                            <th>Valid Till</th>
+                            <th>Status</th>
+                          </tr>
+                        )}
                       </thead>
                       <tbody>
                         {alertModal.records.map((r, idx) => (
                           <tr key={r._id || r.id || idx}>
                             <td style={{ textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
-                            <td style={{ fontWeight: 600, color: '#0b5299' }}>{r.regno || r.vehicleregno || '—'}</td>
-                            <td>{r.society || '—'}</td>
-                            <td>{r.branch || '—'}</td>
-                            <td>{r.model || '—'}</td>
-                            {alertModal.type === 'roadtax' && <td>{r.certificate || '—'}</td>}
-                            <td style={{ color: '#dc2626', fontWeight: 600 }}>
-                              {r.ddate || r.expireddate || r.rdate || '—'}
-                            </td>
-                            <td>{r.valid || r.edate || '—'}</td>
-                            <td>
-                              <span
-                                style={{
-                                  display: 'inline-block',
-                                  padding: '2px 8px',
-                                  borderRadius: '4px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  backgroundColor: (r.status === 'on' || !r.status) ? '#fee2e2' : '#f1f5f9',
-                                  color: (r.status === 'on' || !r.status) ? '#dc2626' : '#64748b'
-                                }}
-                              >
-                                {(r.status || 'ON').toUpperCase()}
-                              </span>
-                            </td>
+                            {alertModal.type === 'kmpl' ? (
+                              <>
+                                <td style={{ fontWeight: 600, color: '#0b5299' }}>{r.regno || r.vehicleregno || '—'}</td>
+                                <td>{r.branch || '—'}</td>
+                                <td>{r.model || '—'}</td>
+                                <td>{r.drivername || '—'}</td>
+                                <td style={{ fontWeight: 600 }}>{r.fquantity || '—'}</td>
+                                <td>{r.kms ?? '—'}</td>
+                                <td style={{ fontWeight: 600, color: '#0284c7' }}>
+                                  {typeof r.avgkmpl === 'number' ? r.avgkmpl.toFixed(2) : (r.avgkmpl || '—')}
+                                </td>
+                                <td>
+                                  <span
+                                    style={{
+                                      display: 'inline-block',
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                      backgroundColor:
+                                        (r.grade || '').toUpperCase() === 'A' ? '#dcfce7' :
+                                        (r.grade || '').toUpperCase() === 'B' ? '#e0f2fe' :
+                                        (r.grade || '').toUpperCase() === 'C' ? '#fef3c7' : '#fee2e2',
+                                      color:
+                                        (r.grade || '').toUpperCase() === 'A' ? '#166534' :
+                                        (r.grade || '').toUpperCase() === 'B' ? '#0369a1' :
+                                        (r.grade || '').toUpperCase() === 'C' ? '#92400e' : '#b91c1c'
+                                    }}
+                                  >
+                                    {(r.grade || '—').toUpperCase()} Grade
+                                  </span>
+                                </td>
+                                <td>{r.date || '—'}</td>
+                              </>
+                            ) : alertModal.type === 'exceed' ? (
+                              <>
+                                <td>{r.society || '—'}</td>
+                                <td>{r.branch || '—'}</td>
+                                <td style={{ fontWeight: 600, color: '#0b5299' }}>{r.regno || '—'}</td>
+                                <td>{r.routename || '—'}</td>
+                                <td>{r.date || r.uploaddate || '—'}</td>
+                                <td>{r.capacity ?? '—'}</td>
+                                <td>{r.students ?? '—'}</td>
+                                <td>{r.strength ?? '—'}</td>
+                                <td>{r.omr ?? '—'}</td>
+                                <td>{r.cmr ?? '—'}</td>
+                                <td>{r.kms ?? '—'}</td>
+                                <td>{r.distance ?? '—'}</td>
+                                <td>
+                                  <span
+                                    style={{
+                                      display: 'inline-block',
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                      backgroundColor: '#fee2e2',
+                                      color: '#dc2626'
+                                    }}
+                                  >
+                                    {r.result || 'EXCEED'}
+                                  </span>
+                                </td>
+                                <td>{r.remarks || '—'}</td>
+                              </>
+                            ) : (
+                              <>
+                                <td style={{ fontWeight: 600, color: '#0b5299' }}>{r.regno || r.vehicleregno || '—'}</td>
+                                <td>{r.society || '—'}</td>
+                                <td>{r.branch || '—'}</td>
+                                <td>{r.model || '—'}</td>
+                                {alertModal.type === 'roadtax' && <td>{r.certificate || '—'}</td>}
+                                <td style={{ color: '#dc2626', fontWeight: 600 }}>
+                                  {r.ddate || r.expireddate || r.rdate || '—'}
+                                </td>
+                                <td>{r.valid || r.edate || '—'}</td>
+                                <td>
+                                  <span
+                                    style={{
+                                      display: 'inline-block',
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                      backgroundColor: (r.status === 'on' || !r.status) ? '#fee2e2' : '#f1f5f9',
+                                      color: (r.status === 'on' || !r.status) ? '#dc2626' : '#64748b'
+                                    }}
+                                  >
+                                    {(r.status || 'ON').toUpperCase()}
+                                  </span>
+                                </td>
+                              </>
+                            )}
                           </tr>
                         ))}
                       </tbody>
@@ -767,7 +1005,13 @@ const Dashboard = () => {
                 }}
               >
                 <span>
-                  Showing {alertModal.records.length} records &bull; Road tax evaluation logic: <code>ddate == today &rarr; status: 'on'</code>, <code>valid == today &rarr; status: 'off'</code>
+                  {alertModal.type === 'kmpl'
+                    ? `Showing ${alertModal.records.length} day-wise vehicle fillings for ${kmplDate}`
+                    : alertModal.type === 'exceed'
+                    ? `Showing ${alertModal.records.length} exceeded vehicle trips for ${kmplDate}`
+                    : alertModal.type === 'roadtax'
+                    ? `Showing ${alertModal.records.length} records • Road tax evaluation logic: ddate == today → status: 'on', valid == today → status: 'off'`
+                    : `Showing ${alertModal.records.length} records`}
                 </span>
                 <button
                   onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}

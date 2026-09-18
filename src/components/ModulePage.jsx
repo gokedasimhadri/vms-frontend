@@ -6,6 +6,7 @@ import {
 import CustomTabs from './CustomTabs';
 import MainLayout from './MainLayout';
 import ExportButtons from './ExportButtons';
+import { TableLoader } from './Loader';
 import { SIDEBAR_MODULE_CONFIG } from '../config/modules.config';
 import { exportToCSV, exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
 import {
@@ -58,7 +59,7 @@ const ModulePage = ({ moduleKey }) => {
     }
   }, [location.search, currentConfig]);
   const [moduleData, setModuleData] = useState([]);
-  const [moduleLoading, setModuleLoading] = useState(false);
+  const [moduleLoading, setModuleLoading] = useState(true);
   const [moduleSearchQuery, setModuleSearchQuery] = useState('');
   const [moduleEntriesPerPage, setModuleEntriesPerPage] = useState(10);
   const [moduleCurrentPage, setModuleCurrentPage] = useState(1);
@@ -431,12 +432,10 @@ const ModulePage = ({ moduleKey }) => {
               </thead>
               <tbody>
                 {moduleLoading ? (
-                  <tr>
-                    <td colSpan={activeCols.length + 3} className="empty-cell">
-                      <span className="btn-spinner" style={{ marginRight: '8px' }} />
-                      Loading records...
-                    </td>
-                  </tr>
+                  <TableLoader
+                    colSpan={activeCols.length + 3}
+                    message={`Loading ${moduleKey} (${moduleSubTab.replace('_', ' ')}) records, please wait...`}
+                  />
                 ) : paginatedModuleData.length > 0 ? (
                   paginatedModuleData.map((row, index) => (
                     <tr key={row._id || row.id || index}>

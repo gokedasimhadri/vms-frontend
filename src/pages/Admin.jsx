@@ -4,6 +4,7 @@ import { User } from 'lucide-react';
 import CustomTabs from '../components/CustomTabs';
 import MainLayout from '../components/MainLayout';
 import ExportButtons from '../components/ExportButtons';
+import { TableLoader } from '../components/Loader';
 import { getAdminData, deleteAdminItem } from '../services/api';
 import { exportToCSV, exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
 
@@ -25,7 +26,7 @@ const Admin = () => {
   // Subtabs & Data
   const [adminSubTab, setAdminSubTab] = useState('Societies');
   const [adminData, setAdminData] = useState([]);
-  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(true);
   const [adminSearchQuery, setAdminSearchQuery] = useState('');
   const [adminEntriesPerPage, setAdminEntriesPerPage] = useState(10);
   const [adminCurrentPage, setAdminCurrentPage] = useState(1);
@@ -355,20 +356,21 @@ const Admin = () => {
               </thead>
               <tbody>
                 {adminLoading ? (
-                  <tr>
-                    <td colSpan="11" className="admin-loading-cell">
-                      <div className="admin-table-loader-box">
-                        <div className="admin-spinner" />
-                        <p className="admin-loader-text">Loading {adminSubTab} records, please wait...</p>
-                      </div>
-                    </td>
-                  </tr>
+                  <TableLoader
+                    colSpan={
+                      adminSubTab === 'Transfers' ? 11 :
+                      adminSubTab === 'Route_Details' ? 10 :
+                      adminSubTab === 'Handovers' || adminSubTab === 'Issues' ? 9 :
+                      adminSubTab === 'Branches' ? 5 : 4
+                    }
+                    message={`Loading ${adminSubTab.replace('_', ' ')} records, please wait...`}
+                  />
                 ) : paginatedAdminData.length > 0 ? (
                   paginatedAdminData.map((row, idx) => (
                     <tr key={row.id || idx}>
                       <td>{(adminCurrentPage - 1) * adminEntriesPerPage + idx + 1}</td>
                       {adminSubTab === 'Societies' && (
-                        <td>{row.name || row.societyname || '-'}</td>
+                        <td>{row.name || row.societyname || row.society || '-'}</td>
                       )}
                       {adminSubTab === 'Branches' && (
                         <>
