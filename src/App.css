@@ -2060,7 +2060,8 @@
 }
 
 /* White Data Table Card */
-.admin-table-card {
+.admin-table-card,
+.admin-table-container {
   background: #ffffff;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
@@ -2069,13 +2070,38 @@
   color: #334155;
 }
 
-.admin-table-toolbar {
+.admin-card-header-title,
+.admin-table-header {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  letter-spacing: -0.01em;
+}
+
+.admin-table-toolbar,
+.admin-table-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 16px;
+}
+
+.admin-toast-feedback {
+  background: #10b981;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 3px;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .admin-export-group {
@@ -2163,13 +2189,16 @@
 }
 
 /* Table Style */
-.admin-table-responsive {
+.admin-table-responsive,
+.admin-table-wrapper {
   width: 100%;
   overflow-x: auto;
   border: 1px solid #e2e8f0;
+  border-radius: 4px;
 }
 
-.admin-data-table {
+.admin-data-table,
+.admin-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12.5px;
@@ -2177,10 +2206,11 @@
   background: #ffffff;
 }
 
-.admin-data-table th {
-  background: #ffffff;
+.admin-data-table th,
+.admin-table th {
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
-  padding: 9px 12px;
+  padding: 10px 12px;
   font-weight: 700;
   text-align: left;
   white-space: nowrap;
@@ -2188,30 +2218,36 @@
   user-select: none;
 }
 
-.admin-data-table th.sortable {
+.admin-data-table th.sortable,
+.admin-table th.sortable {
   cursor: pointer;
 }
 
-.admin-data-table th.sortable:hover {
-  background: #f8fafc;
+.admin-data-table th.sortable:hover,
+.admin-table th.sortable:hover {
+  background: #f1f5f9;
 }
 
-.admin-data-table td {
+.admin-data-table td,
+.admin-table td {
   border: 1px solid #e2e8f0;
-  padding: 8px 12px;
+  padding: 9px 12px;
   white-space: nowrap;
   vertical-align: middle;
 }
 
-.admin-data-table tbody tr:nth-child(even) {
+.admin-data-table tbody tr:nth-child(even),
+.admin-table tbody tr:nth-child(even) {
   background-color: #fafbfc;
 }
 
-.admin-data-table tbody tr:hover {
+.admin-data-table tbody tr:hover,
+.admin-table tbody tr:hover {
   background-color: #f1f6f9;
 }
 
-.admin-data-table .empty-cell {
+.admin-data-table .empty-cell,
+.admin-table .empty-cell {
   text-align: center;
   padding: 30px;
   color: #64748b;

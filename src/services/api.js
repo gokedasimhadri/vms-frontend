@@ -25,6 +25,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// ================= AUTH =================
 export const loginUser = async (credentials) => {
   const response = await api.post('/login', credentials);
   return response.data;
@@ -35,52 +36,28 @@ export const registerUser = async (userData) => {
   return response.data;
 };
 
+// ================= DASHBOARD =================
 export const getDashboardOverview = async (branch) => {
   const params = branch && branch !== 'ALL' ? { branch } : {};
   const response = await api.get('/dashboard/overview', { params });
   return response.data;
 };
 
-export const getAdminData = async (type = 'stages', branch, username) => {
+// ================= ADMIN =================
+export const getAdminData = async (type = 'stages', branch) => {
   const params = { type };
-  if (branch && branch !== 'ALL') {
-    params.branch = branch;
-  }
-  let userIdent = username;
-  if (!userIdent) {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const u = JSON.parse(userStr);
-        userIdent = u.username;
-      } catch (e) {}
-    }
-  }
-  if (userIdent) {
-    params.username = userIdent;
-  }
-  const response = await api.get('/dashboard/admin-data', { params });
+  if (branch && branch !== 'ALL') params.branch = branch;
+  const response = await api.get('/admin/data', { params });
   return response.data;
 };
 
-export const createStage = async (stageData) => {
-  const response = await api.post('/dashboard/admin/stages', stageData);
+export const createAdminItem = async (type, data) => {
+  const response = await api.post(`/admin/${type}`, data);
   return response.data;
 };
 
-export const getStageFormOptions = async (username) => {
-  let userIdent = username;
-  if (!userIdent) {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const u = JSON.parse(userStr);
-        userIdent = u.username;
-      } catch (e) {}
-    }
-  }
-  const params = userIdent ? { username: userIdent } : {};
-  const response = await api.get('/dashboard/admin/stage-form-options', { params });
+export const updateAdminItem = async (type, id, data) => {
+  const response = await api.put(`/admin/${type}/${id}`, data);
   return response.data;
 };
 
@@ -89,10 +66,21 @@ export const deleteAdminItem = async (type, id) => {
   return response.data;
 };
 
-// Staff API
-export const getStaffData = async (type = 'Designations', branch) => {
+export const createStage = async (stageData) => {
+  const response = await api.post('/admin/stages', stageData);
+  return response.data;
+};
+
+export const getStageFormOptions = async () => {
+  const response = await api.get('/admin/stage-form-options');
+  return response.data;
+};
+
+// ================= STAFF =================
+export const getStaffData = async (type = 'Designations', branch, search = '') => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/staff', { params });
   return response.data;
 };
@@ -102,81 +90,235 @@ export const createStaffItem = async (type, data) => {
   return response.data;
 };
 
+export const updateStaffItem = async (type, id, data) => {
+  const response = await api.put(`/staff/${type}/${id}`, data);
+  return response.data;
+};
+
 export const deleteStaffItem = async (type, id) => {
   const response = await api.delete(`/staff/${type}/${id}`);
   return response.data;
 };
 
-
-// Vehicles API
-export const getVehiclesData = async (type = 'branch', branch) => {
+// ================= VEHICLES =================
+export const getVehiclesData = async (type = 'branch', branch, search = '') => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/vehicles', { params });
   return response.data;
 };
 
-// Certificates API
-export const getCertificatesData = async (type = 'pollution', branch) => {
+export const createVehicleItem = async (type, data) => {
+  const response = await api.post(`/vehicles/${type}`, data);
+  return response.data;
+};
+
+export const updateVehicleItem = async (type, id, data) => {
+  const response = await api.put(`/vehicles/${type}/${id}`, data);
+  return response.data;
+};
+
+export const deleteVehicleItem = async (type, id) => {
+  const response = await api.delete(`/vehicles/${type}/${id}`);
+  return response.data;
+};
+
+// ================= CERTIFICATES =================
+export const getCertificatesData = async (type = 'pollution', branch, search = '') => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/certificates', { params });
   return response.data;
 };
 
-// Fuels API
-export const getFuelsData = async (type = 'fuel', branch) => {
+export const createCertificateItem = async (type, data) => {
+  const response = await api.post(`/certificates/${type}`, data);
+  return response.data;
+};
+
+export const updateCertificateItem = async (type, id, data) => {
+  const response = await api.put(`/certificates/${type}/${id}`, data);
+  return response.data;
+};
+
+export const deleteCertificateItem = async (type, id) => {
+  const response = await api.delete(`/certificates/${type}/${id}`);
+  return response.data;
+};
+
+// ================= FUELS =================
+export const getFuelsData = async (type = 'busfill', branch, search = '') => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/fuels', { params });
   return response.data;
 };
 
-// Ad-Blue API
-export const getAdBlueData = async (type = 'AdBlue', branch) => {
+export const createFuelItem = async (type, data) => {
+  const response = await api.post(`/fuels/${type}`, data);
+  return response.data;
+};
+
+export const updateFuelItem = async (type, id, data) => {
+  const response = await api.put(`/fuels/${type}/${id}`, data);
+  return response.data;
+};
+
+export const deleteFuelItem = async (type, id) => {
+  const response = await api.delete(`/fuels/${type}/${id}`);
+  return response.data;
+};
+
+// ================= AD-BLUE =================
+export const getAdBlueData = async (type = 'adbluebusfill', branch, search = '') => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/adblue', { params });
   return response.data;
 };
 
-// Services API
-export const getServicesData = async (type = 'service', branch) => {
+export const createAdBlueItem = async (type, data) => {
+  const response = await api.post(`/adblue/${type}`, data);
+  return response.data;
+};
+
+export const updateAdBlueItem = async (type, id, data) => {
+  const response = await api.put(`/adblue/${type}/${id}`, data);
+  return response.data;
+};
+
+export const deleteAdBlueItem = async (type, id) => {
+  const response = await api.delete(`/adblue/${type}/${id}`);
+  return response.data;
+};
+
+// ================= SERVICES =================
+export const getServicesData = async (type = 'service', branch, search = '') => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/services', { params });
   return response.data;
 };
 
-// Repair Bills API
-export const getRepairBillsData = async (branch) => {
-  const params = branch && branch !== 'ALL' ? { branch } : {};
+export const createServiceItem = async (type, data) => {
+  const response = await api.post(`/services/${type}`, data);
+  return response.data;
+};
+
+export const updateServiceItem = async (type, id, data) => {
+  const response = await api.put(`/services/${type}/${id}`, data);
+  return response.data;
+};
+
+export const deleteServiceItem = async (type, id) => {
+  const response = await api.delete(`/services/${type}/${id}`);
+  return response.data;
+};
+
+// ================= REPAIR BILLS =================
+export const getRepairBillsData = async (branch, search = '') => {
+  const params = {};
+  if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/repair-bills', { params });
   return response.data;
 };
 
-// Bus Breakdown API
-export const getBusBreakdownData = async (branch) => {
-  const params = branch && branch !== 'ALL' ? { branch } : {};
+export const generateVoucherNumber = async (branch = 'DEFAULT') => {
+  const response = await api.get('/repair-bills/voucher-number', { params: { branch } });
+  return response.data;
+};
+
+export const createRepairBill = async (data) => {
+  const response = await api.post('/repair-bills', data);
+  return response.data;
+};
+
+export const updateRepairBill = async (id, data) => {
+  const response = await api.put(`/repair-bills/${id}`, data);
+  return response.data;
+};
+
+export const deleteRepairBill = async (id) => {
+  const response = await api.delete(`/repair-bills/${id}`);
+  return response.data;
+};
+
+// ================= BUS BREAKDOWN =================
+export const getBusBreakdownData = async (branch, search = '') => {
+  const params = {};
+  if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/bus-breakdown', { params });
   return response.data;
 };
 
-// Batteries API
-export const getBatteriesData = async (type = 'vehiclewise', branch) => {
+export const createBusBreakdownItem = async (data) => {
+  const response = await api.post('/bus-breakdown', data);
+  return response.data;
+};
+
+export const updateBusBreakdownItem = async (id, data) => {
+  const response = await api.put(`/bus-breakdown/${id}`, data);
+  return response.data;
+};
+
+export const deleteBusBreakdownItem = async (id) => {
+  const response = await api.delete(`/bus-breakdown/${id}`);
+  return response.data;
+};
+
+// ================= BATTERIES =================
+export const getBatteriesData = async (type = 'vehiclewise', branch, search = '') => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/batteries', { params });
   return response.data;
 };
 
-// Vehicle Tyres API
-export const getVehicleTyresData = async (type = 'tyres', branch) => {
+export const createBatteryItem = async (type, data) => {
+  const response = await api.post(`/batteries/${type}`, data);
+  return response.data;
+};
+
+export const updateBatteryItem = async (type, id, data) => {
+  const response = await api.put(`/batteries/${type}/${id}`, data);
+  return response.data;
+};
+
+export const deleteBatteryItem = async (type, id) => {
+  const response = await api.delete(`/batteries/${type}/${id}`);
+  return response.data;
+};
+
+// ================= VEHICLE TYRES =================
+export const getVehicleTyresData = async (type = 'tyres', branch, search = '') => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
   const response = await api.get('/vehicle-tyres', { params });
   return response.data;
 };
 
+export const createVehicleTyreItem = async (type, data) => {
+  const response = await api.post(`/vehicle-tyres/${type}`, data);
+  return response.data;
+};
 
+export const updateVehicleTyreItem = async (type, id, data) => {
+  const response = await api.put(`/vehicle-tyres/${type}/${id}`, data);
+  return response.data;
+};
 
+export const deleteVehicleTyreItem = async (type, id) => {
+  const response = await api.delete(`/vehicle-tyres/${type}/${id}`);
+  return response.data;
+};
+
+export default api;

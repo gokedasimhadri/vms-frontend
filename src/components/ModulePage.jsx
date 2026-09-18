@@ -6,7 +6,19 @@ import {
 import CustomTabs from './CustomTabs';
 import MainLayout from './MainLayout';
 import { SIDEBAR_MODULE_CONFIG } from '../config/modules.config';
-import { createStaffItem, deleteStaffItem } from '../services/api';
+import {
+  createStaffItem, updateStaffItem, deleteStaffItem,
+  createVehicleItem, updateVehicleItem, deleteVehicleItem,
+  createCertificateItem, updateCertificateItem, deleteCertificateItem,
+  createFuelItem, updateFuelItem, deleteFuelItem,
+  createAdBlueItem, updateAdBlueItem, deleteAdBlueItem,
+  createServiceItem, updateServiceItem, deleteServiceItem,
+  createRepairBill, updateRepairBill, deleteRepairBill,
+  createBusBreakdownItem, updateBusBreakdownItem, deleteBusBreakdownItem,
+  createBatteryItem, updateBatteryItem, deleteBatteryItem,
+  createVehicleTyreItem, updateVehicleTyreItem, deleteVehicleTyreItem,
+  createAdminItem, updateAdminItem, deleteAdminItem
+} from '../services/api';
 
 const MODULE_ICONS = {
   Staff: Users,
@@ -39,11 +51,12 @@ const ModulePage = ({ moduleKey }) => {
   const [moduleCurrentPage, setModuleCurrentPage] = useState(1);
   const [moduleCopiedNotification, setModuleCopiedNotification] = useState(false);
 
-  // New record modal state
-  const [showNewStaffModal, setShowNewStaffModal] = useState(false);
-  const [newStaffName, setNewStaffName] = useState('');
-  const [newStaffSubmitting, setNewStaffSubmitting] = useState(false);
-  const [staffSuccessToast, setStaffSuccessToast] = useState('');
+  // Generic modal state for Add & Edit
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [successToast, setSuccessToast] = useState('');
 
   const cacheRef = useRef({});
 
@@ -161,12 +174,47 @@ const ModulePage = ({ moduleKey }) => {
     window.print();
   };
 
+  // Open modal for Adding a new record
+  const handleOpenAddModal = () => {
+    setEditingId(null);
+    const initial = {};
+    activeCols.forEach(col => {
+      initial[col.key] = '';
+    });
+    if (selectedBranch && selectedBranch !== 'ALL' && selectedBranch !== 'College') {
+      initial.branch = selectedBranch;
+    }
+    setFormData(initial);
+    setShowModal(true);
+  };
+
+  // Open modal for Editing an existing record
+  const handleOpenEditModal = (row) => {
+    setEditingId(row._id || row.id);
+    const initial = {};
+    activeCols.forEach(col => {
+      initial[col.key] = row[col.key] ?? '';
+    });
+    setFormData(initial);
+    setShowModal(true);
+  };
+
+  // Generic delete dispatcher
   const handleDeleteRecord = async (subTab, id) => {
     if (!window.confirm('Are you sure you want to remove this record?')) return;
     try {
-      if (moduleKey === 'Staff') {
-        await deleteStaffItem(subTab, id);
-      }
+      if (moduleKey === 'Staff') await deleteStaffItem(subTab, id);
+      else if (moduleKey === 'Vehicles') await deleteVehicleItem(subTab, id);
+      else if (moduleKey === 'Certificates') await deleteCertificateItem(subTab, id);
+      else if (moduleKey === 'Fuels') await deleteFuelItem(subTab, id);
+      else if (moduleKey === 'Ad-Blue') await deleteAdBlueItem(subTab, id);
+      else if (moduleKey === 'Services') await deleteServiceItem(subTab, id);
+      else if (moduleKey === 'Repair Bills') await deleteRepairBill(id);
+      else if (moduleKey === 'Bus Breakdown') await deleteBusBreakdownItem(id);
+      else if (moduleKey === 'Batteries') await deleteBatteryItem(subTab, id);
+      else if (moduleKey === 'Vehicle Tyres') await deleteVehicleTyreItem(subTab, id);
+      else if (moduleKey === 'Admin') await deleteAdminItem(subTab, id);
+
       cacheRef.current = {};
       fetchModuleData(subTab, selectedBranch, true);
     } catch (err) {
@@ -175,33 +223,55 @@ const ModulePage = ({ moduleKey }) => {
     }
   };
 
-  const handleCreateRecord = async (e) => {
+  // Generic create/update dispatcher
+  const handleSaveRecord = async (e) => {
     e.preventDefault();
-    if (!newStaffName.trim()) {
-      alert('Please enter a name');
-      return;
-    }
-    setNewStaffSubmitting(true);
+    setSubmitting(true);
     try {
-      if (moduleKey === 'Staff') {
-        await createStaffItem(activeSub, {
-          name: newStaffName.trim(),
-          staffname: newStaffName.trim(),
-          cleanername: newStaffName.trim(),
-          branch: selectedBranch !== 'ALL' && selectedBranch !== 'College' ? selectedBranch : undefined
-        });
+      const payload = { ...formData };
+      if (!payload.branch && selectedBranch !== 'ALL' && selectedBranch !== 'College') {
+        payload.branch = selectedBranch;
       }
-      setShowNewStaffModal(false);
-      setNewStaffName('');
-      setStaffSuccessToast('Record created successfully!');
-      setTimeout(() => setStaffSuccessToast(''), 3000);
+
+      if (editingId) {
+        // UPDATE
+        if (moduleKey === 'Staff') await updateStaffItem(activeSub, editingId, payload);
+        else if (moduleKey === 'Vehicles') await updateVehicleItem(activeSub, editingId, payload);
+        else if (moduleKey === 'Certificates') await updateCertificateItem(activeSub, editingId, payload);
+        else if (moduleKey === 'Fuels') await updateFuelItem(activeSub, editingId, payload);
+        else if (moduleKey === 'Ad-Blue') await updateAdBlueItem(activeSub, editingId, payload);
+        else if (moduleKey === 'Services') await updateServiceItem(activeSub, editingId, payload);
+        else if (moduleKey === 'Repair Bills') await updateRepairBill(editingId, payload);
+        else if (moduleKey === 'Bus Breakdown') await updateBusBreakdownItem(editingId, payload);
+        else if (moduleKey === 'Batteries') await updateBatteryItem(activeSub, editingId, payload);
+        else if (moduleKey === 'Vehicle Tyres') await updateVehicleTyreItem(activeSub, editingId, payload);
+        else if (moduleKey === 'Admin') await updateAdminItem(activeSub, editingId, payload);
+        setSuccessToast('Record updated successfully!');
+      } else {
+        // CREATE
+        if (moduleKey === 'Staff') await createStaffItem(activeSub, payload);
+        else if (moduleKey === 'Vehicles') await createVehicleItem(activeSub, payload);
+        else if (moduleKey === 'Certificates') await createCertificateItem(activeSub, payload);
+        else if (moduleKey === 'Fuels') await createFuelItem(activeSub, payload);
+        else if (moduleKey === 'Ad-Blue') await createAdBlueItem(activeSub, payload);
+        else if (moduleKey === 'Services') await createServiceItem(activeSub, payload);
+        else if (moduleKey === 'Repair Bills') await createRepairBill(payload);
+        else if (moduleKey === 'Bus Breakdown') await createBusBreakdownItem(payload);
+        else if (moduleKey === 'Batteries') await createBatteryItem(activeSub, payload);
+        else if (moduleKey === 'Vehicle Tyres') await createVehicleTyreItem(activeSub, payload);
+        else if (moduleKey === 'Admin') await createAdminItem(activeSub, payload);
+        setSuccessToast('Record created successfully!');
+      }
+
+      setShowModal(false);
+      setTimeout(() => setSuccessToast(''), 3000);
       cacheRef.current = {};
       fetchModuleData(activeSub, selectedBranch, true);
     } catch (err) {
-      console.error('Failed to create record:', err);
-      alert('Error creating record: ' + (err.response?.data?.message || err.message));
+      console.error('Failed to save record:', err);
+      alert('Error saving record: ' + (err.response?.data?.message || err.message));
     } finally {
-      setNewStaffSubmitting(false);
+      setSubmitting(false);
     }
   };
 
@@ -258,22 +328,26 @@ const ModulePage = ({ moduleKey }) => {
           <button
             type="button"
             className="admin-action-btn"
-            onClick={() => {
-              setNewStaffName('');
-              setShowNewStaffModal(true);
-            }}
+            onClick={handleOpenAddModal}
           >
-            Add New
+            Add New Record
           </button>
-          {staffSuccessToast && (
-            <span style={{ color: '#10b981', fontSize: '13px', fontWeight: '600', marginLeft: '10px' }}>
-              ✓ {staffSuccessToast}
-            </span>
-          )}
         </div>
 
-        {/* Data Table Card */}
+        {/* Success Banner */}
+        {successToast && (
+          <div className="mb-4 p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-sm text-center font-medium">
+            {successToast}
+          </div>
+        )}
+
+        {/* Main Data Table Card */}
         <div className="admin-table-card">
+          <div className="admin-card-header-title">
+            {moduleKey} - {activeSub ? activeSub.replace(/_/g, ' ') : ''} Information
+          </div>
+
+          {/* Table Toolbar */}
           <div className="admin-table-toolbar">
             {/* Export Buttons */}
             <div className="admin-export-group">
@@ -283,23 +357,43 @@ const ModulePage = ({ moduleKey }) => {
                 onClick={() => handleCopyModuleTable(activeCols)}
                 title="Copy to clipboard"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 Copy
               </button>
-              <button type="button" className="admin-export-btn" onClick={handlePrintModuleTable} title="Print table">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              <button
+                type="button"
+                className="admin-export-btn"
+                onClick={handlePrintModuleTable}
+                title="Print table"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 Print
               </button>
-              <button type="button" className="admin-export-btn" onClick={() => handleExportModuleCSV(activeCols)} title="Export CSV">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                csv
+              <button
+                type="button"
+                className="admin-export-btn"
+                onClick={() => handleExportModuleCSV(activeCols)}
+                title="Export CSV"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                CSV
               </button>
-              <button type="button" className="admin-export-btn" onClick={() => handleExportModuleCSV(activeCols)} title="Export PDF">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                pdf
+              <button
+                type="button"
+                className="admin-export-btn"
+                onClick={() => handleExportModuleCSV(activeCols)}
+                title="Export PDF"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                PDF
               </button>
-              <button type="button" className="admin-export-btn" onClick={() => handleExportModuleCSV(activeCols)} title="Export Excel">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+              <button
+                type="button"
+                className="admin-export-btn"
+                onClick={() => handleExportModuleCSV(activeCols)}
+                title="Export Excel"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
                 Excel
               </button>
               {moduleCopiedNotification && (
@@ -307,12 +401,12 @@ const ModulePage = ({ moduleKey }) => {
               )}
             </div>
 
-            {/* Entries Control */}
+            {/* Entries control */}
             <div className="admin-entries-control">
               <span>Show</span>
               <select
                 value={moduleEntriesPerPage}
-                onChange={(e) => {
+                onChange={e => {
                   setModuleEntriesPerPage(Number(e.target.value));
                   setModuleCurrentPage(1);
                 }}
@@ -325,13 +419,14 @@ const ModulePage = ({ moduleKey }) => {
               <span>entries</span>
             </div>
 
-            {/* Search */}
+            {/* Search control */}
             <div className="admin-search-control">
               <label>Search:</label>
               <input
                 type="text"
+                placeholder="Type to filter..."
                 value={moduleSearchQuery}
-                onChange={(e) => {
+                onChange={e => {
                   setModuleSearchQuery(e.target.value);
                   setModuleCurrentPage(1);
                 }}
@@ -339,54 +434,51 @@ const ModulePage = ({ moduleKey }) => {
             </div>
           </div>
 
-          {/* Table responsive */}
+          {/* Table Element */}
           <div className="admin-table-responsive">
             <table className="admin-data-table">
               <thead>
                 <tr>
-                  <th className="sortable">▴ S.No</th>
-                  {activeCols.map(col => (
-                    <th key={col.key}>{col.label}</th>
+                  <th className="sortable" style={{ width: '50px', textAlign: 'center' }}>▴ S.No</th>
+                  {activeCols.map((col, idx) => (
+                    <th key={col.key || idx}>{col.label}</th>
                   ))}
-                  <th>Edit</th>
-                  <th>Remove</th>
+                  <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                  <th style={{ width: '70px', textAlign: 'center' }}>Remove</th>
                 </tr>
               </thead>
               <tbody>
                 {moduleLoading ? (
                   <tr>
-                    <td colSpan={activeCols.length + 3} className="admin-loading-cell">
-                      <div className="admin-table-loader-box">
-                        <div className="admin-spinner" />
-                        <p className="admin-loader-text">Loading {activeSub} records, please wait...</p>
-                      </div>
+                    <td colSpan={activeCols.length + 3} className="empty-cell">
+                      <span className="btn-spinner" style={{ marginRight: '8px' }} />
+                      Loading records...
                     </td>
                   </tr>
                 ) : paginatedModuleData.length > 0 ? (
-                  paginatedModuleData.map((row, idx) => (
-                    <tr key={row._id || row.id || idx}>
-                      <td>{(moduleCurrentPage - 1) * moduleEntriesPerPage + idx + 1}</td>
+                  paginatedModuleData.map((row, index) => (
+                    <tr key={row._id || row.id || index}>
+                      <td style={{ textAlign: 'center' }}>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</td>
                       {activeCols.map(col => (
                         <td key={col.key}>
-                          {String(row[col.key] ?? '-')}
+                          {row[col.key] !== undefined && row[col.key] !== null
+                            ? String(row[col.key])
+                            : '-'}
                         </td>
                       ))}
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
                           className="admin-icon-btn edit"
                           title="Edit"
-                          onClick={() => {
-                            setNewStaffName(row.name || row.staffname || '');
-                            setShowNewStaffModal(true);
-                          }}
+                          onClick={() => handleOpenEditModal(row)}
                         >
                           <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
                           className="admin-icon-btn remove"
@@ -447,47 +539,57 @@ const ModulePage = ({ moduleKey }) => {
           </div>
         </div>
 
-        {/* New Item Modal */}
-        {showNewStaffModal && (
-          <div className="admin-modal-backdrop" onClick={() => setShowNewStaffModal(false)}>
-            <div className="admin-modal-card" onClick={e => e.stopPropagation()}>
+        {/* Dynamic Modal for Create / Edit */}
+        {showModal && (
+          <div className="admin-modal-backdrop" onClick={() => setShowModal(false)}>
+            <div className="admin-modal-card" style={{ maxWidth: '650px' }} onClick={e => e.stopPropagation()}>
               <div className="admin-modal-header">
-                <h3>Add New Record - {moduleKey} ({activeSub})</h3>
+                <h3>{editingId ? 'Edit' : 'Add New'} Record - {moduleKey} ({activeSub})</h3>
                 <button
                   type="button"
                   className="admin-modal-close-btn"
-                  onClick={() => setShowNewStaffModal(false)}
+                  onClick={() => setShowModal(false)}
                 >
                   ✕
                 </button>
               </div>
-              <form onSubmit={handleCreateRecord}>
-                <div className="admin-modal-body">
-                  <div className="admin-form-field">
-                    <label>Record Name / Title *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter title or name..."
-                      value={newStaffName}
-                      onChange={e => setNewStaffName(e.target.value)}
-                    />
-                  </div>
+              <form onSubmit={handleSaveRecord}>
+                <div className="admin-modal-body" style={{ maxHeight: '65vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {activeCols.map(col => (
+                    <div key={col.key} className="admin-form-field" style={{ gridColumn: activeCols.length === 1 ? 'span 2' : 'span 1' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                        {col.label}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={`Enter ${col.label.toLowerCase()}...`}
+                        value={formData[col.key] ?? ''}
+                        onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px',
+                          fontSize: '13px'
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
                 <div className="admin-modal-footer">
                   <button
                     type="button"
                     className="admin-modal-btn-cancel"
-                    onClick={() => setShowNewStaffModal(false)}
+                    onClick={() => setShowModal(false)}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     className="admin-modal-btn-submit"
-                    disabled={newStaffSubmitting}
+                    disabled={submitting}
                   >
-                    {newStaffSubmitting ? 'Saving...' : 'Save Record'}
+                    {submitting ? 'Saving...' : editingId ? 'Update Record' : 'Save Record'}
                   </button>
                 </div>
               </form>
