@@ -1,15 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Gauge,
-  User,
-  Users,
-  Fuel,
-  Bus,
-  CreditCard,
-  Battery,
-  Disc
-} from 'lucide-react';
+import { Gauge } from 'lucide-react';
 import MainLayout from '../components/MainLayout';
 import { getDashboardOverview } from '../services/api';
 
@@ -85,34 +76,19 @@ const Dashboard = () => {
     : (user?.branch ? [user.branch] : []);
 
   // Content data from backend matching dynamic MongoDB statistics
-  const adminSummary = dashboardData?.adminSummary || { handOvers: '72/168', issues: '18/168', transfers: 188 };
-  const staffSummary = dashboardData?.staffSummary || { officeStaff: 36, busStaff: 526 };
-  const fuelsSummary = dashboardData?.fuelsSummary || { busFillings: 0 };
-  const vehiclesSummary = dashboardData?.vehiclesSummary || { branchVehicleInfo: 686, vehicleAccidents: 78 };
-  const licenseSummary = dashboardData?.licenseSummary || { licenseExpired: 0 };
-  const batterySummary = dashboardData?.batterySummary || {
-    unassigned: 56,
-    active: 730,
-    condemn: 3,
-    dead: 2,
-    theft: 2,
-    warrantyExpired: 6
-  };
-  const tyresSummary = dashboardData?.tyresSummary || {
-    unassigned: 20,
-    active: 249
-  };
+  const staffSummary = dashboardData?.staffSummary || { officeStaff: 0, busStaff: 0 };
+  const vehiclesSummary = dashboardData?.vehiclesSummary || { branchVehicleInfo: 0, vehicleAccidents: 0 };
 
   const certAlerts = dashboardData?.certificateAlerts || {
     rta: 0,
-    pollution: 7,
-    fitness: 3,
+    pollution: 0,
+    fitness: 0,
     roadTax: 0,
     roadPermit: 0,
-    insurance: 63
+    insurance: 0
   };
   const kmpl = dashboardData?.kmplPerformance || { aGrade: 0, bGrade: 0, cGrade: 0, dGrade: 0 };
-  const exceededTrips = dashboardData?.exceededTrips || 94;
+  const exceededTrips = dashboardData?.exceededTrips || 0;
 
   // Services table filtering and pagination
   const allServices = dashboardData?.services || [];
@@ -238,155 +214,10 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Two-Column Dashboard Layout Matching Admin Portal */}
+        {/* Dashboard Main Content Cards */}
         <div className="legacy-dashboard-grid">
-          {/* ================= LEFT ACCORDION COLUMN ================= */}
-          <div className="legacy-accordion-column">
-            {/* 1. Admin */}
-            <div className="summary-group-box">
-              <div className="group-box-header">
-                <User size={14} />
-                <span>Admin</span>
-              </div>
-              <div className="group-box-body">
-                <div className="group-row">
-                  <span className="row-label">Hand Overs</span>
-                  <span className="row-badge">{adminSummary.handOvers || '72/168'}</span>
-                </div>
-                <div className="group-row">
-                  <span className="row-label">Issues</span>
-                  <span className="row-badge">{adminSummary.issues || '18/168'}</span>
-                </div>
-                <div className="group-row">
-                  <span className="row-label">Transfers</span>
-                  <span className="row-badge">{adminSummary.transfers || 188}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Staff */}
-            <div className="summary-group-box">
-              <div className="group-box-header">
-                <Users size={14} />
-                <span>Staff</span>
-              </div>
-              <div className="group-box-body">
-                <div className="group-row">
-                  <span className="row-label">Office Staff</span>
-                  <span className="row-badge">{staffSummary.officeStaff || 36}</span>
-                </div>
-                <div className="group-row">
-                  <span className="row-label">Bus Staff</span>
-                  <span className="row-badge">{staffSummary.busStaff || 526}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Fuels */}
-            <div className="summary-group-box">
-              <div className="group-box-header">
-                <Fuel size={14} />
-                <span>Fuels</span>
-              </div>
-              <div className="group-box-body">
-                <div className="group-row">
-                  <span className="row-label">Bus Fillings</span>
-                  <span className="row-badge">{fuelsSummary.busFillings || 0}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Vehicles */}
-            <div className="summary-group-box">
-              <div className="group-box-header">
-                <Bus size={14} />
-                <span>Vehicles</span>
-              </div>
-              <div className="group-box-body">
-                <div className="group-row">
-                  <span className="row-label">Branch Vehicle Information</span>
-                  <span className="row-badge">{vehiclesSummary.branchVehicleInfo || 686}</span>
-                </div>
-                <div className="group-row">
-                  <span className="row-label">Vehicle Accidents</span>
-                  <span className="row-badge">{vehiclesSummary.vehicleAccidents || 78}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 5. License */}
-            <div className="summary-group-box">
-              <div className="group-box-header">
-                <CreditCard size={14} />
-                <span>License</span>
-              </div>
-              <div className="group-box-body">
-                <div className="group-row">
-                  <span className="row-label">License Expired</span>
-                  {licenseSummary.licenseExpired ? (
-                    <span className="row-badge">{licenseSummary.licenseExpired}</span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-
-            {/* 6. Battery */}
-            <div className="summary-group-box">
-              <div className="group-box-header" style={{ justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Battery size={14} />
-                  <span>Battery</span>
-                </div>
-                {batterySummary.unassigned > 0 && (
-                  <span className="row-badge">{batterySummary.unassigned}</span>
-                )}
-              </div>
-              <div className="group-box-body">
-                <div className="group-row">
-                  <span className="row-label">ACTIVE</span>
-                  <span className="row-badge">{batterySummary.active || 730}</span>
-                </div>
-                <div className="group-row">
-                  <span className="row-label">Condemn</span>
-                  <span className="row-badge">{batterySummary.condemn || 3}</span>
-                </div>
-                <div className="group-row">
-                  <span className="row-label">DEAD</span>
-                  <span className="row-badge">{batterySummary.dead || 2}</span>
-                </div>
-                <div className="group-row">
-                  <span className="row-label">THEFT</span>
-                  <span className="row-badge">{batterySummary.theft || 2}</span>
-                </div>
-                <div className="group-row">
-                  <span className="row-label">Warranty_Expired</span>
-                  <span className="row-badge">{batterySummary.warrantyExpired || 6}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 7. Vehicle Tyres */}
-            <div className="summary-group-box">
-              <div className="group-box-header" style={{ justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Disc size={14} />
-                  <span>Vehicle Tyres</span>
-                </div>
-                {tyresSummary.unassigned > 0 && (
-                  <span className="row-badge">{tyresSummary.unassigned}</span>
-                )}
-              </div>
-              <div className="group-box-body">
-                <div className="group-row">
-                  <span className="row-label">Active</span>
-                  <span className="row-badge">{tyresSummary.active || 249}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ================= RIGHT MAIN CONTENT COLUMN ================= */}
-          <div className="legacy-main-cards-column">
+          {/* ================= MAIN CONTENT COLUMN ================= */}
+          <div className="legacy-main-cards-column" style={{ width: '100%' }}>
             {/* Card 1: Certificate(Alerts) */}
             <div className="legacy-card">
               <div className="legacy-card-header">

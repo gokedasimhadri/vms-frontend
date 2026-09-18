@@ -37,7 +37,7 @@ const Login = () => {
 
   return (
     <div className="auth-layout" style={{
-      backgroundImage: "url('/Login_bg.png')",
+      backgroundImage: "url('/Login_bg.webp')",
       backgroundSize: "cover",
       backgroundPosition: "center",
       position: "relative",
