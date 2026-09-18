@@ -52,6 +52,22 @@ const ModulePage = ({ moduleKey }) => {
     validRequestedTab || currentConfig?.subTabs[0]?.id || ''
   );
 
+  const currentSubTabObj = useMemo(() => {
+    return currentConfig?.subTabs?.find(t => t.id === moduleSubTab);
+  }, [currentConfig, moduleSubTab]);
+
+  const [moduleChildSubTab, setModuleChildSubTab] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  useEffect(() => {
+    if (currentSubTabObj?.childSubTabs?.length > 0) {
+      setModuleChildSubTab(currentSubTabObj.childSubTabs[0].id);
+    } else {
+      setModuleChildSubTab('');
+    }
+  }, [currentSubTabObj]);
+
   useEffect(() => {
     const tabFromUrl = new URLSearchParams(location.search).get('tab');
     if (tabFromUrl && currentConfig?.subTabs?.some(t => t.id === tabFromUrl)) {
@@ -64,6 +80,14 @@ const ModulePage = ({ moduleKey }) => {
   const [moduleEntriesPerPage, setModuleEntriesPerPage] = useState(10);
   const [moduleCurrentPage, setModuleCurrentPage] = useState(1);
   const [moduleCopiedNotification, setModuleCopiedNotification] = useState(false);
+
+  // Second-level nested tab state (e.g. for Ad_Bus_Fillings)
+  const [nestedSubTab, setNestedSubTab] = useState('');
+  const [reportFromDate, setReportFromDate] = useState('');
+  const [reportToDate, setReportToDate] = useState('');
+  const [busSearchRegNo, setBusSearchRegNo] = useState('');
+  const [busRegisterNoFilter, setBusRegisterNoFilter] = useState('');
+  const [busDataFetched, setBusDataFetched] = useState(false);
 
   // Generic modal state for Add & Edit
   const [showModal, setShowModal] = useState(false);
@@ -138,15 +162,80 @@ const ModulePage = ({ moduleKey }) => {
     }
   }, [moduleKey, moduleSubTab, selectedBranch]);
 
+  const activeSub = moduleSubTab || currentConfig?.subTabs[0]?.id;
+  const currentSubConfig = currentConfig?.subTabs?.find(s => s.id === activeSub);
+
+  useEffect(() => {
+    if (currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0) {
+      setNestedSubTab(currentSubConfig.nestedTabs[0].id);
+    } else {
+      setNestedSubTab('');
+    }
+    setBusDataFetched(false);
+    setBusRegisterNoFilter('');
+  }, [activeSub]);
+
   const filteredModuleData = useMemo(() => {
-    if (!moduleSearchQuery.trim()) return moduleData;
+    let result = moduleData;
+
+    if (activeSub === 'adbluebusfill') {
+      if (!busDataFetched) {
+        return [];
+      }
+      if (nestedSubTab === 'entry_data' && busRegisterNoFilter.trim()) {
+        const bq = busRegisterNoFilter.trim().toLowerCase();
+        result = result.filter(item =>
+          (item.regno && String(item.regno).toLowerCase().includes(bq)) ||
+          (item.vehicleno && String(item.vehicleno).toLowerCase().includes(bq))
+        );
+      }
+      if (nestedSubTab === 'generate_report') {
+        if (reportFromDate) {
+          result = result.filter(item => {
+            const d = item.date || item.filldate;
+            if (!d) return true;
+            let itemDate = d;
+            if (typeof d === 'string' && d.includes('-')) {
+              const parts = d.split('-');
+              if (parts[0].length === 2 && parts[2]?.length === 4) {
+                itemDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+              }
+            }
+            return itemDate >= reportFromDate;
+          });
+        }
+        if (reportToDate) {
+          result = result.filter(item => {
+            const d = item.date || item.filldate;
+            if (!d) return true;
+            let itemDate = d;
+            if (typeof d === 'string' && d.includes('-')) {
+              const parts = d.split('-');
+              if (parts[0].length === 2 && parts[2]?.length === 4) {
+                itemDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+              }
+            }
+            return itemDate <= reportToDate;
+          });
+        }
+      }
+      if (nestedSubTab === 'search_bus_report' && busSearchRegNo.trim()) {
+        const bq = busSearchRegNo.trim().toLowerCase();
+        result = result.filter(item =>
+          (item.regno && String(item.regno).toLowerCase().includes(bq)) ||
+          (item.vehicleno && String(item.vehicleno).toLowerCase().includes(bq))
+        );
+      }
+    }
+
+    if (!moduleSearchQuery.trim()) return result;
     const q = moduleSearchQuery.toLowerCase();
-    return moduleData.filter(item =>
+    return result.filter(item =>
       Object.entries(item).some(([k, val]) =>
         k !== '_id' && k !== 'id' && val && String(val).toLowerCase().includes(q)
       )
     );
-  }, [moduleData, moduleSearchQuery]);
+  }, [moduleData, moduleSearchQuery, nestedSubTab, activeSub, busDataFetched, busRegisterNoFilter, reportFromDate, reportToDate, busSearchRegNo]);
 
   const totalModulePages = Math.ceil(filteredModuleData.length / moduleEntriesPerPage) || 1;
   const paginatedModuleData = useMemo(() => {
@@ -154,10 +243,12 @@ const ModulePage = ({ moduleKey }) => {
     return filteredModuleData.slice(start, start + moduleEntriesPerPage);
   }, [filteredModuleData, moduleCurrentPage, moduleEntriesPerPage]);
 
-  const activeSub = moduleSubTab || currentConfig?.subTabs[0]?.id;
   const activeCols = typeof currentConfig?.columns === 'function'
-    ? currentConfig.columns(activeSub)
+    ? currentConfig.columns(activeSub, nestedSubTab)
     : (currentConfig?.columns || []);
+
+  const isReportTab = activeSub === 'adbluebusfill' && nestedSubTab === 'generate_report';
+  const hasActionCols = !isReportTab;
 
   const handleCopyModuleTable = (cols) => {
     if (!filteredModuleData.length) return;
@@ -296,6 +387,31 @@ const ModulePage = ({ moduleKey }) => {
     }
   };
 
+  const showPDFColumn = moduleKey === 'Vehicles' && activeSub === 'accidents';
+
+  const handleGeneratePDF = (row) => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <html><head><title>Vehicle Accident Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 24px; color: #1e293b; }
+        h2 { text-align: center; color: #0b5299; border-bottom: 2px solid #0b5299; padding-bottom: 8px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+        th, td { border: 1px solid #cbd5e1; padding: 10px 14px; font-size: 13px; text-align: left; }
+        th { background-color: #f1f5f9; width: 35%; font-weight: 600; }
+      </style>
+      </head><body>
+      <h2>Vehicle Accident Report</h2>
+      <table>
+        ${activeCols.map(c => `<tr><th>${c.label}</th><td>${row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '-'}</td></tr>`).join('')}
+      </table>
+      </body></html>
+    `);
+    win.document.close();
+    win.print();
+  };
+
   const IconComponent = MODULE_ICONS[moduleKey] || FileText;
 
   return (
@@ -364,10 +480,6 @@ const ModulePage = ({ moduleKey }) => {
 
         {/* Main Data Table Card */}
         <div className="admin-table-card">
-          <div className="admin-card-header-title">
-            {moduleKey} - {activeSub ? activeSub.replace(/_/g, ' ') : ''} Information
-          </div>
-
           {/* Table Toolbar */}
           <div className="admin-table-toolbar">
             {/* Export Buttons */}
@@ -380,26 +492,26 @@ const ModulePage = ({ moduleKey }) => {
                 onExcel={() => handleExportModuleExcel(activeCols)}
               />
               {moduleCopiedNotification && (
-                <span className="admin-toast-feedback">Copied!</span>
+                <span className="admin-toast-feedback">Copied to clipboard!</span>
               )}
-            </div>
 
-            {/* Entries control */}
-            <div className="admin-entries-control">
-              <span>Show</span>
-              <select
-                value={moduleEntriesPerPage}
-                onChange={e => {
-                  setModuleEntriesPerPage(Number(e.target.value));
-                  setModuleCurrentPage(1);
-                }}
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span>entries</span>
+              {/* Entries control */}
+              <div className="admin-entries-control">
+                <span>Show</span>
+                <select
+                  value={moduleEntriesPerPage}
+                  onChange={e => {
+                    setModuleEntriesPerPage(Number(e.target.value));
+                    setModuleCurrentPage(1);
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>entries</span>
+              </div>
             </div>
 
             {/* Search control */}
@@ -407,7 +519,6 @@ const ModulePage = ({ moduleKey }) => {
               <label>Search:</label>
               <input
                 type="text"
-                placeholder="Type to filter..."
                 value={moduleSearchQuery}
                 onChange={e => {
                   setModuleSearchQuery(e.target.value);
@@ -422,9 +533,15 @@ const ModulePage = ({ moduleKey }) => {
             <table className="admin-data-table">
               <thead>
                 <tr>
-                  <th className="sortable" style={{ width: '50px', textAlign: 'center' }}>▴ S.No</th>
+                  <th style={{ width: '60px' }}>
+                    {(activeSub === 'adblue' || nestedSubTab === 'search_bus_report') ? 'S.No' : '▴ S.No'}
+                  </th>
                   {activeCols.map((col, idx) => (
-                    <th key={col.key || idx}>{col.label}</th>
+                    <th key={col.key || idx}>
+                      {idx === 0 && activeSub === 'adblue'
+                        ? `▴ ${col.label}`
+                        : col.label}
+                    </th>
                   ))}
                   <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
                   <th style={{ width: '70px', textAlign: 'center' }}>Remove</th>
@@ -439,9 +556,9 @@ const ModulePage = ({ moduleKey }) => {
                 ) : paginatedModuleData.length > 0 ? (
                   paginatedModuleData.map((row, index) => (
                     <tr key={row._id || row.id || index}>
-                      <td style={{ textAlign: 'center' }}>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</td>
+                      <td><strong>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</strong></td>
                       {activeCols.map(col => (
-                        <td key={col.key}>
+                        <td key={col.key} style={{ fontWeight: 600 }}>
                           {row[col.key] !== undefined && row[col.key] !== null
                             ? String(row[col.key])
                             : '-'}
