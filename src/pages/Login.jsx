@@ -35,6 +35,12 @@ const Login = () => {
     }
   };
 
+  // Adjust these values to control the background image properties
+  const bgImageWidth = "100%"; // Change this for width (e.g., "100vw", "120%", "cover")
+  const bgImageHeight = "100vh"; // Change this for height (e.g., "100vh", "auto")
+  const bgSaturation = "100%"; // Change this to control color saturation (e.g., "50%", "0%" for grayscale, "200%")
+  const bgOpacity = "0.6"; // Change this to control image opacity (e.g., "0.8", "0.5")
+
   return (
     <div className="auth-layout" style={{
       backgroundImage: "url('/Login_bg.webp')",
@@ -43,18 +49,34 @@ const Login = () => {
       position: "relative",
       display: "flex",
       height: "100vh",
+      width: "100vw",
       alignItems: "center",
-      justifyContent: "center"
+      justifyContent: "center",
+      overflow: "hidden",
+      backgroundColor: "#f0f2f5" // Fallback background color if opacity is reduced
     }}>
+      {/* Background Image Layer */}
+      <div style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: "url('/Login_bg.png')",
+        backgroundSize: `${bgImageWidth} ${bgImageHeight}`,
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        filter: `saturate(${bgSaturation})`,
+        opacity: bgOpacity,
+        zIndex: 0
+      }} />
+
       <div className="mask-card" style={{
         position: "absolute",
-        top: "6px",
-        left: "6px",
-        right: "6px",
-        bottom: "6px",
-        background: "linear-gradient(to right, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.3) 10%, transparent 30%), linear-gradient(to top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.3) 10%, transparent 60%)",
-        borderRadius: "16px",
-        boxShadow: "inset 0 0 0 2px rgba(200, 230, 255, 0.1)",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         display: "flex",
         alignItems: "center",
         justifyContent: "flex-end",
@@ -62,13 +84,13 @@ const Login = () => {
         zIndex: 1
       }}>
         <img
-          src="/Aditya University White Logo.png"
-          alt="Aditya University"
+          src="/AEI_logoo.png"
+          alt="Aditya Educational Institutions"
           style={{
             position: "absolute",
-            top: "40px",
+            top: "20px",
             left: "40px",
-            height: "80px",
+            height: "55px",
             zIndex: 3
           }}
         />
