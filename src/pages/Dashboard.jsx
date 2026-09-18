@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gauge } from 'lucide-react';
+import { Gauge, X, RefreshCw, ExternalLink, Calendar, CheckCircle2 } from 'lucide-react';
 import MainLayout from '../components/MainLayout';
-import { getDashboardOverview } from '../services/api';
+import {
+  getDashboardOverview,
+  fetchRtaExpired,
+  fetchPollutionExpired,
+  fetchFitnessExpired,
+  fetchRoadtaxExpired,
+  fetchRoadpermitExpired,
+  fetchInsuranceExpired,
+  updateRoadtaxStatus
+} from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -17,6 +26,17 @@ const Dashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
+
+  // Alert Details Modal state
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    type: null,
+    title: '',
+    records: [],
+    loading: false,
+    updating: false,
+    updateMessage: ''
+  });
 
   const overviewCacheRef = useRef({});
 
@@ -71,6 +91,59 @@ const Dashboard = () => {
     navigate('/');
   };
 
+  const handleOpenAlertModal = async (type, title) => {
+    setAlertModal({
+      isOpen: true,
+      type,
+      title,
+      records: [],
+      loading: true,
+      updating: false,
+      updateMessage: ''
+    });
+
+    try {
+      let data = [];
+      if (type === 'roadtax') data = await fetchRoadtaxExpired();
+      else if (type === 'rta') data = await fetchRtaExpired();
+      else if (type === 'pollution') data = await fetchPollutionExpired();
+      else if (type === 'fitness') data = await fetchFitnessExpired();
+      else if (type === 'roadpermit') data = await fetchRoadpermitExpired();
+      else if (type === 'insurance') data = await fetchInsuranceExpired();
+      setAlertModal(prev => ({
+        ...prev,
+        records: Array.isArray(data) ? data : [],
+        loading: false
+      }));
+    } catch (err) {
+      console.error(`Failed to fetch ${type} alerts:`, err);
+      setAlertModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleTriggerRoadtaxUpdate = async () => {
+    setAlertModal(prev => ({ ...prev, updating: true, updateMessage: '' }));
+    try {
+      const res = await updateRoadtaxStatus();
+      const updatedList = await fetchRoadtaxExpired();
+      setAlertModal(prev => ({
+        ...prev,
+        records: Array.isArray(updatedList) ? updatedList : [],
+        updating: false,
+        updateMessage: res.message || 'Road tax status successfully updated for today.'
+      }));
+      // Refresh dashboard overview to update badge count
+      fetchData(selectedBranch, true);
+    } catch (err) {
+      console.error('Failed to update road tax status:', err);
+      setAlertModal(prev => ({
+        ...prev,
+        updating: false,
+        updateMessage: 'Failed to update road tax status.'
+      }));
+    }
+  };
+
   const branchesList = user?.branches && user.branches.length > 0
     ? user.branches
     : (user?.branch ? [user.branch] : []);
@@ -89,6 +162,7 @@ const Dashboard = () => {
   };
   const kmpl = dashboardData?.kmplPerformance || { aGrade: 0, bGrade: 0, cGrade: 0, dGrade: 0 };
   const exceededTrips = dashboardData?.exceededTrips || 0;
+  const busBreakdowns = dashboardData?.busBreakdowns || 0;
 
   // Services table filtering and pagination
   const allServices = dashboardData?.services || [];
@@ -225,28 +299,28 @@ const Dashboard = () => {
               </div>
               <div className="legacy-card-body">
                 <div className="metrics-grid-6">
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.rta || 0}</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => handleOpenAlertModal('rta', 'RTA Expired')} title="Click to view RTA expired records">
+                    <div className="metric-stat-number">{certAlerts.rta ?? 0}</div>
                     <div className="metric-stat-label">RTA</div>
                   </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.pollution || 7}</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => handleOpenAlertModal('pollution', 'Pollution Alerts')} title="Click to view Pollution alert records">
+                    <div className="metric-stat-number">{certAlerts.pollution ?? 0}</div>
                     <div className="metric-stat-label">Pollution</div>
                   </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.fitness || 3}</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => handleOpenAlertModal('fitness', 'Fitness Alerts')} title="Click to view Fitness alert records">
+                    <div className="metric-stat-number">{certAlerts.fitness ?? 0}</div>
                     <div className="metric-stat-label">Fitness</div>
                   </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.roadTax || 0}</div>
-                    <div className="metric-stat-label">Road Tax</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-blue-50 transition-colors rounded p-1" onClick={() => handleOpenAlertModal('roadtax', 'Road Tax Alerts')} title="Click to view Road Tax alert records and update status">
+                    <div className="metric-stat-number" style={{ color: '#0b5299' }}>{certAlerts.roadTax ?? 0}</div>
+                    <div className="metric-stat-label" style={{ fontWeight: 600, color: '#0b5299' }}>Road Tax</div>
                   </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.roadPermit || 0}</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => handleOpenAlertModal('roadpermit', 'Road Permit Alerts')} title="Click to view Road Permit alert records">
+                    <div className="metric-stat-number">{certAlerts.roadPermit ?? 0}</div>
                     <div className="metric-stat-label">Road Permit</div>
                   </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{certAlerts.insurance || 63}</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => handleOpenAlertModal('insurance', 'Insurance Alerts')} title="Click to view Insurance alert records">
+                    <div className="metric-stat-number">{certAlerts.insurance ?? 0}</div>
                     <div className="metric-stat-label">Insurance</div>
                   </div>
                 </div>
@@ -260,35 +334,53 @@ const Dashboard = () => {
               </div>
               <div className="legacy-card-body">
                 <div className="metrics-grid-4">
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{kmpl.aGrade || 0}</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => navigate('/fuels')}>
+                    <div className="metric-stat-number" style={{ color: '#059669' }}>{kmpl.aGrade ?? 0}</div>
                     <div className="metric-stat-label">A Grade</div>
                   </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{kmpl.bGrade || 0}</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => navigate('/fuels')}>
+                    <div className="metric-stat-number" style={{ color: '#0284c7' }}>{kmpl.bGrade ?? 0}</div>
                     <div className="metric-stat-label">B Grade</div>
                   </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{kmpl.cGrade || 0}</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => navigate('/fuels')}>
+                    <div className="metric-stat-number" style={{ color: '#d97706' }}>{kmpl.cGrade ?? 0}</div>
                     <div className="metric-stat-label">C Grade</div>
                   </div>
-                  <div className="metric-stat-item">
-                    <div className="metric-stat-number">{kmpl.dGrade || 0}</div>
+                  <div className="metric-stat-item cursor-pointer hover:bg-slate-50 transition-colors rounded p-1" onClick={() => navigate('/fuels')}>
+                    <div className="metric-stat-number" style={{ color: '#dc2626' }}>{kmpl.dGrade ?? 0}</div>
                     <div className="metric-stat-label">D Grade</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Card 3: Exceeded Vehicle Trips */}
+            {/* Card 3: Exceeded Vehicle Trips & Bus Breakdowns */}
             <div className="legacy-card">
               <div className="legacy-card-header">
-                <span>Exceeded Vehicle Trips</span>
+                <span>Vehicle Operations & Alerts</span>
               </div>
               <div className="legacy-card-body">
-                <div className="metric-single-center">
-                  <div className="metric-stat-number" style={{ fontSize: '36px' }}>{exceededTrips}</div>
-                  <div className="metric-stat-label">Exceeded Trips</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '8px 0' }}>
+                  <div
+                    className="metric-single-center cursor-pointer hover:bg-slate-50 rounded p-2 transition-colors"
+                    onClick={() => navigate('/bus-breakdown')}
+                    title="Click to view Bus Breakdowns"
+                  >
+                    <div className="metric-stat-number" style={{ fontSize: '36px', color: '#e53935' }}>
+                      {busBreakdowns}
+                    </div>
+                    <div className="metric-stat-label">Bus Breakdowns</div>
+                  </div>
+                  <div
+                    className="metric-single-center cursor-pointer hover:bg-slate-50 rounded p-2 transition-colors"
+                    onClick={() => navigate('/vehicles')}
+                    title="Click to view Vehicle Trips"
+                  >
+                    <div className="metric-stat-number" style={{ fontSize: '36px', color: '#0b5299' }}>
+                      {exceededTrips}
+                    </div>
+                    <div className="metric-stat-label">Exceeded Trips</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -421,6 +513,269 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* ================= CERTIFICATE ALERT DETAILS MODAL ================= */}
+        {alertModal.isOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px'
+            }}
+            onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+          >
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '12px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                border: '1px solid #e2e8f0',
+                maxWidth: '1000px',
+                width: '100%',
+                maxHeight: '85vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div
+                style={{
+                  padding: '16px 20px',
+                  borderBottom: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: '#f8fafc'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#0f172a' }}>
+                    {alertModal.title}
+                  </h3>
+                  <span
+                    style={{
+                      backgroundColor: '#0b5299',
+                      color: '#ffffff',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    {alertModal.records.length} records
+                  </span>
+                  {alertModal.type === 'roadtax' && (
+                    <span
+                      style={{
+                        backgroundColor: '#e0f2fe',
+                        color: '#0369a1',
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontWeight: 500
+                      }}
+                    >
+                      Evaluated against today's date
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {alertModal.type === 'roadtax' && (
+                    <button
+                      onClick={handleTriggerRoadtaxUpdate}
+                      disabled={alertModal.updating}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        backgroundColor: '#0b5299',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: alertModal.updating ? 'not-allowed' : 'pointer',
+                        opacity: alertModal.updating ? 0.7 : 1,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                      }}
+                      title="Run status update for road tax based on today's date"
+                    >
+                      <RefreshCw style={{ width: '14px', height: '14px', animation: alertModal.updating ? 'spin 1s linear infinite' : 'none' }} />
+                      {alertModal.updating ? 'Updating...' : 'Update Status (Today)'}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setAlertModal(prev => ({ ...prev, isOpen: false }));
+                      navigate(`/certificates?tab=${alertModal.type || 'roadtax'}`);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '6px 12px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#334155',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <ExternalLink style={{ width: '13px', height: '13px' }} />
+                    View in Module
+                  </button>
+
+                  <button
+                    onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#64748b',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <X style={{ width: '20px', height: '20px' }} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Update Banner */}
+              {alertModal.updateMessage && (
+                <div
+                  style={{
+                    backgroundColor: '#ecfdf5',
+                    borderBottom: '1px solid #a7f3d0',
+                    padding: '10px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: '#065f46',
+                    fontSize: '13px',
+                    fontWeight: 500
+                  }}
+                >
+                  <CheckCircle2 style={{ width: '16px', height: '16px', color: '#059669' }} />
+                  <span>{alertModal.updateMessage}</span>
+                </div>
+              )}
+
+              {/* Modal Body / Table */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+                {alertModal.loading ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                    <RefreshCw style={{ width: '24px', height: '24px', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+                    <p style={{ margin: 0, fontSize: '14px' }}>Loading expired alerts data...</p>
+                  </div>
+                ) : alertModal.records.length === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                    <p style={{ margin: 0, fontSize: '14px' }}>No alert records found matching the criteria for today.</p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="legacy-table" style={{ width: '100%' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ width: '40px' }}>#</th>
+                          <th>Vehicle Reg. No</th>
+                          <th>Society</th>
+                          <th>Branch</th>
+                          <th>Model</th>
+                          {alertModal.type === 'roadtax' && <th>Certificate No</th>}
+                          <th>{alertModal.type === 'roadtax' ? 'Due Date (ddate)' : 'Due / Exp Date'}</th>
+                          <th>Valid Till</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {alertModal.records.map((r, idx) => (
+                          <tr key={r._id || r.id || idx}>
+                            <td style={{ textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
+                            <td style={{ fontWeight: 600, color: '#0b5299' }}>{r.regno || r.vehicleregno || '—'}</td>
+                            <td>{r.society || '—'}</td>
+                            <td>{r.branch || '—'}</td>
+                            <td>{r.model || '—'}</td>
+                            {alertModal.type === 'roadtax' && <td>{r.certificate || '—'}</td>}
+                            <td style={{ color: '#dc2626', fontWeight: 600 }}>
+                              {r.ddate || r.expireddate || r.rdate || '—'}
+                            </td>
+                            <td>{r.valid || r.edate || '—'}</td>
+                            <td>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  backgroundColor: (r.status === 'on' || !r.status) ? '#fee2e2' : '#f1f5f9',
+                                  color: (r.status === 'on' || !r.status) ? '#dc2626' : '#64748b'
+                                }}
+                              >
+                                {(r.status || 'ON').toUpperCase()}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                style={{
+                  padding: '12px 20px',
+                  borderTop: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: '#f8fafc',
+                  fontSize: '12px',
+                  color: '#64748b'
+                }}
+              >
+                <span>
+                  Showing {alertModal.records.length} records &bull; Road tax evaluation logic: <code>ddate == today &rarr; status: 'on'</code>, <code>valid == today &rarr; status: 'off'</code>
+                </span>
+                <button
+                  onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                  style={{
+                    padding: '6px 14px',
+                    backgroundColor: '#e2e8f0',
+                    color: '#334155',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </MainLayout>
     </div>
   );

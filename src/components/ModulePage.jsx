@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Users, Bus, FileText, Fuel, Droplet, Settings, Wrench, AlertTriangle, Battery, Disc
 } from 'lucide-react';
@@ -35,15 +35,26 @@ const MODULE_ICONS = {
 
 const ModulePage = ({ moduleKey }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState('ALL');
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
 
   const currentConfig = SIDEBAR_MODULE_CONFIG[moduleKey];
 
+  const requestedTab = new URLSearchParams(location.search).get('tab');
+  const validRequestedTab = currentConfig?.subTabs?.some(t => t.id === requestedTab) ? requestedTab : null;
+
   const [moduleSubTab, setModuleSubTab] = useState(
-    currentConfig?.subTabs[0]?.id || ''
+    validRequestedTab || currentConfig?.subTabs[0]?.id || ''
   );
+
+  useEffect(() => {
+    const tabFromUrl = new URLSearchParams(location.search).get('tab');
+    if (tabFromUrl && currentConfig?.subTabs?.some(t => t.id === tabFromUrl)) {
+      setModuleSubTab(tabFromUrl);
+    }
+  }, [location.search, currentConfig]);
   const [moduleData, setModuleData] = useState([]);
   const [moduleLoading, setModuleLoading] = useState(false);
   const [moduleSearchQuery, setModuleSearchQuery] = useState('');

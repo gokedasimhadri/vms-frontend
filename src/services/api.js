@@ -43,6 +43,18 @@ export const getDashboardOverview = async (branch) => {
   return response.data;
 };
 
+// 10 legacy endpoints from reference.js
+export const fetchRtaExpired = async (date) => (await api.get('/RtaExpired', { params: date ? { date } : {} })).data;
+export const fetchPollutionExpired = async () => (await api.get('/PollutionExpired')).data;
+export const fetchFitnessExpired = async () => (await api.get('/FitnessExpired')).data;
+export const fetchRoadtaxExpired = async () => (await api.get('/RoadtaxExpired')).data;
+export const fetchRoadpermitExpired = async () => (await api.get('/RoadpermitExpired')).data;
+export const fetchInsuranceExpired = async () => (await api.get('/InsuranceExpired')).data;
+export const fetchBusfilldata = async () => (await api.get('/getBusfilldata')).data;
+export const fetchVehicletripexceed = async () => (await api.get('/vehicletripexceed')).data;
+export const fetchVehicleservice = async () => (await api.get('/getVehicleservice')).data;
+export const fetchBusbreakedowndata = async () => (await api.get('/getBusbreakedowndata')).data;
+
 // ================= ADMIN =================
 export const getAdminData = async (type = 'stages', branch) => {
   const params = { type };
@@ -145,6 +157,29 @@ export const updateCertificateItem = async (type, id, data) => {
 
 export const deleteCertificateItem = async (type, id) => {
   const response = await api.delete(`/certificates/${type}/${id}`);
+  return response.data;
+};
+
+export const getRtaExpired = async (date) => {
+  const params = date ? { date } : {};
+  const response = await api.get('/certificates/rta-expired', { params });
+  return response.data;
+};
+
+export const getExpiredCertificates = async (type = 'rta', date) => {
+  const params = date ? { date } : {};
+  const response = await api.get(`/certificates/expired/${type}`, { params });
+  return response.data;
+};
+
+export const getCertificateAlertsSummary = async (date) => {
+  const params = date ? { date } : {};
+  const response = await api.get('/certificates/alerts-summary', { params });
+  return response.data;
+};
+
+export const updateRoadtaxStatus = async (date) => {
+  const response = await api.post('/certificates/update-roadtax-status', date ? { date } : {});
   return response.data;
 };
 
