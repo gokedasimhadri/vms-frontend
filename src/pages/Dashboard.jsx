@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gauge } from 'lucide-react';
 import MainLayout from '../components/MainLayout';
+import ExportButtons from '../components/ExportButtons';
 import { getDashboardOverview } from '../services/api';
+import { exportToCSV, exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -129,7 +131,7 @@ const Dashboard = () => {
     setTimeout(() => setCopiedNotification(false), 2000);
   };
 
-  const handleExportCSV = () => {
+  const getExportData = () => {
     const headers = [
       'Society', 'Branch', 'Model', 'Vehicle No.', 'Date',
       'Servicing Parts & Oils', 'Periodical Duration',
@@ -137,22 +139,30 @@ const Dashboard = () => {
       'KMS', 'Remainder Reading'
     ];
     const rows = filteredServices.map(s => [
-      `"${s.society || ''}"`, `"${s.branch || ''}"`, `"${s.model || ''}"`,
-      `"${s.vehicleno || ''}"`, `"${s.date || ''}"`, `"${s.parts || ''}"`,
-      `"${s.duration || ''}"`, `"${s.lastreading || ''}"`, `"${s.presentreading || ''}"`,
-      `"${s.kms || ''}"`, `"${s.remainder || ''}"`
+      s.society || '', s.branch || '', s.model || '', s.vehicleno || '', s.date || '',
+      s.parts || '', s.duration || '', s.lastreading || '', s.presentreading || '',
+      s.kms || '', s.remainder || ''
     ]);
-    const csvString = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csvString));
-    link.setAttribute('download', `Vehicle_Services_${selectedBranch}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    return { headers, rows };
+  };
+
+  const handleExportCSV = () => {
+    const { headers, rows } = getExportData();
+    exportToCSV(headers, rows, `Vehicle_Services_${selectedBranch}`);
+  };
+
+  const handleExportPDF = () => {
+    const { headers, rows } = getExportData();
+    exportToPDF(headers, rows, `Vehicle_Services_${selectedBranch}`, `Vehicle Services - ${selectedBranch}`);
+  };
+
+  const handleExportExcel = () => {
+    const { headers, rows } = getExportData();
+    exportToExcel(headers, rows, `Vehicle_Services_${selectedBranch}`);
   };
 
   const handlePrint = () => {
-    window.print();
+    printTable('.legacy-data-table', `Vehicle Services - ${selectedBranch}`);
   };
 
   // Pagination number generator with ellipsis
@@ -301,14 +311,16 @@ const Dashboard = () => {
               <div className="table-card-body">
                 {/* Control Toolbar */}
                 <div className="table-controls-bar">
-                  <div className="export-buttons-group">
-                    <button className="export-btn" onClick={handleCopyTable}>Copy</button>
-                    <button className="export-btn" onClick={handlePrint}>Print</button>
-                    <button className="export-btn" onClick={handleExportCSV}>csv</button>
-                    <button className="export-btn" onClick={handleExportCSV}>pdf</button>
-                    <button className="export-btn" onClick={handleExportCSV}>Excel</button>
-                    {copiedNotification && <span className="copy-toast">Copied!</span>}
-                  </div>
+                  <ExportButtons 
+                    onCopy={handleCopyTable}
+                    onPrint={handlePrint}
+                    onCSV={handleExportCSV}
+                    onPDF={handleExportPDF}
+                    onExcel={handleExportExcel}
+                    containerClassName="export-buttons-group"
+                    buttonClassName="export-btn"
+                  />
+                  {copiedNotification && <span className="copy-toast">Copied!</span>}
 
                   <div className="show-entries-dropdown">
                     <span>Show </span>

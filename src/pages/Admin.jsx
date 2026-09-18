@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
 import CustomTabs from '../components/CustomTabs';
 import MainLayout from '../components/MainLayout';
+import ExportButtons from '../components/ExportButtons';
 import { getAdminData, deleteAdminItem } from '../services/api';
+import { exportToCSV, exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
 
 const ADMIN_SUBTABS = [
   { id: 'Societies', label: 'Societies' },
@@ -122,25 +124,31 @@ const Admin = () => {
     setTimeout(() => setAdminCopiedNotification(false), 2000);
   };
 
-  const handleExportAdminCSV = () => {
-    if (!filteredAdminData.length) return;
+  const getAdminExportData = () => {
+    if (!filteredAdminData.length) return null;
     const sample = filteredAdminData[0];
-    const keys = Object.keys(sample).filter(k => k !== '_id' && k !== 'id');
-    const headerRow = keys.join(',');
-    const dataRows = filteredAdminData.map(row =>
-      keys.map(k => `"${String(row[k] ?? '').replace(/"/g, '""')}"`).join(',')
-    );
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headerRow, ...dataRows].join('\n');
-    const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csvContent));
-    link.setAttribute('download', `Admin_${adminSubTab}_Data.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const headers = Object.keys(sample).filter(k => k !== '_id' && k !== 'id');
+    const rows = filteredAdminData.map(row => headers.map(k => row[k] ?? ''));
+    return { headers, rows };
+  };
+
+  const handleExportAdminCSV = () => {
+    const data = getAdminExportData();
+    if (data) exportToCSV(data.headers, data.rows, `Admin_${adminSubTab}_Data`);
+  };
+
+  const handleExportAdminPDF = () => {
+    const data = getAdminExportData();
+    if (data) exportToPDF(data.headers, data.rows, `Admin_${adminSubTab}_Data`, `Admin Data - ${adminSubTab.replace(/_/g, ' ')}`);
+  };
+
+  const handleExportAdminExcel = () => {
+    const data = getAdminExportData();
+    if (data) exportToExcel(data.headers, data.rows, `Admin_${adminSubTab}_Data`);
   };
 
   const handlePrintAdminTable = () => {
-    window.print();
+    printTable('.admin-data-table', `Admin Data - ${adminSubTab.replace(/_/g, ' ')}`);
   };
 
   const handleDeleteAdminRecord = async (id) => {
@@ -224,26 +232,13 @@ const Admin = () => {
           <div className="admin-table-toolbar">
             {/* Export Buttons */}
             <div className="admin-export-group">
-              <button type="button" className="admin-export-btn" onClick={handleCopyAdminTable} title="Copy to clipboard">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                Copy
-              </button>
-              <button type="button" className="admin-export-btn" onClick={handlePrintAdminTable} title="Print table">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                Print
-              </button>
-              <button type="button" className="admin-export-btn" onClick={handleExportAdminCSV} title="Export CSV">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                csv
-              </button>
-              <button type="button" className="admin-export-btn" onClick={handleExportAdminCSV} title="Export PDF">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                pdf
-              </button>
-              <button type="button" className="admin-export-btn" onClick={handleExportAdminCSV} title="Export Excel">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                Excel
-              </button>
+              <ExportButtons
+                onCopy={handleCopyAdminTable}
+                onPrint={handlePrintAdminTable}
+                onCSV={handleExportAdminCSV}
+                onPDF={handleExportAdminPDF}
+                onExcel={handleExportAdminExcel}
+              />
               {adminCopiedNotification && (
                 <span className="admin-toast-feedback">Copied!</span>
               )}
