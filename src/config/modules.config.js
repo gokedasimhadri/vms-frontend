@@ -300,38 +300,90 @@ export const SIDEBAR_MODULE_CONFIG = {
   Batteries: {
     title: 'Battery Management',
     subTabs: [
-      { id: 'vehiclewise', label: 'Vehicle Batteries' },
-      { id: 'reports', label: 'Change Reports' },
+      { id: 'vehiclewise', label: 'Vehicle Wise Battery' },
+      { id: 'reports', label: 'Battery Change Report' },
     ],
     apiFn: (subTab, branch) => getBatteriesData(subTab, branch),
-    columns: () => [
-      { key: 'vehicleregno', label: 'Vehicle Reg.No' },
-      { key: 'society', label: 'Society' },
-      { key: 'branch', label: 'Branch' },
-      { key: 'battery_make', label: 'Battery Make' },
-      { key: 'battery_capacity', label: 'Capacity' },
-      { key: 'battery_number', label: 'Serial No' },
-      { key: 'fitment_date', label: 'Fitment Date' },
-      { key: 'warranty', label: 'Warranty' },
-      { key: 'status', label: 'Status' },
-    ]
+    columns: (subTab) => {
+      if (subTab === 'reports') {
+        return [
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'battery_make', label: 'Battery Make' },
+          { key: 'battery_capacity', label: 'Battery Capacity' },
+          { key: 'battery_number', label: 'Battery Number' },
+          { key: 'frombusno', label: 'From Bus No.' },
+          { key: 'tobusno', label: 'To Bus No.' },
+          { key: 'initialfitmentdate', label: 'Initial Fitment Date' },
+          { key: 'presentfitmentdate', label: 'Present Fitment Date' },
+          { key: 'remarks', label: 'Remarks' },
+        ];
+      }
+      return [
+        { key: 'society', label: 'Society' },
+        { key: 'branch', label: 'Branch' },
+        { key: 'vehicleregno', label: 'Vehicle No.' },
+        { key: 'battery_make', label: 'Battery Make' },
+        { key: 'battery_capacity', label: 'Battery Capacity' },
+        { key: 'battery_number', label: 'Battery Number' },
+        { key: 'fitment_date', label: 'Date of Fitment' },
+        { key: 'warranty', label: 'Warranty Period' },
+        { key: 'expireddate', label: 'Expired Date' },
+        { key: 'status', label: 'Status' },
+        { key: 'remarks', label: 'Remarks' },
+      ];
+    }
   },
   'Vehicle Tyres': {
     title: 'Tyre Management',
     subTabs: [
-      { id: 'tyres', label: 'Tyres Inventory' },
+      { id: 'tyres', label: 'New Tyres' },
+      { id: 'rebutton', label: 'Rebutton Tyres' },
       { id: 'status', label: 'Tyre Status' },
     ],
     apiFn: (subTab, branch) => getVehicleTyresData(subTab, branch),
-    columns: () => [
-      { key: 'vehicleregno', label: 'Vehicle Reg.No' },
-      { key: 'society', label: 'Society' },
-      { key: 'branch', label: 'Branch' },
-      { key: 'tyremake', label: 'Brand / Make' },
-      { key: 'tyreno', label: 'Tyre Serial No' },
-      { key: 'position', label: 'Wheel Position' },
-      { key: 'sizeoftyre', label: 'Tyre Size' },
-      { key: 'serviceno', label: 'Service No' },
-    ]
+    columns: (subTab) => {
+      if (subTab === 'rebutton') {
+        return [
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
+          { key: 'serviceno', label: 'Service No.' },
+          { key: 'position', label: 'Position' },
+          { key: 'tyreno', label: 'tyre No.' },
+          { key: 'sizeoftyre', label: 'Size of tyre' },
+          { key: 'omr', label: 'OMR' },
+          { key: 'cmr', label: 'CMR' },
+          { key: 'dateofreplacement', label: 'Date of Replacement' },
+          { key: 'reason', label: 'Reason' },
+          { key: 'remarks', label: 'Remarks' },
+        ];
+      }
+      if (subTab === 'status') {
+        return [
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
+          { key: 'position', label: 'Position' },
+          { key: 'tyreno', label: 'tyre No.' },
+          { key: 'sizeoftyre', label: 'Size of tyre' },
+          { key: 'warrantydistance', label: 'Warranty Distance' },
+          { key: 'status', label: 'Status' },
+          { key: 'condemndistance', label: 'Condemn Distance' },
+          { key: 'remarks', label: 'Remarks' },
+        ];
+      }
+      return [
+        { key: 'society', label: 'Society' },
+        { key: 'branch', label: 'Branch' },
+        { key: 'vehicleregno', label: 'Vehicle Registration No.' },
+        { key: 'serviceno', label: 'Service No.' },
+        { key: 'tyremake', label: 'Tyre Make' },
+        { key: 'position', label: 'Position' },
+        { key: 'tyreno', label: 'tyre No.' },
+        { key: 'sizeoftyre', label: 'Size of tyre' },
+        { key: 'date', label: 'Date' },
+      ];
+    }
   }
 };
