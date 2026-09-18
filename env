@@ -1,0 +1,2 @@
+# Environment variables for the frontend project
+VITE_API_URL=http://localhost:1002
