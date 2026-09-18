@@ -51,6 +51,22 @@ const ModulePage = ({ moduleKey }) => {
     validRequestedTab || currentConfig?.subTabs[0]?.id || ''
   );
 
+  const currentSubTabObj = useMemo(() => {
+    return currentConfig?.subTabs?.find(t => t.id === moduleSubTab);
+  }, [currentConfig, moduleSubTab]);
+
+  const [moduleChildSubTab, setModuleChildSubTab] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  useEffect(() => {
+    if (currentSubTabObj?.childSubTabs?.length > 0) {
+      setModuleChildSubTab(currentSubTabObj.childSubTabs[0].id);
+    } else {
+      setModuleChildSubTab('');
+    }
+  }, [currentSubTabObj]);
+
   useEffect(() => {
     const tabFromUrl = new URLSearchParams(location.search).get('tab');
     if (tabFromUrl && currentConfig?.subTabs?.some(t => t.id === tabFromUrl)) {
@@ -370,6 +386,31 @@ const ModulePage = ({ moduleKey }) => {
     }
   };
 
+  const showPDFColumn = moduleKey === 'Vehicles' && activeSub === 'accidents';
+
+  const handleGeneratePDF = (row) => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <html><head><title>Vehicle Accident Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 24px; color: #1e293b; }
+        h2 { text-align: center; color: #0b5299; border-bottom: 2px solid #0b5299; padding-bottom: 8px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+        th, td { border: 1px solid #cbd5e1; padding: 10px 14px; font-size: 13px; text-align: left; }
+        th { background-color: #f1f5f9; width: 35%; font-weight: 600; }
+      </style>
+      </head><body>
+      <h2>Vehicle Accident Report</h2>
+      <table>
+        ${activeCols.map(c => `<tr><th>${c.label}</th><td>${row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '-'}</td></tr>`).join('')}
+      </table>
+      </body></html>
+    `);
+    win.document.close();
+    win.print();
+  };
+
   const IconComponent = MODULE_ICONS[moduleKey] || FileText;
 
   return (
@@ -391,190 +432,43 @@ const ModulePage = ({ moduleKey }) => {
           </div>
         </div>
 
-        {/* Full-width Rectangular Tabs Ribbon */}
-        {currentConfig && currentConfig.subTabs.length > 0 && (
-          <div className="module-nav-ribbon-container">
-            {/* Top Level SubTabs */}
-            <div className="module-nav-ribbon">
-              {currentConfig.subTabs.map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`module-nav-tab ${activeSub === tab.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setModuleSubTab(tab.id);
-                    setBusDataFetched(false);
-                    setBusRegisterNoFilter('');
-                    if (tab.nestedTabs && tab.nestedTabs.length > 0) {
-                      setNestedSubTab(tab.nestedTabs[0].id);
-                    } else {
-                      setNestedSubTab('');
-                    }
-                  }}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+        {/* Subtabs Ribbon using CustomTabs */}
+        {currentConfig && currentConfig.subTabs.length > 1 && (
+          <div className="flex justify-center mb-6 mt-4 max-w-full overflow-x-auto">
+            <CustomTabs
+              activeTab={activeSub}
+              onChange={(id) => setModuleSubTab(id)}
+              tabs={currentConfig.subTabs}
+            />
+          </div>
+        )}
 
-            {/* Second-Level Nested Tabs (e.g. for Ad_Bus_Fillings: Entry Data | Generate Report | Search Bus Report) */}
-            {currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0 && (
-              <div className="module-nested-nav-ribbon">
-                {currentSubConfig.nestedTabs.map(nt => (
-                  <button
-                    key={nt.id}
-                    type="button"
-                    className={`module-nested-nav-tab ${nestedSubTab === nt.id ? 'active' : ''}`}
-                    onClick={() => {
-                      setNestedSubTab(nt.id);
-                      setBusDataFetched(false);
-                      setBusRegisterNoFilter('');
-                    }}
-                  >
-                    {nt.label}
-                  </button>
-                ))}
-              </div>
+        {/* Action Buttons: View Data / Add New */}
+        <div className="admin-actions-bar">
+          <button
+            type="button"
+            className="admin-action-btn"
+            disabled={moduleLoading}
+            onClick={() => fetchModuleData(activeSub, selectedBranch, true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            {moduleLoading ? (
+              <>
+                <span className="btn-spinner" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              'View Data'
             )}
-          </div>
-        )}
-
-        {/* Ad_Bus_Fillings -> Generate Report Controls (fromdate: todate: getdata as per image) */}
-        {activeSub === 'adbluebusfill' && nestedSubTab === 'generate_report' && (
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '15px', marginTop: '10px', marginBottom: '18px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: '#212529' }}>fromdate:</label>
-              <input
-                type="date"
-                value={reportFromDate}
-                onChange={e => setReportFromDate(e.target.value)}
-                style={{ height: '34px', width: '200px', padding: '6px 12px', fontSize: '13px', border: '1px solid #ced4da', borderRadius: '4px', background: '#ffffff', color: '#495057', outline: 'none' }}
-              />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: '#212529' }}>todate:</label>
-              <input
-                type="date"
-                value={reportToDate}
-                onChange={e => setReportToDate(e.target.value)}
-                style={{ height: '34px', width: '200px', padding: '6px 12px', fontSize: '13px', border: '1px solid #ced4da', borderRadius: '4px', background: '#ffffff', color: '#495057', outline: 'none' }}
-              />
-            </div>
-            <button
-              type="button"
-              className="bus-filling-btn-getdata"
-              disabled={moduleLoading}
-              onClick={() => {
-                setBusDataFetched(true);
-                fetchModuleData(activeSub, selectedBranch, true);
-              }}
-            >
-              {moduleLoading ? 'Loading...' : 'getdata'}
-            </button>
-          </div>
-        )}
-
-        {/* Ad_Bus_Fillings -> Search Bus Report Controls (as per reference image) */}
-        {activeSub === 'adbluebusfill' && nestedSubTab === 'search_bus_report' && (
-          <div className="bus-filling-entry-bar">
-            <label className="bus-filling-entry-label">Register No:</label>
-            <div className="bus-filling-entry-actions">
-              <input
-                type="text"
-                className="bus-filling-entry-input"
-                value={busSearchRegNo}
-                onChange={e => setBusSearchRegNo(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    setBusDataFetched(true);
-                    fetchModuleData(activeSub, selectedBranch, true);
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="bus-filling-btn-getdata"
-                disabled={moduleLoading}
-                onClick={() => {
-                  setBusDataFetched(true);
-                  fetchModuleData(activeSub, selectedBranch, true);
-                }}
-              >
-                {moduleLoading ? 'Loading...' : 'getdata'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Ad_Bus_Fillings -> Entry Data Controls (as per reference image) */}
-        {activeSub === 'adbluebusfill' && nestedSubTab === 'entry_data' && (
-          <div className="bus-filling-entry-bar">
-            <label className="bus-filling-entry-label">Register No:</label>
-            <div className="bus-filling-entry-actions">
-              <input
-                type="text"
-                className="bus-filling-entry-input"
-                value={busRegisterNoFilter}
-                onChange={e => setBusRegisterNoFilter(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    setBusDataFetched(true);
-                    fetchModuleData(activeSub, selectedBranch, true);
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="bus-filling-btn-getdata"
-                disabled={moduleLoading}
-                onClick={() => {
-                  setBusDataFetched(true);
-                  fetchModuleData(activeSub, selectedBranch, true);
-                }}
-              >
-                {moduleLoading ? 'Loading...' : 'getdata'}
-              </button>
-              <button
-                type="button"
-                className="bus-filling-btn-addnew"
-                onClick={handleOpenAddModal}
-              >
-                Add New
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Default Action Buttons: View Data / Add New for other subtabs */}
-        {activeSub !== 'adbluebusfill' && (
-          <div className="admin-actions-bar">
-            <button
-              type="button"
-              className="admin-action-btn"
-              disabled={moduleLoading}
-              onClick={() => fetchModuleData(activeSub, selectedBranch, true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-            >
-              {moduleLoading ? (
-                <>
-                  <span className="btn-spinner" />
-                  <span>Loading...</span>
-                </>
-              ) : (
-                'View Data'
-              )}
-            </button>
-            {(!nestedSubTab || nestedSubTab === 'entry_data') && (
-              <button
-                type="button"
-                className="admin-action-btn"
-                onClick={handleOpenAddModal}
-              >
-                Add New Record
-              </button>
-            )}
-          </div>
-        )}
+          </button>
+          <button
+            type="button"
+            className="admin-action-btn"
+            onClick={handleOpenAddModal}
+          >
+            Add New Record
+          </button>
+        </div>
 
         {/* Success Banner */}
         {successToast && (
@@ -587,8 +481,8 @@ const ModulePage = ({ moduleKey }) => {
         <div className="admin-table-card">
           {/* Table Toolbar */}
           <div className="admin-table-toolbar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              {/* Export Buttons */}
+            {/* Export Buttons */}
+            <div className="admin-export-group">
               <ExportButtons
                 onCopy={() => handleCopyModuleTable(activeCols)}
                 onPrint={handlePrintModuleTable}
@@ -597,7 +491,7 @@ const ModulePage = ({ moduleKey }) => {
                 onExcel={() => handleExportModuleExcel(activeCols)}
               />
               {moduleCopiedNotification && (
-                <span className="admin-toast-feedback">Copied!</span>
+                <span className="admin-toast-feedback">Copied to clipboard!</span>
               )}
 
               {/* Entries control */}
@@ -648,20 +542,14 @@ const ModulePage = ({ moduleKey }) => {
                         : col.label}
                     </th>
                   ))}
-                  {hasActionCols && (
-                    <>
-                      <th style={{ width: '140px', minWidth: '120px' }}>Edit</th>
-                      <th style={{ width: '140px', minWidth: '120px' }}>
-                        {activeSub === 'adblue' ? 'Remove' : 'Delete'}
-                      </th>
-                    </>
-                  )}
+                  <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                  <th style={{ width: '70px', textAlign: 'center' }}>Remove</th>
                 </tr>
               </thead>
               <tbody>
                 {moduleLoading ? (
                   <tr>
-                    <td colSpan={activeCols.length + (hasActionCols ? 3 : 1)} className="empty-cell">
+                    <td colSpan={activeCols.length + 3} className="empty-cell">
                       <span className="btn-spinner" style={{ marginRight: '8px' }} />
                       Loading records...
                     </td>
@@ -677,39 +565,35 @@ const ModulePage = ({ moduleKey }) => {
                             : '-'}
                         </td>
                       ))}
-                      {hasActionCols && (
-                        <>
-                          <td>
-                            <button
-                              type="button"
-                              className="admin-icon-btn edit"
-                              title="Edit"
-                              onClick={() => handleOpenEditModal(row)}
-                            >
-                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="admin-icon-btn remove"
-                              title={activeSub === 'adblue' ? 'Remove' : 'Delete'}
-                              onClick={() => handleDeleteRecord(activeSub, row._id || row.id)}
-                            >
-                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </td>
-                        </>
-                      )}
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="admin-icon-btn edit"
+                          title="Edit"
+                          onClick={() => handleOpenEditModal(row)}
+                        >
+                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="admin-icon-btn remove"
+                          title="Remove"
+                          onClick={() => handleDeleteRecord(activeSub, row._id || row.id)}
+                        >
+                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={activeCols.length + (hasActionCols ? 3 : 1)} className="empty-cell">
+                    <td colSpan={activeCols.length + 3} className="empty-cell">
                       No data available in table
                     </td>
                   </tr>
