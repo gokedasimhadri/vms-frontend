@@ -32,6 +32,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       }
       if (subTab === 'Office_Staff') {
         return [
+          { key: 'profilepic', label: 'Profile Pic', type: 'image' },
           { key: 'staffname', label: 'Staff Name' },
           { key: 'designation', label: 'Designation' },
           { key: 'society', label: 'Society' },
@@ -43,15 +44,15 @@ export const SIDEBAR_MODULE_CONFIG = {
       }
       if (subTab === 'BusStaff_Information') {
         return [
-          { key: 'staffname', label: 'Staff Name' },
-          { key: 'designation', label: 'Designation' },
-          { key: 'society', label: 'Society' },
-          { key: 'branch', label: 'Branch' },
-          { key: 'mobile', label: 'Mobile' },
-          { key: 'licienseno', label: 'License No' },
-          { key: 'valid', label: 'License Validity' },
-          { key: 'vehicleno', label: 'Vehicle No' },
-          { key: 'salary', label: 'Salary' },
+          { key: 'society', label: 'Society', type: 'society-select' },
+          { key: 'branch', label: 'Branch', type: 'branch-select' },
+          { key: 'designation', label: 'Designation', type: 'designation-select' },
+          { key: 'staffname', label: 'Staff Name', type: 'text' },
+          { key: 'mobile', label: 'Mobile Number', type: 'text' },
+          { key: 'dateofjoin', label: 'Date of Joining', type: 'date' },
+          { key: 'licienseno', label: 'Liciense No.', type: 'text' },
+          { key: 'rdate', label: 'Liciense remainder Date', type: 'date' },
+          { key: 'valid', label: 'Valid Upto', type: 'date' },
         ];
       }
       if (subTab === 'BusCleaner_Information') {

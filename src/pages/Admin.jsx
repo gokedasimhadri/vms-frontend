@@ -143,8 +143,6 @@ const ADMIN_SUBTABS = [
   { id: 'Societies', label: 'Societies' },
   { id: 'Branches', label: 'Branches' },
   { id: 'Route_Details', label: 'Route_Details' },
-  { id: 'Handovers', label: 'Handovers' },
-  { id: 'Issues', label: 'Issues' },
   { id: 'Transfers', label: 'Transfers' },
 ];
 

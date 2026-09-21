@@ -15,7 +15,7 @@ import {
   updateRoadtaxStatus
 } from '../services/api';
 import ExportButtons from '../components/ExportButtons';
-import { TableLoader } from '../components/Loader';
+import { TableLoader, PageLoader } from '../components/Loader';
 import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 const Dashboard = () => {
@@ -325,9 +325,40 @@ const Dashboard = () => {
         </div>
 
         {/* Dashboard Main Content Cards */}
-        <div className="legacy-dashboard-grid">
-          {/* ================= MAIN CONTENT COLUMN ================= */}
-          <div className="legacy-main-cards-column" style={{ width: '100%' }}>
+        {isLoading && !dashboardData ? (
+          <div className="bg-white rounded-xl p-8 border border-slate-200 shadow-sm my-4">
+            <PageLoader
+              message="Loading dashboard data, please wait..."
+              subMessage="Fetching certificate alerts, KMPL performance, and vehicle services..."
+              minHeight="350px"
+            />
+          </div>
+        ) : (
+          <div className="legacy-dashboard-grid" style={{ position: 'relative' }}>
+            {isLoading && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                  backdropFilter: 'blur(3px)',
+                  zIndex: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '12px',
+                  minHeight: '300px'
+                }}
+              >
+                <PageLoader
+                  message="Updating dashboard data..."
+                  subMessage="Fetching latest metrics from server..."
+                  minHeight="220px"
+                />
+              </div>
+            )}
+            {/* ================= MAIN CONTENT COLUMN ================= */}
+            <div className="legacy-main-cards-column" style={{ width: '100%' }}>
             {/* Card 1: Certificate(Alerts) */}
             <div className="legacy-card">
               <div className="legacy-card-header">
@@ -613,6 +644,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      )}
 
         {/* ================= CERTIFICATE ALERT DETAILS MODAL ================= */}
         {alertModal.isOpen && (

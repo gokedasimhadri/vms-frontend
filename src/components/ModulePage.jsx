@@ -21,7 +21,8 @@ import {
   createBusBreakdownItem, updateBusBreakdownItem, deleteBusBreakdownItem,
   createBatteryItem, updateBatteryItem, deleteBatteryItem,
   createVehicleTyreItem, updateVehicleTyreItem, deleteVehicleTyreItem,
-  createAdminItem, updateAdminItem, deleteAdminItem
+  createAdminItem, updateAdminItem, deleteAdminItem,
+  getAdminData, getStaffData
 } from '../services/api';
 
 const MODULE_ICONS = {
@@ -105,7 +106,85 @@ const ModulePage = ({ moduleKey }) => {
     loading: false
   });
 
+  // Image preview modal state
+  const [previewImageModal, setPreviewImageModal] = useState(null);
+
+  // Metadata states for dropdowns
+  const [societiesList, setSocietiesList] = useState([]);
+  const [branchesList, setBranchesList] = useState([]);
+  const [designationsList, setDesignationsList] = useState([]);
+
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const socRes = await getAdminData('societies', 'ALL').catch(() => null);
+        const socData = Array.isArray(socRes) ? socRes : (Array.isArray(socRes?.data) ? socRes.data : []);
+        const socNames = socData.map(item => item.name || item.societyname || item.society).filter(Boolean);
+        setSocietiesList([...new Set(socNames)].sort());
+
+        const branchRes = await getAdminData('branches', 'ALL').catch(() => null);
+        const branchData = Array.isArray(branchRes) ? branchRes : (Array.isArray(branchRes?.data) ? branchRes.data : []);
+        const branches = branchData.map(b => ({
+          name: (b.name || b.branchname || '').trim(),
+          society: (b.test || b.society || '').trim()
+        })).filter(b => b.name);
+        setBranchesList(branches);
+
+        const desRes = await getStaffData({ type: 'designations' }, 'ALL').catch(() => null);
+        const desData = Array.isArray(desRes?.data) ? desRes.data : (Array.isArray(desRes) ? desRes : []);
+        const desNames = desData.map(d => d.name || d.designation).filter(Boolean);
+        const defaultDes = ['DRIVER', 'BUS SUPERVISOR', 'CLEANER', 'MECHANIC', 'HELPER', 'ATTENDER', 'JUNIOR ASSISTANT', 'OFFICE SUBORDINATE'];
+        setDesignationsList(Array.from(new Set([...desNames, ...defaultDes])).sort());
+      } catch (e) {
+        console.error('Failed to load form metadata:', e);
+      }
+    };
+    fetchMetadata();
+  }, []);
+
+  const availableBranches = useMemo(() => {
+    if (!formData.society) {
+      return Array.from(new Set(branchesList.map(b => b.name))).sort();
+    }
+    const filtered = branchesList
+      .filter(b => b.society.toLowerCase() === formData.society.toLowerCase())
+      .map(b => b.name);
+    return Array.from(new Set(filtered)).sort();
+  }, [branchesList, formData.society]);
+
+  const formatDateForInput = (val) => {
+    if (!val) return '';
+    const str = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    const ddmmyyyy = str.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    if (ddmmyyyy) {
+      const [, d, m, y] = ddmmyyyy;
+      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+    const dt = new Date(str);
+    if (!isNaN(dt.getTime())) {
+      return dt.toISOString().split('T')[0];
+    }
+    return str;
+  };
+
   const cacheRef = useRef({});
+
+  const handleImageFileChange = (e, key) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds 5MB limit. Please choose a smaller image.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, [key]: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -569,13 +648,74 @@ const ModulePage = ({ moduleKey }) => {
                   paginatedModuleData.map((row, index) => (
                     <tr key={row._id || row.id || index}>
                       <td><strong>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</strong></td>
-                      {activeCols.map(col => (
-                        <td key={col.key} style={{ fontWeight: 600 }}>
-                          {row[col.key] !== undefined && row[col.key] !== null
-                            ? String(row[col.key])
-                            : '-'}
-                        </td>
-                      ))}
+                      {activeCols.map(col => {
+                        if (col.key === 'profilepic' || col.type === 'image') {
+                          const rawVal = row[col.key];
+                          let imgSrc = null;
+                          if (rawVal && typeof rawVal === 'string' && rawVal.trim()) {
+                            if (rawVal.startsWith('data:') || rawVal.startsWith('http://') || rawVal.startsWith('https://')) {
+                              imgSrc = rawVal;
+                            } else {
+                              imgSrc = `http://localhost:1002/uploads/${rawVal}`;
+                            }
+                          }
+                          return (
+                            <td key={col.key} style={{ textAlign: 'center', padding: '6px' }}>
+                              {imgSrc ? (
+                                <img
+                                  src={imgSrc}
+                                  alt={row.staffname || 'Profile'}
+                                  onClick={() => setPreviewImageModal(imgSrc)}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.style.display = 'none';
+                                    if (e.target.nextSibling) {
+                                      e.target.nextSibling.style.display = 'inline-flex';
+                                    }
+                                  }}
+                                  style={{
+                                    width: '54px',
+                                    height: '62px',
+                                    objectFit: 'cover',
+                                    borderRadius: '6px',
+                                    border: '1px solid #cbd5e1',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                    cursor: 'pointer',
+                                    display: 'block',
+                                    margin: '0 auto'
+                                  }}
+                                  title="Click to view full photo"
+                                />
+                              ) : null}
+                              <div
+                                style={{
+                                  display: imgSrc ? 'none' : 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '54px',
+                                  height: '62px',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#f1f5f9',
+                                  border: '1px dashed #94a3b8',
+                                  color: '#64748b',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  margin: '0 auto'
+                                }}
+                              >
+                                No Pic
+                              </div>
+                            </td>
+                          );
+                        }
+                        return (
+                          <td key={col.key} style={{ fontWeight: 600 }}>
+                            {row[col.key] !== undefined && row[col.key] !== null
+                              ? String(row[col.key])
+                              : '-'}
+                          </td>
+                        );
+                      })}
                       <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
@@ -665,26 +805,191 @@ const ModulePage = ({ moduleKey }) => {
               </div>
               <form onSubmit={handleSaveRecord}>
                 <div className="admin-modal-body" style={{ maxHeight: '65vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  {activeCols.map(col => (
-                    <div key={col.key} className="admin-form-field" style={{ gridColumn: activeCols.length === 1 ? 'span 2' : 'span 1' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-                        {col.label}
-                      </label>
-                      <input
-                        type="text"
-                        placeholder={`Enter ${col.label.toLowerCase()}...`}
-                        value={formData[col.key] ?? ''}
-                        onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '8px 10px',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '4px',
-                          fontSize: '13px'
-                        }}
-                      />
-                    </div>
-                  ))}
+                  {activeCols.map(col => {
+                    const isImageField = col.key === 'profilepic' || col.type === 'image';
+                    return (
+                      <div
+                        key={col.key}
+                        className="admin-form-field"
+                        style={{ gridColumn: (activeCols.length === 1 || isImageField) ? 'span 2' : 'span 1' }}
+                      >
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                          {col.label}
+                        </label>
+
+                        {isImageField ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {formData[col.key] ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                <img
+                                  src={
+                                    formData[col.key].startsWith('data:') || formData[col.key].startsWith('http')
+                                      ? formData[col.key]
+                                      : `http://localhost:1002/uploads/${formData[col.key]}`
+                                  }
+                                  alt="Preview"
+                                  style={{
+                                    width: '64px',
+                                    height: '74px',
+                                    objectFit: 'cover',
+                                    borderRadius: '6px',
+                                    border: '2px solid #0b5299',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                  }}
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  <label
+                                    htmlFor={`file-upload-${col.key}`}
+                                    style={{
+                                      padding: '5px 12px',
+                                      backgroundColor: '#0b5299',
+                                      color: '#ffffff',
+                                      borderRadius: '4px',
+                                      fontSize: '12px',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      display: 'inline-block',
+                                      textAlign: 'center'
+                                    }}
+                                  >
+                                    Change Photo
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, [col.key]: '' })}
+                                    style={{
+                                      padding: '4px 10px',
+                                      backgroundColor: '#fee2e2',
+                                      color: '#dc2626',
+                                      border: '1px solid #fca5a5',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontWeight: 600,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Remove Photo
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <label
+                                htmlFor={`file-upload-${col.key}`}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: '16px',
+                                  border: '2px dashed #0b5299',
+                                  borderRadius: '8px',
+                                  backgroundColor: '#f0f9ff',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                <span style={{ fontSize: '24px', marginBottom: '4px' }}>📷</span>
+                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#0b5299' }}>Click to Upload Profile Photo</span>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>PNG, JPG or WEBP (Max 5MB)</span>
+                              </label>
+                            )}
+                            <input
+                              id={`file-upload-${col.key}`}
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={e => handleImageFileChange(e, col.key)}
+                            />
+                          </div>
+                        ) : col.type === 'society-select' || col.key === 'society' ? (
+                          <select
+                            value={formData[col.key] ?? ''}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setFormData(prev => ({ ...prev, [col.key]: val, branch: '' }));
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              fontSize: '13px',
+                              backgroundColor: '#ffffff'
+                            }}
+                          >
+                            <option value="">-- Select Society --</option>
+                            {societiesList.map((soc, idx) => (
+                              <option key={idx} value={soc}>{soc}</option>
+                            ))}
+                          </select>
+                        ) : col.type === 'branch-select' || col.key === 'branch' ? (
+                          <select
+                            value={formData[col.key] ?? ''}
+                            onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              fontSize: '13px',
+                              backgroundColor: '#ffffff'
+                            }}
+                          >
+                            <option value="">-- Select Branch --</option>
+                            {availableBranches.map((b, idx) => (
+                              <option key={idx} value={b}>{b}</option>
+                            ))}
+                          </select>
+                        ) : col.type === 'designation-select' || col.key === 'designation' ? (
+                          <select
+                            value={formData[col.key] ?? ''}
+                            onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              fontSize: '13px',
+                              backgroundColor: '#ffffff'
+                            }}
+                          >
+                            <option value="">-- Select Designation --</option>
+                            {designationsList.map((des, idx) => (
+                              <option key={idx} value={des}>{des}</option>
+                            ))}
+                          </select>
+                        ) : col.type === 'date' || col.key === 'dateofjoin' || col.key === 'rdate' || col.key === 'valid' ? (
+                          <input
+                            type="date"
+                            value={formatDateForInput(formData[col.key])}
+                            onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              fontSize: '13px'
+                            }}
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder={`Enter ${col.label.toLowerCase()}...`}
+                            value={formData[col.key] ?? ''}
+                            onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '4px',
+                              fontSize: '13px'
+                            }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="admin-modal-footer">
                   <button
@@ -720,6 +1025,80 @@ const ModulePage = ({ moduleKey }) => {
           onConfirm={handleConfirmDelete}
           onCancel={() => setDeleteConfirmModal({ isOpen: false, subTab: null, id: null, itemName: '', loading: false })}
         />
+
+        {/* Full Image Preview Modal */}
+        {previewImageModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.85)',
+              backdropFilter: 'blur(5px)',
+              zIndex: 99999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '24px'
+            }}
+            onClick={() => setPreviewImageModal(null)}
+          >
+            <div
+              style={{
+                position: 'relative',
+                backgroundColor: '#ffffff',
+                borderRadius: '12px',
+                padding: '16px',
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setPreviewImageModal(null)}
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  backgroundColor: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  color: '#475569',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#0f172a', fontWeight: 600 }}>
+                Profile Photo Preview
+              </h4>
+              <img
+                src={previewImageModal}
+                alt="Profile Preview"
+                style={{
+                  maxWidth: '80vw',
+                  maxHeight: '75vh',
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1'
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );
