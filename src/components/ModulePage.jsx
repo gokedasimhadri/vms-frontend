@@ -8,7 +8,8 @@ import MainLayout from './MainLayout';
 import ExportButtons from './ExportButtons';
 import { TableLoader } from './Loader';
 import { SIDEBAR_MODULE_CONFIG } from '../config/modules.config';
-import { exportToCSV, exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
+import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
+import ConfirmModal from './ConfirmModal';
 import {
   createStaffItem, updateStaffItem, deleteStaffItem,
   createVehicleItem, updateVehicleItem, deleteVehicleItem,
@@ -79,7 +80,6 @@ const ModulePage = ({ moduleKey }) => {
   const [moduleSearchQuery, setModuleSearchQuery] = useState('');
   const [moduleEntriesPerPage, setModuleEntriesPerPage] = useState(10);
   const [moduleCurrentPage, setModuleCurrentPage] = useState(1);
-  const [moduleCopiedNotification, setModuleCopiedNotification] = useState(false);
 
   // Second-level nested tab state (e.g. for Ad_Bus_Fillings)
   const [nestedSubTab, setNestedSubTab] = useState('');
@@ -95,6 +95,15 @@ const ModulePage = ({ moduleKey }) => {
   const [formData, setFormData] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState('');
+
+  // Custom Delete Confirm Modal State
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({
+    isOpen: false,
+    subTab: null,
+    id: null,
+    itemName: '',
+    loading: false
+  });
 
   const cacheRef = useRef({});
 
@@ -250,18 +259,11 @@ const ModulePage = ({ moduleKey }) => {
   const isReportTab = activeSub === 'adbluebusfill' && nestedSubTab === 'generate_report';
   const hasActionCols = !isReportTab;
 
-  const handleCopyModuleTable = (cols) => {
-    if (!filteredModuleData.length) return;
-    const headerRow = cols.map(c => c.label).join('\t');
-    const dataRows = filteredModuleData.map(row => cols.map(c => row[c.key] ?? '').join('\t'));
-    const tsv = [headerRow, ...dataRows].join('\n');
-    navigator.clipboard.writeText(tsv);
-    setModuleCopiedNotification(true);
-    setTimeout(() => setModuleCopiedNotification(false), 2000);
-  };
-
   const getModuleExportData = (cols) => {
-    if (!filteredModuleData.length) return null;
+    if (!filteredModuleData.length) {
+      alert('No data available to export');
+      return null;
+    }
     const headers = cols.map(c => c.label);
     const rows = filteredModuleData.map(row => cols.map(c => row[c.key] ?? ''));
     return { headers, rows };
@@ -280,10 +282,6 @@ const ModulePage = ({ moduleKey }) => {
   const handleExportModuleExcel = (cols) => {
     const data = getModuleExportData(cols);
     if (data) exportToExcel(data.headers, data.rows, `${moduleKey}_${moduleSubTab}_Data`);
-  };
-
-  const handlePrintModuleTable = () => {
-    printTable('.admin-data-table', `${moduleKey} - ${moduleSubTab}`);
   };
 
   // Open modal for Adding a new record
@@ -311,9 +309,26 @@ const ModulePage = ({ moduleKey }) => {
     setShowModal(true);
   };
 
-  // Generic delete dispatcher
-  const handleDeleteRecord = async (subTab, id) => {
-    if (!window.confirm('Are you sure you want to remove this record?')) return;
+  const handlePromptDelete = (subTab, row) => {
+    const rawId = row._id || row.id;
+    const id = typeof rawId === 'object' ? (rawId?._id || rawId?.$oid || String(rawId)) : (rawId ? String(rawId) : '');
+    const itemName = row.name || row.staffname || row.drivername || row.cleanername || row.vehicleno || row.regno || row.society || row.branch || '';
+    setDeleteConfirmModal({
+      isOpen: true,
+      subTab,
+      id,
+      itemName,
+      loading: false
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { subTab, id } = deleteConfirmModal;
+    if (!id) {
+      setDeleteConfirmModal({ isOpen: false, subTab: null, id: null, itemName: '', loading: false });
+      return;
+    }
+    setDeleteConfirmModal(prev => ({ ...prev, loading: true }));
     try {
       if (moduleKey === 'Staff') await deleteStaffItem(subTab, id);
       else if (moduleKey === 'Vehicles') await deleteVehicleItem(subTab, id);
@@ -327,11 +342,15 @@ const ModulePage = ({ moduleKey }) => {
       else if (moduleKey === 'Vehicle Tyres') await deleteVehicleTyreItem(subTab, id);
       else if (moduleKey === 'Admin') await deleteAdminItem(subTab, id);
 
+      setSuccessToast('Record removed successfully!');
+      setTimeout(() => setSuccessToast(''), 3000);
+      setDeleteConfirmModal({ isOpen: false, subTab: null, id: null, itemName: '', loading: false });
       cacheRef.current = {};
       fetchModuleData(subTab, selectedBranch, true);
     } catch (err) {
       console.error('Error deleting item:', err);
-      alert('Failed to delete item.');
+      setDeleteConfirmModal({ isOpen: false, subTab: null, id: null, itemName: '', loading: false });
+      alert('Failed to delete item: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -483,28 +502,22 @@ const ModulePage = ({ moduleKey }) => {
           {/* Table Toolbar */}
           <div className="admin-table-toolbar">
             {/* Export Buttons */}
-            <div className="admin-export-group">
-              <ExportButtons
-                onCopy={() => handleCopyModuleTable(activeCols)}
-                onPrint={handlePrintModuleTable}
-                onCSV={() => handleExportModuleCSV(activeCols)}
-                onPDF={() => handleExportModulePDF(activeCols)}
-                onExcel={() => handleExportModuleExcel(activeCols)}
-              />
-              {moduleCopiedNotification && (
-                <span className="admin-toast-feedback">Copied to clipboard!</span>
-              )}
+            <ExportButtons
+              onCSV={() => handleExportModuleCSV(activeCols)}
+              onPDF={() => handleExportModulePDF(activeCols)}
+              onExcel={() => handleExportModuleExcel(activeCols)}
+            />
 
-              {/* Entries control */}
-              <div className="admin-entries-control">
-                <span>Show</span>
-                <select
-                  value={moduleEntriesPerPage}
-                  onChange={e => {
-                    setModuleEntriesPerPage(Number(e.target.value));
-                    setModuleCurrentPage(1);
-                  }}
-                >
+            {/* Entries control */}
+            <div className="admin-entries-control">
+              <span>Show</span>
+              <select
+                value={moduleEntriesPerPage}
+                onChange={e => {
+                  setModuleEntriesPerPage(Number(e.target.value));
+                  setModuleCurrentPage(1);
+                }}
+              >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
@@ -512,7 +525,6 @@ const ModulePage = ({ moduleKey }) => {
                 </select>
                 <span>entries</span>
               </div>
-            </div>
 
             {/* Search control */}
             <div className="admin-search-control">
@@ -581,7 +593,7 @@ const ModulePage = ({ moduleKey }) => {
                           type="button"
                           className="admin-icon-btn remove"
                           title="Remove"
-                          onClick={() => handleDeleteRecord(activeSub, row._id || row.id)}
+                          onClick={() => handlePromptDelete(activeSub, row)}
                         >
                           <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -694,6 +706,20 @@ const ModulePage = ({ moduleKey }) => {
             </div>
           </div>
         )}
+
+        {/* Custom Confirmation Modal for Delete */}
+        <ConfirmModal
+          isOpen={deleteConfirmModal.isOpen}
+          title={`Remove ${moduleKey} Record`}
+          message="Are you sure you want to remove this record? This action cannot be undone."
+          itemName={deleteConfirmModal.itemName}
+          confirmText="Yes, Remove"
+          cancelText="Cancel"
+          confirmVariant="danger"
+          loading={deleteConfirmModal.loading}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteConfirmModal({ isOpen: false, subTab: null, id: null, itemName: '', loading: false })}
+        />
       </div>
     </MainLayout>
   );

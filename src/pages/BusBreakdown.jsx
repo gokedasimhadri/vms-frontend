@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import MainLayout from '../components/MainLayout';
 import CustomTabs from '../components/CustomTabs';
+import ExportButtons from '../components/ExportButtons';
 import { TableLoader } from '../components/Loader';
+import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
 import {
   getBusBreakdownData,
   createBusBreakdownItem,
   deleteBusBreakdownItem,
 } from '../services/api';
+import ConfirmModal from '../components/ConfirmModal';
 
 const EMPTY_FORM = {
   busno: '',
@@ -80,7 +83,6 @@ export default function BusBreakdown() {
   const [searchQuery, setSearchQuery] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [copiedMsg, setCopiedMsg] = useState(false);
 
   // Report tab state
   const [fromDate, setFromDate] = useState('');
@@ -90,6 +92,14 @@ export default function BusBreakdown() {
   const [reportSearchQuery, setReportSearchQuery] = useState('');
   const [reportEntriesPerPage, setReportEntriesPerPage] = useState(10);
   const [reportCurrentPage, setReportCurrentPage] = useState(1);
+
+  // Custom Delete Confirm Modal State
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({
+    isOpen: false,
+    id: null,
+    itemName: '',
+    loading: false
+  });
 
   const hasFetchedRef = useRef(false);
 
@@ -172,30 +182,33 @@ export default function BusBreakdown() {
   };
 
   // ---- Delete ----
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this record?')) return;
-    try {
-      await deleteBusBreakdownItem(id);
-      fetchTable();
-    } catch (e) {
-      alert('Failed to delete: ' + e.message);
-    }
+  const handlePromptDelete = (row) => {
+    const rawId = row._id || row.id;
+    const id = typeof rawId === 'object' ? (rawId?._id || rawId?.$oid || String(rawId)) : (rawId ? String(rawId) : '');
+    const itemName = row.busno || row.regno || row.natureofcomplaint || '';
+    setDeleteConfirmModal({
+      isOpen: true,
+      id,
+      itemName,
+      loading: false
+    });
   };
 
-  // ---- Print row ----
-  const handlePrintRow = (row) => {
-    const win = window.open('', '_blank');
-    win.document.write(`
-      <html><head><title>Bus Breakdown Record</title>
-      <style>body{font-family:sans-serif;padding:24px}table{border-collapse:collapse;width:100%}
-      td,th{border:1px solid #ccc;padding:8px 12px;font-size:13px}th{background:#f1f5f9;}</style>
-      </head><body>
-      <h2 style="text-align:center">Bus Breakdown Report</h2>
-      <table>
-        ${ALL_COLUMNS.map(c => `<tr><th>${c.label}</th><td>${row[c.key] ?? '-'}</td></tr>`).join('')}
-      </table>
-      </body></html>`);
-    win.print();
+  const handleConfirmDelete = async () => {
+    const { id } = deleteConfirmModal;
+    if (!id) {
+      setDeleteConfirmModal({ isOpen: false, id: null, itemName: '', loading: false });
+      return;
+    }
+    setDeleteConfirmModal(prev => ({ ...prev, loading: true }));
+    try {
+      await deleteBusBreakdownItem(id);
+      setDeleteConfirmModal({ isOpen: false, id: null, itemName: '', loading: false });
+      fetchTable();
+    } catch (e) {
+      setDeleteConfirmModal({ isOpen: false, id: null, itemName: '', loading: false });
+      alert('Failed to delete: ' + (e.response?.data?.message || e.message));
+    }
   };
 
   // ---- Filtered & paginated table ----
@@ -235,27 +248,65 @@ export default function BusBreakdown() {
     reportCurrentPage * reportEntriesPerPage
   );
 
-  // ---- CSV export ----
-  const exportCSV = (data, cols) => {
-    if (!data.length) return;
-    const header = cols.map(c => c.label).join(',');
-    const rows = data.map(row => cols.map(c => `"${String(row[c.key] ?? '').replace(/"/g, '""')}"`).join(','));
-    const csv = 'data:text/csv;charset=utf-8,' + [header, ...rows].join('\n');
-    const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csv));
-    link.setAttribute('download', 'bus_breakdown.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // ---- Export Handlers ----
+  const handleExportBreakdownCSV = () => {
+    if (!filtered.length) {
+      alert('No data available to export');
+      return;
+    }
+    const headers = ALL_COLUMNS.map(c => c.label);
+    const rows = filtered.map(row => ALL_COLUMNS.map(c => row[c.key] ?? ''));
+    exportToCSV(headers, rows, `Bus_Breakdown_${selectedBranch}`);
   };
 
-  const handleCopy = (data, cols) => {
-    if (!data.length) return;
-    const header = cols.map(c => c.label).join('\t');
-    const rows = data.map(row => cols.map(c => row[c.key] ?? '').join('\t'));
-    navigator.clipboard.writeText([header, ...rows].join('\n'));
-    setCopiedMsg(true);
-    setTimeout(() => setCopiedMsg(false), 2000);
+  const handleExportBreakdownPDF = () => {
+    if (!filtered.length) {
+      alert('No data available to export');
+      return;
+    }
+    const headers = ALL_COLUMNS.map(c => c.label);
+    const rows = filtered.map(row => ALL_COLUMNS.map(c => row[c.key] ?? ''));
+    exportToPDF(headers, rows, `Bus_Breakdown_${selectedBranch}`, `Bus Breakdown - ${selectedBranch}`);
+  };
+
+  const handleExportBreakdownExcel = () => {
+    if (!filtered.length) {
+      alert('No data available to export');
+      return;
+    }
+    const headers = ALL_COLUMNS.map(c => c.label);
+    const rows = filtered.map(row => ALL_COLUMNS.map(c => row[c.key] ?? ''));
+    exportToExcel(headers, rows, `Bus_Breakdown_${selectedBranch}`);
+  };
+
+  const handleExportReportCSV = () => {
+    if (!filteredReport.length) {
+      alert('No data available to export');
+      return;
+    }
+    const headers = ALL_COLUMNS.map(c => c.label);
+    const rows = filteredReport.map(row => ALL_COLUMNS.map(c => row[c.key] ?? ''));
+    exportToCSV(headers, rows, `Bus_Breakdown_Report_${selectedBranch}`);
+  };
+
+  const handleExportReportPDF = () => {
+    if (!filteredReport.length) {
+      alert('No data available to export');
+      return;
+    }
+    const headers = ALL_COLUMNS.map(c => c.label);
+    const rows = filteredReport.map(row => ALL_COLUMNS.map(c => row[c.key] ?? ''));
+    exportToPDF(headers, rows, `Bus_Breakdown_Report_${selectedBranch}`, `Bus Breakdown Report - ${selectedBranch}`);
+  };
+
+  const handleExportReportExcel = () => {
+    if (!filteredReport.length) {
+      alert('No data available to export');
+      return;
+    }
+    const headers = ALL_COLUMNS.map(c => c.label);
+    const rows = filteredReport.map(row => ALL_COLUMNS.map(c => row[c.key] ?? ''));
+    exportToExcel(headers, rows, `Bus_Breakdown_Report_${selectedBranch}`);
   };
 
   return (
@@ -435,29 +486,11 @@ export default function BusBreakdown() {
             <div className="bb-table-section">
               {/* Toolbar */}
               <div className="admin-table-toolbar">
-                <div className="admin-export-group">
-                  <button className="admin-export-btn" onClick={() => handleCopy(filtered, ALL_COLUMNS)} title="Copy">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                    Copy
-                  </button>
-                  <button className="admin-export-btn" onClick={() => window.print()} title="Print">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                    Print
-                  </button>
-                  <button className="admin-export-btn" onClick={() => exportCSV(filtered, ALL_COLUMNS)} title="CSV">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                    CSV
-                  </button>
-                  <button className="admin-export-btn" onClick={() => exportCSV(filtered, ALL_COLUMNS)} title="PDF">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                    PDF
-                  </button>
-                  <button className="admin-export-btn" onClick={() => exportCSV(filtered, ALL_COLUMNS)} title="Excel">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                    Excel
-                  </button>
-                  {copiedMsg && <span className="admin-toast-feedback">Copied!</span>}
-                </div>
+                <ExportButtons
+                  onCSV={handleExportBreakdownCSV}
+                  onPDF={handleExportBreakdownPDF}
+                  onExcel={handleExportBreakdownExcel}
+                />
                 <div className="admin-entries-control">
                   <span>Show</span>
                   <select value={entriesPerPage} onChange={e => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}>
@@ -486,12 +519,11 @@ export default function BusBreakdown() {
                       <th style={{ width: 50, textAlign: 'center' }}>▴ S.No</th>
                       {ALL_COLUMNS.map(c => <th key={c.key}>{c.label}</th>)}
                       <th style={{ textAlign: 'center' }}>Delete</th>
-                      <th style={{ textAlign: 'center' }}>Print</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tableLoading ? (
-                      <TableLoader colSpan={ALL_COLUMNS.length + 3} message="Loading Bus Breakdown records, please wait..." />
+                      <TableLoader colSpan={ALL_COLUMNS.length + 2} message="Loading Bus Breakdown records, please wait..." />
                     ) : paginated.length > 0 ? (
                       paginated.map((row, idx) => (
                         <tr key={row._id || row.id || idx}>
@@ -503,16 +535,13 @@ export default function BusBreakdown() {
                             <button
                               className="bb-del-btn"
                               title="Delete"
-                              onClick={() => handleDelete(row._id || row.id)}
+                              onClick={() => handlePromptDelete(row)}
                             >🗑</button>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <button className="bb-print-btn" onClick={() => handlePrintRow(row)}>print</button>
                           </td>
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan={ALL_COLUMNS.length + 3} className="empty-cell">No data available in table</td></tr>
+                      <tr><td colSpan={ALL_COLUMNS.length + 2} className="empty-cell">No data available in table</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -556,22 +585,11 @@ export default function BusBreakdown() {
 
             {/* Report table toolbar */}
             <div className="admin-table-toolbar" style={{ marginTop: 16 }}>
-              <div className="admin-export-group">
-                <button className="admin-export-btn" onClick={() => handleCopy(filteredReport, ALL_COLUMNS)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                  Copy
-                </button>
-                <button className="admin-export-btn" onClick={() => window.print()}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                  Print
-                </button>
-                <button className="admin-export-btn" onClick={() => exportCSV(filteredReport, ALL_COLUMNS)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                  CSV
-                </button>
-                <button className="admin-export-btn" onClick={() => exportCSV(filteredReport, ALL_COLUMNS)}>PDF</button>
-                <button className="admin-export-btn" onClick={() => exportCSV(filteredReport, ALL_COLUMNS)}>Excel</button>
-              </div>
+                <ExportButtons
+                  onCSV={handleExportReportCSV}
+                  onPDF={handleExportReportPDF}
+                  onExcel={handleExportReportExcel}
+                />
               <div className="admin-entries-control">
                 <span>Show</span>
                 <select value={reportEntriesPerPage} onChange={e => { setReportEntriesPerPage(Number(e.target.value)); setReportCurrentPage(1); }}>
@@ -628,6 +646,19 @@ export default function BusBreakdown() {
             </div>
           </div>
         )}
+        {/* Custom Confirmation Modal for Delete */}
+        <ConfirmModal
+          isOpen={deleteConfirmModal.isOpen}
+          title="Remove Bus Breakdown Record"
+          message="Are you sure you want to delete this bus breakdown record? This action cannot be undone."
+          itemName={deleteConfirmModal.itemName}
+          confirmText="Yes, Remove"
+          cancelText="Cancel"
+          confirmVariant="danger"
+          loading={deleteConfirmModal.loading}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteConfirmModal({ isOpen: false, id: null, itemName: '', loading: false })}
+        />
       </div>
     </MainLayout>
   );

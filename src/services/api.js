@@ -25,6 +25,16 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.warn('Session expired or unauthorized request to:', error.config?.url);
+    }
+    return Promise.reject(error);
+  }
+);
+
 // ================= AUTH =================
 export const loginUser = async (credentials) => {
   const response = await api.post('/login', credentials);
@@ -93,6 +103,21 @@ export const createStage = async (stageData) => {
 
 export const getStageFormOptions = async () => {
   const response = await api.get('/admin/stage-form-options');
+  return response.data;
+};
+
+export const getRouteFormOptions = async (params) => {
+  const response = await api.get('/admin/route-form-options', { params });
+  return response.data;
+};
+
+export const getTransferFormOptions = async () => {
+  const response = await api.get('/admin/transfer-form-options');
+  return response.data;
+};
+
+export const searchVehicleInfo = async (value) => {
+  const response = await api.post('/searchVehicleinfodata', { value });
   return response.data;
 };
 

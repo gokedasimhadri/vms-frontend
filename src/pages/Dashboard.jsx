@@ -16,7 +16,7 @@ import {
 } from '../services/api';
 import ExportButtons from '../components/ExportButtons';
 import { TableLoader } from '../components/Loader';
-import { exportToCSV, exportToExcel, exportToPDF, printTable } from '../utils/exportUtils';
+import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -40,7 +40,6 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [copiedNotification, setCopiedNotification] = useState(false);
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
 
   // Alert Details Modal state
@@ -232,25 +231,11 @@ const Dashboard = () => {
     return filteredServices.slice(start, start + entriesPerPage);
   }, [filteredServices, currentPage, entriesPerPage]);
 
-  const handleCopyTable = () => {
-    const headers = [
-      'Society', 'Branch', 'Model', 'Vehicle No.', 'Date',
-      'Servicing Parts & Oils', 'Periodical Duration',
-      'Last Servicing Reading', 'Present Servicing Reading',
-      'KMS', 'Remainder Reading'
-    ];
-    const rows = filteredServices.map(s => [
-      s.society || '', s.branch || '', s.model || '', s.vehicleno || '', s.date || '',
-      s.parts || '', s.duration || '', s.lastreading || '', s.presentreading || '',
-      s.kms || '', s.remainder || ''
-    ]);
-    const tsv = [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n');
-    navigator.clipboard.writeText(tsv);
-    setCopiedNotification(true);
-    setTimeout(() => setCopiedNotification(false), 2000);
-  };
-
   const getExportData = () => {
+    if (!filteredServices.length) {
+      alert('No data available to export');
+      return null;
+    }
     const headers = [
       'Society', 'Branch', 'Model', 'Vehicle No.', 'Date',
       'Servicing Parts & Oils', 'Periodical Duration',
@@ -259,29 +244,25 @@ const Dashboard = () => {
     ];
     const rows = filteredServices.map(s => [
       s.society || '', s.branch || '', s.model || '', s.vehicleno || '', s.date || '',
-      s.parts || '', s.duration || '', s.lastreading || '', s.presentreading || '',
-      s.kms || '', s.remainder || ''
+      s.parts || '', s.duration || '', s.lastreading ?? '', s.presentreading ?? '',
+      s.kms ?? '', s.remainder ?? ''
     ]);
     return { headers, rows };
   };
 
   const handleExportCSV = () => {
-    const { headers, rows } = getExportData();
-    exportToCSV(headers, rows, `Vehicle_Services_${selectedBranch}`);
+    const data = getExportData();
+    if (data) exportToCSV(data.headers, data.rows, `Vehicle_Services_${selectedBranch}`);
   };
 
   const handleExportPDF = () => {
-    const { headers, rows } = getExportData();
-    exportToPDF(headers, rows, `Vehicle_Services_${selectedBranch}`, `Vehicle Services - ${selectedBranch}`);
+    const data = getExportData();
+    if (data) exportToPDF(data.headers, data.rows, `Vehicle_Services_${selectedBranch}`, `Vehicle Services - ${selectedBranch}`);
   };
 
   const handleExportExcel = () => {
-    const { headers, rows } = getExportData();
-    exportToExcel(headers, rows, `Vehicle_Services_${selectedBranch}`);
-  };
-
-  const handlePrint = () => {
-    printTable('.legacy-data-table', `Vehicle Services - ${selectedBranch}`);
+    const data = getExportData();
+    if (data) exportToExcel(data.headers, data.rows, `Vehicle_Services_${selectedBranch}`);
   };
 
   // Pagination number generator with ellipsis
@@ -518,15 +499,10 @@ const Dashboard = () => {
                 {/* Control Toolbar */}
                 <div className="table-controls-bar">
                   <ExportButtons
-                    onCopy={handleCopyTable}
-                    onPrint={handlePrint}
                     onCSV={handleExportCSV}
                     onPDF={handleExportPDF}
                     onExcel={handleExportExcel}
-                    containerClassName="export-buttons-group"
-                    buttonClassName="export-btn"
                   />
-                  {copiedNotification && <span className="copy-toast">Copied!</span>}
 
                   <div className="show-entries-dropdown">
                     <span>Show </span>
