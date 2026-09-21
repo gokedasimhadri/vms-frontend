@@ -289,10 +289,13 @@ export const deleteServiceItem = async (type, id) => {
 };
 
 // ================= REPAIR BILLS =================
-export const getRepairBillsData = async (branch, search = '') => {
+export const getRepairBillsData = async (subTab, branch, search = '', fromDate = '', toDate = '') => {
   const params = {};
+  if (subTab) params.subTab = subTab;
   if (branch && branch !== 'ALL') params.branch = branch;
   if (search) params.search = search;
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
   const response = await api.get('/repair-bills', { params });
   return response.data;
 };

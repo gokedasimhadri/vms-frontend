@@ -494,39 +494,106 @@ export const SIDEBAR_MODULE_CONFIG = {
   Services: {
     title: 'Services & Maintenance',
     subTabs: [
+      { id: 'dailymaintenance', label: 'Daily Vehicle Maintenance' },
       { id: 'service', label: 'Vehicle Services' },
-      { id: 'repair', label: 'Repairs' },
+      { id: 'repair', label: 'Vehicle Repairs' },
     ],
     apiFn: (subTab, branch) => getServicesData(subTab, branch),
-    columns: () => [
-      { key: 'vehicleno', label: 'Vehicle No' },
-      { key: 'society', label: 'Society' },
-      { key: 'branch', label: 'Branch' },
-      { key: 'model', label: 'Model' },
-      { key: 'date', label: 'Service Date' },
-      { key: 'serviceparts', label: 'Parts & Oils' },
-      { key: 'duration', label: 'Duration' },
-      { key: 'kms', label: 'KMS' },
-      { key: 'remarks', label: 'Remarks' },
-    ]
+    columns: (subTab) => {
+      if (subTab === 'dailymaintenance' || subTab === 'daily') {
+        return [
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'model', label: 'Model' },
+          { key: 'vehicleno', label: 'Vehicle No.' },
+          { key: 'waterservicing', label: 'Water Servicing' },
+          { key: 'engineoil', label: 'Engine Oil' },
+          { key: 'chasis', label: 'Chasis' },
+          { key: 'springs', label: 'Springs' },
+          { key: 'centerjoints', label: 'Center Joints' },
+          { key: 'allubolts', label: 'All U Bolts' },
+          { key: 'airfilling', label: 'Air Filling' },
+          { key: 'greesing', label: 'Greesing' },
+          { key: 'batterymaintenance', label: 'Battery Maintenance' },
+          { key: 'lights', label: 'Lights' },
+          { key: 'glasses', label: 'Glasses' },
+          { key: 'bodypaint', label: 'Body paint' },
+          { key: 'seats', label: 'Seats' },
+          { key: 'gearoil', label: 'Gear Oil' },
+          { key: 'difoil', label: 'DIF Oil' },
+          { key: 'brakeoil', label: 'Brake Oil' },
+          { key: 'atfoil', label: 'ATF Oil' },
+          { key: 'radiatorwater', label: 'Radiator Water' },
+          { key: 'meterreading', label: 'Meter Reading' },
+          { key: 'dateofmaintenance', label: 'Date of Maintainence' },
+          { key: 'remarks', label: 'Remarks' },
+        ];
+      }
+      if (subTab === 'repair' || subTab === 'vehiclerepairs') {
+        return [
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'model', label: 'Model' },
+          { key: 'vehicleno', label: 'Vehicle No.' },
+          { key: 'attendantname', label: 'Name of the Attendant' },
+          { key: 'date', label: 'Date' },
+          { key: 'description', label: 'Repair Description' },
+          { key: 'intime', label: 'In Time' },
+          { key: 'outtime', label: 'Out Time' },
+          { key: 'meterreading', label: 'Meter Reading' },
+          { key: 'remarks', label: 'Remarks' },
+        ];
+      }
+      return [
+        { key: 'society', label: 'Society' },
+        { key: 'branch', label: 'Branch' },
+        { key: 'model', label: 'Model' },
+        { key: 'vehicleno', label: 'Vehicle No.' },
+        { key: 'date', label: 'Date' },
+        { key: 'serviceparts', label: 'Servicing Parts & Oils' },
+        { key: 'duration', label: 'Periodical Duration' },
+        { key: 'lastservicingreading', label: 'Last Servicing Reading' },
+        { key: 'presentservicingreading', label: 'Present Servicing Reading' },
+        { key: 'kms', label: 'KMS' },
+        { key: 'remainderreading', label: 'Remainder Reading' },
+        { key: 'remarks', label: 'Remarks' },
+      ];
+    }
   },
   'Repair Bills': {
     title: 'Repair Bills',
     subTabs: [
-      { id: 'repairbills', label: 'All Repair Bills' }
+      { id: 'repairbills', label: 'All Repair Bills' },
+      { id: 'generatereport', label: 'Generate Report' },
     ],
-    apiFn: (subTab, branch) => getRepairBillsData(branch),
-    columns: () => [
-      { key: 'busnumber', label: 'Bus Number' },
-      { key: 'society', label: 'Society' },
-      { key: 'branch', label: 'Branch' },
-      { key: 'repairtype', label: 'Repair Type' },
-      { key: 'vendorname', label: 'Vendor / Workshop' },
-      { key: 'amount', label: 'Amount (₹)' },
-      { key: 'vouchernumber', label: 'Voucher No' },
-      { key: 'repairdate', label: 'Repair Date' },
-      { key: 'description', label: 'Description' },
-    ]
+    apiFn: (subTab, branch) => getRepairBillsData(subTab, branch),
+    columns: (subTab) => {
+      if (subTab === 'generatereport') {
+        return [
+          { key: 'busnumber', label: 'Bus Number' },
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'repairtype', label: 'Repair Type' },
+          { key: 'vendorname', label: 'Vendor / Workshop' },
+          { key: 'amount', label: 'Amount (₹)' },
+          { key: 'vouchernumber', label: 'Voucher No' },
+          { key: 'repairdate', label: 'Repair Date' },
+          { key: 'description', label: 'Description' },
+          { key: 'remarks', label: 'Remarks' },
+        ];
+      }
+      return [
+        { key: 'busnumber', label: 'Bus Number' },
+        { key: 'society', label: 'Society' },
+        { key: 'branch', label: 'Branch' },
+        { key: 'repairtype', label: 'Repair Type' },
+        { key: 'vendorname', label: 'Vendor / Workshop' },
+        { key: 'amount', label: 'Amount (₹)' },
+        { key: 'vouchernumber', label: 'Voucher No' },
+        { key: 'repairdate', label: 'Repair Date' },
+        { key: 'description', label: 'Description' },
+      ];
+    }
   },
   'Bus Breakdown': {
     title: 'Bus Breakdown Logs',
@@ -551,9 +618,25 @@ export const SIDEBAR_MODULE_CONFIG = {
     subTabs: [
       { id: 'vehiclewise', label: 'Vehicle Wise Battery' },
       { id: 'reports', label: 'Battery Change Report' },
+      { id: 'trackbattery', label: 'Track Battery' },
     ],
     apiFn: (subTab, branch) => getBatteriesData(subTab, branch),
     columns: (subTab) => {
+      if (subTab === 'trackbattery') {
+        return [
+          { key: 'battery_number', label: 'Battery Number' },
+          { key: 'battery_make', label: 'Battery Make' },
+          { key: 'battery_capacity', label: 'Battery Capacity' },
+          { key: 'frombusno', label: 'From Bus No.' },
+          { key: 'tobusno', label: 'To Bus No.' },
+          { key: 'shift_count', label: 'Total Shifts' },
+          { key: 'initialfitmentdate', label: 'Initial Fitment Date' },
+          { key: 'presentfitmentdate', label: 'Present Fitment Date' },
+          { key: 'remarks', label: 'Remarks' },
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+        ];
+      }
       if (subTab === 'reports') {
         return [
           { key: 'society', label: 'Society' },
@@ -589,9 +672,27 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'tyres', label: 'New Tyres' },
       { id: 'rebutton', label: 'Rebutton Tyres' },
       { id: 'status', label: 'Tyre Status' },
+      { id: 'tracktyre', label: 'Track Tyre' },
     ],
     apiFn: (subTab, branch) => getVehicleTyresData(subTab, branch),
     columns: (subTab) => {
+      if (subTab === 'tracktyre') {
+        return [
+          { key: 'tyreno', label: 'Tyre Number' },
+          { key: 'tyremake', label: 'Tyre Make' },
+          { key: 'sizeoftyre', label: 'Tyre Size' },
+          { key: 'frombusno', label: 'From Bus No.' },
+          { key: 'tobusno', label: 'To Bus No.' },
+          { key: 'shift_count', label: 'Total Shifts' },
+          { key: 'position', label: 'Position' },
+          { key: 'dateofreplacement', label: 'Replacement/Fitment Date' },
+          { key: 'totalkms', label: 'Total Kms' },
+          { key: 'status', label: 'Status' },
+          { key: 'remarks', label: 'Remarks' },
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+        ];
+      }
       if (subTab === 'rebutton') {
         return [
           { key: 'society', label: 'Society' },

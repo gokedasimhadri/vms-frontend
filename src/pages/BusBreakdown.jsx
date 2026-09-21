@@ -38,24 +38,24 @@ const EMPTY_WORKER = { workername: '', workerdesignation: '' };
 const STATUS_OPTIONS = ['Completed', 'Pending', 'In Progress'];
 
 const ALL_COLUMNS = [
-  { key: 'society',            label: 'Society' },
-  { key: 'branch',             label: 'Branch' },
-  { key: 'busno',              label: 'Vehicle No.' },
-  { key: 'drivername',         label: 'Name of the Driver' },
-  { key: 'driverphoneno',      label: 'Driver Phone NO' },
-  { key: 'breakedownplace',    label: 'Break Down Place' },
-  { key: 'natureofcomplaint',  label: 'Complaint' },
-  { key: 'date',               label: 'Date' },
+  { key: 'society', label: 'Society' },
+  { key: 'branch', label: 'Branch' },
+  { key: 'busno', label: 'Vehicle No.' },
+  { key: 'drivername', label: 'Name of the Driver' },
+  { key: 'driverphoneno', label: 'Driver Phone NO' },
+  { key: 'breakedownplace', label: 'Break Down Place' },
+  { key: 'natureofcomplaint', label: 'Complaint' },
+  { key: 'date', label: 'Date' },
   { key: 'messagereceivetime', label: 'Message Received Time' },
-  { key: 'workassignedtime',   label: 'Work assigned Time' },
-  { key: 'workcompletedtime',  label: 'Work Completed Time' },
-  { key: 'workstatus',         label: 'Status' },
+  { key: 'workassignedtime', label: 'Work assigned Time' },
+  { key: 'workcompletedtime', label: 'Work Completed Time' },
+  { key: 'workstatus', label: 'Status' },
   { key: 'sparepartsutilised', label: 'Spare Parts' },
-  { key: 'spartpartamount',    label: 'Spare Part Amount' },
-  { key: 'travellingallowance',label: 'Travelling Allowance' },
-  { key: 'foodallowance',      label: 'Food Allowance' },
-  { key: 'noofworkers',        label: "No'of Workers" },
-  { key: 'totalamount',        label: 'Total Amount' },
+  { key: 'spartpartamount', label: 'Spare Part Amount' },
+  { key: 'travellingallowance', label: 'Travelling Allowance' },
+  { key: 'foodallowance', label: 'Food Allowance' },
+  { key: 'noofworkers', label: "No'of Workers" },
+  { key: 'totalamount', label: 'Total Amount' },
 ];
 
 export default function BusBreakdown() {
@@ -108,7 +108,7 @@ export default function BusBreakdown() {
     if (!token) { navigate('/'); return; }
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      try { setUser(JSON.parse(userStr)); } catch (e) {}
+      try { setUser(JSON.parse(userStr)); } catch (e) { }
     }
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
@@ -227,7 +227,7 @@ export default function BusBreakdown() {
       const res = await getBusBreakdownData();
       let data = res?.data || [];
       if (fromDate) data = data.filter(r => r.date && r.date >= fromDate);
-      if (toDate)   data = data.filter(r => r.date && r.date <= toDate);
+      if (toDate) data = data.filter(r => r.date && r.date <= toDate);
       setReportData(data);
       setReportCurrentPage(1);
     } catch (e) {
@@ -336,7 +336,7 @@ export default function BusBreakdown() {
             onChange={(id) => setActiveTab(id)}
             tabs={[
               { id: 'breakdown', label: 'Bus BreakDown' },
-              { id: 'report',    label: 'Generate Report' },
+              { id: 'report', label: 'Generate Report' },
             ]}
           />
         </div>
@@ -585,11 +585,11 @@ export default function BusBreakdown() {
 
             {/* Report table toolbar */}
             <div className="admin-table-toolbar" style={{ marginTop: 16 }}>
-                <ExportButtons
-                  onCSV={handleExportReportCSV}
-                  onPDF={handleExportReportPDF}
-                  onExcel={handleExportReportExcel}
-                />
+              <ExportButtons
+                onCSV={handleExportReportCSV}
+                onPDF={handleExportReportPDF}
+                onExcel={handleExportReportExcel}
+              />
               <div className="admin-entries-control">
                 <span>Show</span>
                 <select value={reportEntriesPerPage} onChange={e => { setReportEntriesPerPage(Number(e.target.value)); setReportCurrentPage(1); }}>

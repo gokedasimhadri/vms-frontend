@@ -62,13 +62,13 @@ const parseTimeParts = (val) => {
   const str = String(val).trim();
   const ampmMatch = str.match(/(am|pm)/i);
   let period = ampmMatch ? ampmMatch[1].toUpperCase() : '';
-  
+
   const numMatch = str.match(/(\d{1,2}):(\d{2})/);
   if (!numMatch) return { time: '', period: period || 'AM' };
-  
+
   let h = parseInt(numMatch[1], 10);
   const m = numMatch[2];
-  
+
   if (!period) {
     if (h >= 12) {
       period = 'PM';
@@ -81,7 +81,7 @@ const parseTimeParts = (val) => {
     if (h > 12) h -= 12;
     if (h === 0) h = 12;
   }
-  
+
   const paddedH = String(h).padStart(2, '0');
   return {
     time: `${paddedH}:${m}`,
@@ -793,9 +793,9 @@ const Admin = () => {
                   <TableLoader
                     colSpan={
                       adminSubTab === 'Transfers' ? 12 :
-                      adminSubTab === 'Route_Details' ? 10 :
-                      adminSubTab === 'Handovers' || adminSubTab === 'Issues' ? 9 :
-                      adminSubTab === 'Branches' ? 5 : 4
+                        adminSubTab === 'Route_Details' ? 10 :
+                          adminSubTab === 'Handovers' || adminSubTab === 'Issues' ? 9 :
+                            adminSubTab === 'Branches' ? 5 : 4
                     }
                     message={`Loading ${adminSubTab.replace('_', ' ')} records, please wait...`}
                   />

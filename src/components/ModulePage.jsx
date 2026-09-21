@@ -90,6 +90,24 @@ const ModulePage = ({ moduleKey }) => {
   const [busRegisterNoFilter, setBusRegisterNoFilter] = useState('');
   const [busDataFetched, setBusDataFetched] = useState(false);
 
+  // Services Register No search & autocomplete state
+  const [serviceRegNoInput, setServiceRegNoInput] = useState('');
+  const [showServiceSuggestions, setShowServiceSuggestions] = useState(false);
+  const [appliedServiceRegNo, setAppliedServiceRegNo] = useState('');
+
+  const serviceVehicleSuggestions = useMemo(() => {
+    if (!serviceRegNoInput.trim()) return [];
+    const q = serviceRegNoInput.trim().toLowerCase();
+    const set = new Set();
+    moduleData.forEach(item => {
+      const reg = item.vehicleno || item.vehicleregno || item.busnumber || item.regno || '';
+      if (reg && String(reg).toLowerCase().includes(q)) {
+        set.add(String(reg).toUpperCase());
+      }
+    });
+    return Array.from(set);
+  }, [moduleData, serviceRegNoInput]);
+
   // Generic modal state for Add & Edit
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -316,6 +334,33 @@ const ModulePage = ({ moduleKey }) => {
       }
     }
 
+    if (moduleKey === 'Services' && appliedServiceRegNo.trim()) {
+      const q = appliedServiceRegNo.trim().toLowerCase();
+      result = result.filter(item => {
+        const reg = item.vehicleno || item.vehicleregno || item.busnumber || item.regno || '';
+        return String(reg).toLowerCase().includes(q);
+      });
+    }
+
+    if (moduleKey === 'Repair Bills' && activeSub === 'generatereport') {
+      if (fromDate) {
+        result = result.filter(item => {
+          const d = item.repairdate || item.date || item.createdAt;
+          if (!d) return true;
+          let itemDate = typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10);
+          return itemDate >= fromDate;
+        });
+      }
+      if (toDate) {
+        result = result.filter(item => {
+          const d = item.repairdate || item.date || item.createdAt;
+          if (!d) return true;
+          let itemDate = typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10);
+          return itemDate <= toDate;
+        });
+      }
+    }
+
     if (!moduleSearchQuery.trim()) return result;
     const q = moduleSearchQuery.toLowerCase();
     return result.filter(item =>
@@ -323,7 +368,7 @@ const ModulePage = ({ moduleKey }) => {
         k !== '_id' && k !== 'id' && val && String(val).toLowerCase().includes(q)
       )
     );
-  }, [moduleData, moduleSearchQuery, nestedSubTab, activeSub, busDataFetched, busRegisterNoFilter, reportFromDate, reportToDate, busSearchRegNo]);
+  }, [moduleData, moduleSearchQuery, nestedSubTab, activeSub, busDataFetched, busRegisterNoFilter, reportFromDate, reportToDate, busSearchRegNo, appliedServiceRegNo]);
 
   const totalModulePages = Math.ceil(filteredModuleData.length / moduleEntriesPerPage) || 1;
   const paginatedModuleData = useMemo(() => {
@@ -542,32 +587,361 @@ const ModulePage = ({ moduleKey }) => {
           </div>
         )}
 
-        {/* Action Buttons: View Data / Add New */}
-        <div className="admin-actions-bar">
-          <button
-            type="button"
-            className="admin-action-btn"
-            disabled={moduleLoading}
-            onClick={() => fetchModuleData(activeSub, selectedBranch, true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-          >
-            {moduleLoading ? (
-              <>
-                <span className="btn-spinner" />
-                <span>Loading...</span>
-              </>
-            ) : (
-              'View Data'
+        {/* Tracking Header Banner for Track Battery & Track Tyre */}
+        {(activeSub === 'trackbattery' || activeSub === 'tracktyre') && (
+          <div style={{
+            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+            color: '#ffffff',
+            borderRadius: '12px',
+            padding: '20px 24px',
+            marginBottom: '20px',
+            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  background: 'rgba(59, 130, 246, 0.2)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <IconComponent size={24} style={{ color: '#60a5fa' }} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#f8fafc' }}>
+                    {activeSub === 'trackbattery' ? 'Battery Movement Tracking' : 'Tyre Movement Tracking'}
+                  </h2>
+                  <p style={{ fontSize: '13px', margin: '4px 0 0 0', color: '#94a3b8' }}>
+                    {activeSub === 'trackbattery'
+                      ? 'By using Battery number, track how many times a battery has shifted from one bus to another bus.'
+                      : 'By using Tyre number, track how many times a tyre has shifted from one bus to another bus.'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.07)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8' }}>
+                    Tracked Items
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '800', color: '#38bdf8' }}>
+                    {filteredModuleData.length}
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.07)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8' }}>
+                    Total Shift Logs
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '800', color: '#a78bfa' }}>
+                    {filteredModuleData.reduce((acc, curr) => acc + (Number(curr.shift_count) || 0), 0)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Date Filter & Report Metrics Banner for Repair Bills Generate Report */}
+        {moduleKey === 'Repair Bills' && activeSub === 'generatereport' && (
+          <div style={{
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+            color: '#ffffff',
+            borderRadius: '12px',
+            padding: '20px 24px',
+            marginBottom: '20px',
+            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#f8fafc' }}>
+                  Repair Bills Report Generation
+                </h2>
+                <p style={{ fontSize: '13px', margin: '4px 0 12px 0', color: '#94a3b8' }}>
+                  Select From Date and To Date to filter repair bills and generate report.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#cbd5e1' }}>From Date:</label>
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #475569',
+                        backgroundColor: '#1e293b',
+                        color: '#f8fafc',
+                        fontSize: '13px'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#cbd5e1' }}>To Date:</label>
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #475569',
+                        backgroundColor: '#1e293b',
+                        color: '#f8fafc',
+                        fontSize: '13px'
+                      }}
+                    />
+                  </div>
+                  {(fromDate || toDate) && (
+                    <button
+                      type="button"
+                      onClick={() => { setFromDate(''); setToDate(''); }}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#fca5a5',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Clear Filter
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.07)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '8px',
+                  padding: '10px 18px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8' }}>
+                    Total Repair Bills
+                  </div>
+                  <div style={{ fontSize: '22px', fontWeight: '800', color: '#38bdf8' }}>
+                    {filteredModuleData.length}
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.07)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '8px',
+                  padding: '10px 18px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8' }}>
+                    Total Amount (₹)
+                  </div>
+                  <div style={{ fontSize: '22px', fontWeight: '800', color: '#4ade80' }}>
+                    ₹{filteredModuleData.reduce((acc, row) => acc + (parseFloat(row.amount) || 0), 0).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Services Module Register No Search Bar & Controls */}
+        {moduleKey === 'Services' ? (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#f1f5f9',
+            borderRadius: '6px',
+            border: '1px solid #cbd5e1',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                Register No:
+              </label>
+              <div style={{ position: 'relative', width: '220px' }}>
+                <input
+                  type="text"
+                  placeholder="Enter reg no..."
+                  value={serviceRegNoInput}
+                  onChange={(e) => {
+                    setServiceRegNoInput(e.target.value);
+                    setShowServiceSuggestions(true);
+                  }}
+                  onFocus={() => setShowServiceSuggestions(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setAppliedServiceRegNo(serviceRegNoInput.trim());
+                      setShowServiceSuggestions(false);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '6px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #94a3b8',
+                    borderRadius: '4px',
+                    outline: 'none',
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a'
+                  }}
+                />
+                {/* Autocomplete Suggestions Dropdown */}
+                {showServiceSuggestions && serviceVehicleSuggestions.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '0 0 6px 6px',
+                    boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
+                    maxHeight: '220px',
+                    overflowY: 'auto',
+                    zIndex: 1000,
+                    marginTop: '2px'
+                  }}>
+                    {serviceVehicleSuggestions.map((suggestion, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setServiceRegNoInput(suggestion);
+                          setAppliedServiceRegNo(suggestion);
+                          setShowServiceSuggestions(false);
+                        }}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          color: '#1e293b',
+                          borderBottom: idx < serviceVehicleSuggestions.length - 1 ? '1px solid #f1f5f9' : 'none'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAppliedServiceRegNo(serviceRegNoInput.trim());
+                setShowServiceSuggestions(false);
+              }}
+              style={{
+                backgroundColor: '#46b8da',
+                color: '#ffffff',
+                border: 'none',
+                padding: '7px 18px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              getdata
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              style={{
+                backgroundColor: '#5bc0de',
+                color: '#ffffff',
+                border: 'none',
+                padding: '7px 18px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              Add New
+            </button>
+
+            {appliedServiceRegNo && (
+              <button
+                type="button"
+                onClick={() => {
+                  setServiceRegNoInput('');
+                  setAppliedServiceRegNo('');
+                  setShowServiceSuggestions(false);
+                }}
+                style={{
+                  backgroundColor: '#d9534f',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '7px 14px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Clear Filter
+              </button>
             )}
-          </button>
-          <button
-            type="button"
-            className="admin-action-btn"
-            onClick={handleOpenAddModal}
-          >
-            Add New Record
-          </button>
-        </div>
+          </div>
+        ) : (
+          /* Action Buttons: View Data / Add New */
+          <div className="admin-actions-bar">
+            <button
+              type="button"
+              className="admin-action-btn"
+              disabled={moduleLoading}
+              onClick={() => fetchModuleData(activeSub, selectedBranch, true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              {moduleLoading ? (
+                <>
+                  <span className="btn-spinner" />
+                  <span>Loading...</span>
+                </>
+              ) : (
+                'View Data'
+              )}
+            </button>
+            <button
+              type="button"
+              className="admin-action-btn"
+              onClick={handleOpenAddModal}
+            >
+              Add New Record
+            </button>
+          </div>
+        )}
 
         {/* Success Banner */}
         {successToast && (
@@ -597,19 +971,20 @@ const ModulePage = ({ moduleKey }) => {
                   setModuleCurrentPage(1);
                 }}
               >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-                <span>entries</span>
-              </div>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span>entries</span>
+            </div>
 
             {/* Search control */}
             <div className="admin-search-control">
-              <label>Search:</label>
+              <label>{(activeSub === 'trackbattery' || activeSub === 'tracktyre') ? 'Search Number / Bus:' : 'Search:'}</label>
               <input
                 type="text"
+                placeholder={(activeSub === 'trackbattery' ? 'Filter by battery number...' : activeSub === 'tracktyre' ? 'Filter by tyre number...' : '')}
                 value={moduleSearchQuery}
                 onChange={e => {
                   setModuleSearchQuery(e.target.value);
@@ -648,74 +1023,13 @@ const ModulePage = ({ moduleKey }) => {
                   paginatedModuleData.map((row, index) => (
                     <tr key={row._id || row.id || index}>
                       <td><strong>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</strong></td>
-                      {activeCols.map(col => {
-                        if (col.key === 'profilepic' || col.type === 'image') {
-                          const rawVal = row[col.key];
-                          let imgSrc = null;
-                          if (rawVal && typeof rawVal === 'string' && rawVal.trim()) {
-                            if (rawVal.startsWith('data:') || rawVal.startsWith('http://') || rawVal.startsWith('https://')) {
-                              imgSrc = rawVal;
-                            } else {
-                              imgSrc = `http://localhost:1002/uploads/${rawVal}`;
-                            }
-                          }
-                          return (
-                            <td key={col.key} style={{ textAlign: 'center', padding: '6px' }}>
-                              {imgSrc ? (
-                                <img
-                                  src={imgSrc}
-                                  alt={row.staffname || 'Profile'}
-                                  onClick={() => setPreviewImageModal(imgSrc)}
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.style.display = 'none';
-                                    if (e.target.nextSibling) {
-                                      e.target.nextSibling.style.display = 'inline-flex';
-                                    }
-                                  }}
-                                  style={{
-                                    width: '54px',
-                                    height: '62px',
-                                    objectFit: 'cover',
-                                    borderRadius: '6px',
-                                    border: '1px solid #cbd5e1',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                    cursor: 'pointer',
-                                    display: 'block',
-                                    margin: '0 auto'
-                                  }}
-                                  title="Click to view full photo"
-                                />
-                              ) : null}
-                              <div
-                                style={{
-                                  display: imgSrc ? 'none' : 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '54px',
-                                  height: '62px',
-                                  borderRadius: '6px',
-                                  backgroundColor: '#f1f5f9',
-                                  border: '1px dashed #94a3b8',
-                                  color: '#64748b',
-                                  fontSize: '11px',
-                                  fontWeight: 600,
-                                  margin: '0 auto'
-                                }}
-                              >
-                                No Pic
-                              </div>
-                            </td>
-                          );
-                        }
-                        return (
-                          <td key={col.key} style={{ fontWeight: 600 }}>
-                            {row[col.key] !== undefined && row[col.key] !== null
-                              ? String(row[col.key])
-                              : '-'}
-                          </td>
-                        );
-                      })}
+                      {activeCols.map(col => (
+                        <td key={col.key} style={{ fontWeight: 600 }}>
+                          {row[col.key] !== undefined && row[col.key] !== null
+                            ? String(row[col.key])
+                            : '-'}
+                        </td>
+                      ))}
                       <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
