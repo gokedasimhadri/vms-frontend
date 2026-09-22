@@ -38,7 +38,6 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'society', label: 'Society' },
           { key: 'branch', label: 'Branch' },
           { key: 'mobile', label: 'Mobile' },
-          { key: 'aadharno', label: 'Aadhar No' },
           { key: 'dateofjoin', label: 'Date of Join' },
         ];
       }
@@ -57,32 +56,33 @@ export const SIDEBAR_MODULE_CONFIG = {
       }
       if (subTab === 'BusCleaner_Information') {
         return [
+          { key: 'profilepic', label: 'Profile Pic', type: 'image' },
           { key: 'cleanername', label: 'Cleaner Name' },
           { key: 'designation', label: 'Designation' },
           { key: 'society', label: 'Society' },
           { key: 'branch', label: 'Branch' },
           { key: 'mobile', label: 'Mobile' },
-          { key: 'aadharno', label: 'Aadhar No' },
           { key: 'dateofjoin', label: 'Date of Join' },
         ];
       }
       if (subTab === 'Opting_Staff_Information') {
         return [
+          { key: 'profilepic', label: 'Profile Pic', type: 'image' },
           { key: 'staffname', label: 'Staff Name' },
           { key: 'designation', label: 'Designation' },
           { key: 'society', label: 'Society' },
           { key: 'branch', label: 'Branch' },
           { key: 'mobile', label: 'Mobile' },
-          { key: 'vehicleno', label: 'Vehicle No' },
+          { key: 'vehicleno', label: 'Vehicle No', type: 'vehicle-select' },
         ];
       }
       if (subTab === 'Staff_Meeting_Register') {
         return [
-          { key: 'society', label: 'Society' },
-          { key: 'branch', label: 'Branch' },
-          { key: 'date', label: 'Date' },
-          { key: 'points', label: 'Meeting Points' },
-          { key: 'file', label: 'Attachment' },
+          { key: 'society', label: 'Society', type: 'society-select' },
+          { key: 'branch', label: 'Branch', type: 'branch-select' },
+          { key: 'date', label: 'Date', type: 'date' },
+          { key: 'points', label: 'Points Discussed', type: 'textarea' },
+          { key: 'file', label: 'Upload(with Principal Sign)', type: 'file' },
         ];
       }
       if (subTab === 'Staff_Remarks') {
@@ -125,7 +125,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'accidents', label: 'Vehicle Accidents' },
       { id: 'vcr', label: 'Vehicle Change Register' },
     ],
-    apiFn: (subTab, branch) => getVehiclesData(subTab, branch),
+    apiFn: (subTab, branch, search, extra) => getVehiclesData(subTab, branch, search, extra),
     columns: (subTab) => {
       if (subTab === 'makes') {
         return [
@@ -134,51 +134,47 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'model', label: 'Vehicle Model' },
         ];
       }
-      if (subTab === 'info') {
+      if (subTab === 'info' || subTab === 'lightmotor' || subTab === 'heavymotor') {
         return [
-          { key: 'make', label: 'Vehicle Make' },
-          { key: 'type', label: 'Vehicle Type' },
-          { key: 'fuel', label: 'Fuel' },
+          { key: 'make', label: 'Vehicle Make', type: 'make-select' },
+          { key: 'type', label: 'Vehicle Type', type: 'vehicle-type-select' },
+          { key: 'fuel', label: 'Fuel', type: 'fuel-select' },
           { key: 'vehicleregno', label: 'Vehicle Reg.No' },
-          { key: 'model', label: 'Vehicle Model' },
+          { key: 'model', label: 'Vehicle Model', type: 'model-select' },
           { key: 'fueltank', label: 'Fuel tank Capacity' },
           { key: 'capacity', label: 'Sitting Capacity' },
           { key: 'ekmpl', label: 'E.KMPL' },
           { key: 'serviceperiod', label: 'Service Period' },
           { key: 'servicemilaege', label: 'Service Milaege' },
           { key: 'tyres', label: 'Tyres' },
-          { key: 'status', label: 'Status' },
+          { key: 'status', label: 'Status', modalLabel: 'Vehicle Status :', type: 'status-select' },
         ];
       }
       if (subTab === 'branch') {
         return [
-          { key: 'society', label: 'Society' },
-          { key: 'branch', label: 'Branch' },
-          { key: 'staffname', label: 'Staff Name' },
+          { key: 'society', label: 'Society', type: 'society-select' },
+          { key: 'branch', label: 'Branch', type: 'branch-select' },
+          { key: 'staffname', label: 'Staff Name', type: 'staff-select' },
           { key: 'vehicleregno', label: 'Vehicle Registration No.' },
-          { key: 'model', label: 'Model Name' },
-          { key: 'purchasedate', label: 'Purchase Date' },
-          { key: 'servicedate', label: 'Service Date' },
-          { key: 'validitydate', label: 'Validity Date' },
+          { key: 'model', label: 'Model Name', type: 'model-select' },
+          { key: 'purchasedate', label: 'Purchase Date', type: 'date' },
+          { key: 'servicedate', label: 'Service Date', type: 'date' },
         ];
       }
-      if (subTab === 'trips') {
+      if (subTab === 'trips' || subTab === 'entrydata' || subTab === 'generatereport') {
         return [
-          { key: 'society', label: 'Society' },
-          { key: 'branch', label: 'Branch' },
-          { key: 'vehicleregno', label: 'Reg.No' },
-          { key: 'drivername', label: 'Driver Name' },
-          { key: 'cellno', label: 'Cell No' },
+          { key: 'society', label: 'Society', type: 'society-select' },
+          { key: 'branch', label: 'Branch', type: 'branch-select' },
+          { key: 'regno', label: 'Reg.No' },
           { key: 'route', label: 'Route' },
-          { key: 'date', label: 'Date' },
-          { key: 'busintime', label: 'Bus In Time' },
+          { key: 'date', label: 'Date', type: 'date' },
           { key: 'capacity', label: 'Capacity' },
           { key: 'studentsstrength', label: 'Students Strength' },
           { key: 'fixedstrength', label: 'Fixed Strength' },
           { key: 'omr', label: 'OMR' },
           { key: 'cmr', label: 'CMR' },
           { key: 'kms', label: 'KMS' },
-          { key: 'distanceinkms', label: 'Distance(in kms)' },
+          { key: 'distance', label: 'Distance(in kms)' },
           { key: 'result', label: 'Result' },
           { key: 'remarks', label: 'remarks' },
         ];

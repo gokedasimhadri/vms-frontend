@@ -10,9 +10,11 @@ import { TableLoader } from './Loader';
 import { SIDEBAR_MODULE_CONFIG } from '../config/modules.config';
 import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
 import ConfirmModal from './ConfirmModal';
+import VehicleAutocomplete from './VehicleAutocomplete';
+import * as XLSX from 'xlsx';
 import {
   createStaffItem, updateStaffItem, deleteStaffItem,
-  createVehicleItem, updateVehicleItem, deleteVehicleItem,
+  createVehicleItem, bulkCreateVehicleItems, updateVehicleItem, deleteVehicleItem,
   createCertificateItem, updateCertificateItem, deleteCertificateItem,
   createFuelItem, updateFuelItem, deleteFuelItem,
   createAdBlueItem, updateAdBlueItem, deleteAdBlueItem,
@@ -22,7 +24,7 @@ import {
   createBatteryItem, updateBatteryItem, deleteBatteryItem,
   createVehicleTyreItem, updateVehicleTyreItem, deleteVehicleTyreItem,
   createAdminItem, updateAdminItem, deleteAdminItem,
-  getAdminData, getStaffData
+  getAdminData, getStaffData, getVehiclesData
 } from '../services/api';
 
 const MODULE_ICONS = {
@@ -58,7 +60,10 @@ const ModulePage = ({ moduleKey }) => {
     return currentConfig?.subTabs?.find(t => t.id === moduleSubTab);
   }, [currentConfig, moduleSubTab]);
 
-  const [moduleChildSubTab, setModuleChildSubTab] = useState('');
+  const [moduleChildSubTab, setModuleChildSubTab] = useState(() => {
+    const subObj = currentConfig?.subTabs?.find(t => t.id === (validRequestedTab || currentConfig?.subTabs[0]?.id));
+    return subObj?.childSubTabs?.length > 0 ? subObj.childSubTabs[0].id : '';
+  });
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
@@ -131,6 +136,10 @@ const ModulePage = ({ moduleKey }) => {
   const [societiesList, setSocietiesList] = useState([]);
   const [branchesList, setBranchesList] = useState([]);
   const [designationsList, setDesignationsList] = useState([]);
+  const [vehiclesList, setVehiclesList] = useState([]);
+  const [makesList, setMakesList] = useState([]);
+  const [modelsList, setModelsList] = useState([]);
+  const [staffList, setStaffList] = useState([]);
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -148,11 +157,81 @@ const ModulePage = ({ moduleKey }) => {
         })).filter(b => b.name);
         setBranchesList(branches);
 
-        const desRes = await getStaffData({ type: 'designations' }, 'ALL').catch(() => null);
+        const desRes = await getStaffData('designations', 'ALL').catch(() => null);
         const desData = Array.isArray(desRes?.data) ? desRes.data : (Array.isArray(desRes) ? desRes : []);
         const desNames = desData.map(d => d.name || d.designation).filter(Boolean);
         const defaultDes = ['DRIVER', 'BUS SUPERVISOR', 'CLEANER', 'MECHANIC', 'HELPER', 'ATTENDER', 'JUNIOR ASSISTANT', 'OFFICE SUBORDINATE'];
         setDesignationsList(Array.from(new Set([...desNames, ...defaultDes])).sort());
+
+        const vehicleRes = await getVehiclesData('branch', 'ALL').catch(() => null);
+        const vehicleData = Array.isArray(vehicleRes?.data) ? vehicleRes.data : (Array.isArray(vehicleRes) ? vehicleRes : []);
+        setVehiclesList(vehicleData);
+
+        const infoRes = await getVehiclesData('info', 'ALL').catch(() => null);
+        const infoData = Array.isArray(infoRes?.data) ? infoRes.data : (Array.isArray(infoRes) ? infoRes : []);
+        const makesRes = await getVehiclesData('makes', 'ALL').catch(() => null);
+        const makesData = Array.isArray(makesRes?.data) ? makesRes.data : (Array.isArray(makesRes) ? makesRes : []);
+
+        const fetchedMakes = new Set();
+        const fetchedModels = new Set();
+
+        infoData.forEach(item => {
+          if (item.make || item.vehiclemake || item.name) fetchedMakes.add(String(item.make || item.vehiclemake || item.name).trim());
+          if (item.model) fetchedModels.add(String(item.model).trim());
+        });
+        makesData.forEach(item => {
+          if (item.make || item.name) fetchedMakes.add(String(item.make || item.name).trim());
+          if (item.model) fetchedModels.add(String(item.model).trim());
+        });
+
+        const defaultMakes = [
+          'ASHOK', 'ASHOK LAYLAND', 'ASHOK LEYLAND', 'ASHOK LEYLAND STAG', 'ASHOK LEYLAND SUNSHINE',
+          'BAJAJ', 'BHARATH BENZ', 'DISCOVERY', 'EICHER', 'FORCE', 'FORD', 'FXDF', 'HERO', 'HONDA',
+          'JAGUAR LAND ROVER', 'LAND ROVER', 'MAHINDRA', 'MARUTHI SUZUKI', 'MARUTI', 'MERCEDES',
+          'MERCEDUS', 'NISSAN', 'SML ISUZU LTD', 'SML MAHINDRA LTD', 'SWARAJ', 'SWARAJ AC',
+          'TATA', 'TATA MOTOR LTD', 'TATA MOTORS LTD', 'TOYOTA', 'VE COMMERCIAL VEHICLES LTD',
+          'VENTO', 'VOLVO'
+        ];
+
+        const defaultModels = [
+          '1014R BSIV', '2090 L SKL SCL BSVI', '235 AIR FLOW', 'A L BS VI-2023', 'ACTIVA',
+          'ASHOK LEYLAND', 'ASHOK LEYLAND STAG', 'ASHOK LEYLAND SUNSHINE', 'BENZ', 'BOLEORO',
+          'BOLERO BS-VI', 'DISCOVERY', 'DISCOVERY3.0IT', 'DOSTU (HYDRALIC)', 'DYNA FAT BOB',
+          'EECO AMBULANCE SHELL', 'EICHER', 'EICHER PRO 2110C BSIV', 'ERTIGA', 'FORCE',
+          'FORTUNER', 'HYCROSS', 'HYUNDAI', 'INNOVA', 'INTRA V 20', 'INVICTO', 'INVICTO ALPHA PLUS',
+          'LEYLAND', 'MARUTHI SUZUKI', 'MINI BUS', 'OMNI', 'ROXOR', 'SCORPIO', 'SWIFT',
+          'TAISAR', 'TATA', 'TATA ACE', 'TATA ULTRA PRIME', 'TOYOTA', 'TRAVELER', 'URBANIA',
+          'VAN', 'VENTO', 'VOLVO', 'XL 6', 'YODHA'
+        ];
+
+        setMakesList(Array.from(new Set([...fetchedMakes, ...defaultMakes])).sort());
+        setModelsList(Array.from(new Set([...fetchedModels, ...defaultModels])).sort());
+
+        // Fetch Staff metadata
+        const staffRegRes = await getStaffData('register', 'ALL').catch(() => null);
+        const staffRegData = Array.isArray(staffRegRes?.data) ? staffRegRes.data : (Array.isArray(staffRegRes) ? staffRegRes : []);
+        const staffMeetRes = await getStaffData('meeting', 'ALL').catch(() => null);
+        const staffMeetData = Array.isArray(staffMeetRes?.data) ? staffMeetRes.data : (Array.isArray(staffMeetRes) ? staffMeetRes : []);
+
+        const fetchedStaff = new Set();
+        staffRegData.forEach(s => {
+          const n = s.name || s.staffname || s.drivername;
+          if (n) fetchedStaff.add(String(n).trim());
+        });
+        staffMeetData.forEach(s => {
+          const n = s.name || s.staffname || s.drivername;
+          if (n) fetchedStaff.add(String(n).trim());
+        });
+
+        const defaultStaff = [
+          'K VISWANADHA REDDY', 'P.SURESH', 'KATTA YEDUKONDALU', 'N SRINIVAS', 'K NAGA NOOKA REDDY',
+          'G GANESH', 'M SESHUBABU', 'K VENKATESWARA RAO', 'KONA ADINARAYANA', 'CHIRLA DHANAKOTI VENKATA REDDY',
+          'K KANNAYYA', 'CHANDURI SATYA SURYA BALAJI', 'PULIDINDI DURGA PRASAD', 'VASIREDDY SATYA NARASIMHA BALAJI',
+          'BALANTARAPU SUBRAMANYAM', 'CH N V PRATAP REDDY', 'MADINA BABI', 'VENKATESWARARAO GUNDABOGULA',
+          'MADUTHURI NARAYANA'
+        ];
+
+        setStaffList(Array.from(new Set([...fetchedStaff, ...defaultStaff])).sort());
       } catch (e) {
         console.error('Failed to load form metadata:', e);
       }
@@ -169,6 +248,21 @@ const ModulePage = ({ moduleKey }) => {
       .map(b => b.name);
     return Array.from(new Set(filtered)).sort();
   }, [branchesList, formData.society]);
+
+  const availableVehicles = useMemo(() => {
+    let list = vehiclesList;
+    if (formData.society) {
+      list = list.filter(v => !v.society || String(v.society).toLowerCase() === String(formData.society).toLowerCase());
+    }
+    if (formData.branch) {
+      list = list.filter(v => !v.branch || String(v.branch).toLowerCase() === String(formData.branch).toLowerCase());
+    }
+    const regNos = list.map(v => (v.vehicleregno || v.regno || v.busno || v.vehicleno || v.name || '').trim()).filter(Boolean);
+    if (formData.vehicleno && !regNos.includes(formData.vehicleno)) {
+      regNos.push(formData.vehicleno);
+    }
+    return Array.from(new Set(regNos)).sort();
+  }, [vehiclesList, formData.society, formData.branch, formData.vehicleno]);
 
   const formatDateForInput = (val) => {
     if (!val) return '';
@@ -230,11 +324,11 @@ const ModulePage = ({ moduleKey }) => {
     navigate('/');
   };
 
-  const fetchModuleData = async (subTab, branch, forceRefresh = false) => {
+  const fetchModuleData = async (subTab, branch, forceRefresh = false, extraParams = {}) => {
     if (!currentConfig) return;
     const activeSub = subTab || currentConfig.subTabs[0].id;
-    const cacheKey = `${moduleKey}_${activeSub}_${branch || 'ALL'}`;
-    if (!forceRefresh && cacheRef.current[cacheKey]) {
+    const cacheKey = `${moduleKey}_${activeSub}_${branch || 'ALL'}_${JSON.stringify(extraParams)}`;
+    if (!forceRefresh && Array.isArray(cacheRef.current[cacheKey]) && cacheRef.current[cacheKey].length > 0) {
       setModuleData(cacheRef.current[cacheKey]);
       setModuleCurrentPage(1);
       setModuleLoading(false);
@@ -243,9 +337,11 @@ const ModulePage = ({ moduleKey }) => {
 
     setModuleLoading(true);
     try {
-      const res = await currentConfig.apiFn(activeSub, branch);
-      const data = res?.data || [];
-      cacheRef.current[cacheKey] = data;
+      const res = await currentConfig.apiFn(activeSub, branch, '', extraParams);
+      const data = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      if (data.length > 0) {
+        cacheRef.current[cacheKey] = data;
+      }
       setModuleData(data);
       setModuleCurrentPage(1);
     } catch (err) {
@@ -264,9 +360,12 @@ const ModulePage = ({ moduleKey }) => {
       if (validSub !== moduleSubTab) {
         setModuleSubTab(validSub);
       }
-      fetchModuleData(validSub, selectedBranch);
+      const activeSubToFetch = (currentSubTabObj?.childSubTabs?.length > 0 && moduleChildSubTab)
+        ? moduleChildSubTab
+        : validSub;
+      fetchModuleData(activeSubToFetch, selectedBranch);
     }
-  }, [moduleKey, moduleSubTab, selectedBranch]);
+  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch]);
 
   const activeSub = moduleSubTab || currentConfig?.subTabs[0]?.id;
   const currentSubConfig = currentConfig?.subTabs?.find(s => s.id === activeSub);
@@ -342,6 +441,23 @@ const ModulePage = ({ moduleKey }) => {
       });
     }
 
+    if (moduleKey === 'Vehicles' && (moduleChildSubTab === 'generatereport' || activeSub === 'generatereport')) {
+      if (reportFromDate) {
+        result = result.filter(item => {
+          const itemDate = formatDateForInput(item.date || item.uploaddate || item.createdAt);
+          if (!itemDate) return true;
+          return itemDate >= reportFromDate;
+        });
+      }
+      if (reportToDate) {
+        result = result.filter(item => {
+          const itemDate = formatDateForInput(item.date || item.uploaddate || item.createdAt);
+          if (!itemDate) return true;
+          return itemDate <= reportToDate;
+        });
+      }
+    }
+
     if (moduleKey === 'Repair Bills' && activeSub === 'generatereport') {
       if (fromDate) {
         result = result.filter(item => {
@@ -403,9 +519,137 @@ const ModulePage = ({ moduleKey }) => {
     if (data) exportToPDF(data.headers, data.rows, `${moduleKey}_${moduleSubTab}_Data`, `${moduleKey} - ${moduleSubTab}`);
   };
 
+  const [selectedExcelFile, setSelectedExcelFile] = useState(null);
+  const [uploadingExcel, setUploadingExcel] = useState(false);
+
+  const handleDownloadSampleExcel = () => {
+    const sampleData = [
+      {
+        society: 'SAROJINI EDUCATIONAL SOCIETY',
+        branch: 'MARIKAVALASA-SES',
+        regno: 'AP39YB8591',
+        routename: 'MRK-RAVINDRA NAGAR',
+        date: '22-09-2026',
+        capacity: 51,
+        students: 31,
+        strength: 26,
+        omr: 92452,
+        cmr: 92560,
+        kms: 108,
+        distance: 90,
+        remarks: ''
+      },
+      {
+        society: 'ADITYA ACADEMY',
+        branch: 'MARIKAVALASA-AA',
+        regno: 'AP39V4654',
+        routename: 'MRK-CHINNAMUSIRIWADA',
+        date: '22-09-2026',
+        capacity: 50,
+        students: 14,
+        strength: 23,
+        omr: 95674,
+        cmr: 95758,
+        kms: 84,
+        distance: 90,
+        remarks: ''
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(sampleData, {
+      header: ['society', 'branch', 'regno', 'routename', 'date', 'capacity', 'students', 'strength', 'omr', 'cmr', 'kms', 'distance', 'remarks']
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'format');
+    XLSX.writeFile(wb, 'format.xlsx');
+  };
+
+  const handleUploadExcel = async () => {
+    if (!selectedExcelFile) {
+      alert('Please choose an Excel file first.');
+      return;
+    }
+    try {
+      setUploadingExcel(true);
+      const data = await selectedExcelFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      if (!jsonRows || jsonRows.length === 0) {
+        alert('The selected Excel file is empty.');
+        setUploadingExcel(false);
+        return;
+      }
+
+      const mappedRecords = jsonRows.map(row => {
+        const obj = {};
+        Object.keys(row).forEach(k => {
+          const keyClean = k.trim().toLowerCase().replace(/[\s._-]/g, '');
+          const val = row[k];
+          if (keyClean === 'society') obj.society = String(val).trim();
+          else if (keyClean === 'branch') obj.branch = String(val).trim();
+          else if (keyClean === 'regno' || keyClean === 'vehicleregno' || keyClean === 'vno') obj.regno = String(val).trim();
+          else if (keyClean === 'routename' || keyClean === 'route') obj.route = String(val).trim();
+          else if (keyClean === 'date') obj.date = String(val).trim();
+          else if (keyClean === 'capacity') obj.capacity = val;
+          else if (keyClean === 'students' || keyClean === 'studentsstrength') obj.studentsstrength = val;
+          else if (keyClean === 'strength' || keyClean === 'fixedstrength') obj.fixedstrength = val;
+          else if (keyClean === 'omr') obj.omr = val;
+          else if (keyClean === 'cmr') obj.cmr = val;
+          else if (keyClean === 'kms') obj.kms = val;
+          else if (keyClean === 'distance' || keyClean === 'distanceinkms') obj.distance = val;
+          else if (keyClean === 'remarks') obj.remarks = String(val).trim();
+          else obj[k] = val;
+        });
+        return obj;
+      });
+
+      const res = await bulkCreateVehicleItems('trips', mappedRecords);
+      alert(res.message || `Successfully uploaded ${mappedRecords.length} vehicle trip records.`);
+      setSelectedExcelFile(null);
+      fetchModuleData(activeSub, selectedBranch, true);
+    } catch (err) {
+      console.error('Error parsing/uploading Excel file:', err);
+      alert('Failed to upload Excel file: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingExcel(false);
+    }
+  };
+
   const handleExportModuleExcel = (cols) => {
     const data = getModuleExportData(cols);
     if (data) exportToExcel(data.headers, data.rows, `${moduleKey}_${moduleSubTab}_Data`);
+  };
+
+  // Handle modal input changes with auto-calculated KMS (CMR - OMR) for Vehicle Trips
+  const handleInputChange = (key, value) => {
+    setFormData(prev => {
+      const updated = { ...prev, [key]: value };
+
+      if (key === 'omr' || key === 'cmr' || key === 'distance') {
+        const omrVal = updated.omr !== undefined && updated.omr !== null ? String(updated.omr).trim() : '';
+        const cmrVal = updated.cmr !== undefined && updated.cmr !== null ? String(updated.cmr).trim() : '';
+        const distVal = updated.distance !== undefined && updated.distance !== null ? String(updated.distance).trim() : '';
+
+        if (omrVal !== '' && cmrVal !== '' && !isNaN(Number(omrVal)) && !isNaN(Number(cmrVal))) {
+          const kmsCalc = Number(cmrVal) - Number(omrVal);
+          updated.kms = kmsCalc;
+
+          if (distVal !== '' && !isNaN(Number(distVal))) {
+            const distNum = Number(distVal);
+            if (kmsCalc > distNum) {
+              updated.result = `exceed${kmsCalc - distNum}`;
+            } else {
+              updated.result = '';
+            }
+          }
+        } else if (omrVal === '' || cmrVal === '') {
+          updated.kms = '';
+        }
+      }
+      return updated;
+    });
   };
 
   // Open modal for Adding a new record
@@ -429,6 +673,13 @@ const ModulePage = ({ moduleKey }) => {
     activeCols.forEach(col => {
       initial[col.key] = row[col.key] ?? '';
     });
+    if (initial.omr !== undefined && initial.cmr !== undefined) {
+      const omrVal = String(initial.omr).trim();
+      const cmrVal = String(initial.cmr).trim();
+      if (omrVal !== '' && cmrVal !== '' && !isNaN(Number(omrVal)) && !isNaN(Number(cmrVal))) {
+        initial.kms = Number(cmrVal) - Number(omrVal);
+      }
+    }
     setFormData(initial);
     setShowModal(true);
   };
@@ -950,6 +1201,206 @@ const ModulePage = ({ moduleKey }) => {
           </div>
         )}
 
+        {/* Child Sub-Tabs Strip (e.g. Light Motor / Heavy Motor) */}
+        {currentSubTabObj?.childSubTabs?.length > 0 && (
+          <div style={{ display: 'flex', width: '100%', marginBottom: '16px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #2c3e50', backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            {currentSubTabObj.childSubTabs.map((childTab) => {
+              const isActive = (moduleChildSubTab || currentSubTabObj.childSubTabs[0].id) === childTab.id;
+              return (
+                <button
+                  key={childTab.id}
+                  type="button"
+                  onClick={() => {
+                    setModuleChildSubTab(childTab.id);
+                    fetchModuleData(childTab.id, selectedBranch, false);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    backgroundColor: isActive ? '#ffffff' : '#2c3e50',
+                    color: isActive ? '#2c3e50' : '#ffffff',
+                    border: 'none',
+                    borderRight: '1px solid #cbd5e1',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {childTab.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {moduleKey === 'Vehicles' && (moduleChildSubTab === 'generatereport' || activeSub === 'generatereport') ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              marginBottom: '16px',
+              flexWrap: 'wrap',
+              backgroundColor: '#ffffff',
+              padding: '12px 18px',
+              borderRadius: '6px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              border: '1px solid #cbd5e1'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>fromdate:</label>
+              <input
+                type="date"
+                value={reportFromDate}
+                onChange={e => setReportFromDate(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  backgroundColor: '#ffffff',
+                  color: '#0f172a'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>todate:</label>
+              <input
+                type="date"
+                value={reportToDate}
+                onChange={e => setReportToDate(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  backgroundColor: '#ffffff',
+                  color: '#0f172a'
+                }}
+              />
+            </div>
+
+            <button
+              type="button"
+              disabled={moduleLoading}
+              onClick={() => fetchModuleData('generatereport', selectedBranch, true, { fromDate: reportFromDate, toDate: reportToDate })}
+              style={{
+                backgroundColor: '#5bc0de',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '7px 20px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              {moduleLoading ? 'Loading...' : 'Get Data'}
+            </button>
+          </div>
+        ) : moduleKey === 'Vehicles' && (activeSub === 'trips' || activeSub === 'entrydata' || moduleChildSubTab === 'entrydata') && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '16px',
+              flexWrap: 'wrap',
+              backgroundColor: '#ffffff',
+              padding: '12px 18px',
+              borderRadius: '8px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              border: '1px solid #e2e8f0'
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => fetchModuleData(moduleChildSubTab || activeSub, selectedBranch, true)}
+              style={{
+                backgroundColor: '#54d4f3',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '7px 20px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              View Data
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              style={{
+                backgroundColor: '#54d4f3',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '7px 20px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Add New
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="file"
+                accept=".xlsx, .xls, .csv"
+                onChange={e => setSelectedExcelFile(e.target.files[0] || null)}
+                style={{
+                  fontSize: '13px',
+                  padding: '5px 8px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  backgroundColor: '#ffffff'
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              disabled={uploadingExcel}
+              onClick={handleUploadExcel}
+              style={{
+                backgroundColor: '#54d4f3',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '7px 20px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                opacity: uploadingExcel ? 0.7 : 1
+              }}
+            >
+              {uploadingExcel ? 'Uploading...' : 'Upload Excel'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadSampleExcel}
+              style={{
+                backgroundColor: '#54d4f3',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '7px 20px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Download Excel
+            </button>
+          </div>
+        )}
+
         {/* Main Data Table Card */}
         <div className="admin-table-card">
           {/* Table Toolbar */}
@@ -1023,13 +1474,78 @@ const ModulePage = ({ moduleKey }) => {
                   paginatedModuleData.map((row, index) => (
                     <tr key={row._id || row.id || index}>
                       <td><strong>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</strong></td>
-                      {activeCols.map(col => (
-                        <td key={col.key} style={{ fontWeight: 600 }}>
-                          {row[col.key] !== undefined && row[col.key] !== null
-                            ? String(row[col.key])
-                            : '-'}
-                        </td>
-                      ))}
+                      {activeCols.map(col => {
+                        const isImage = col.key === 'profilepic' || col.type === 'image';
+                        let val = row[col.key];
+                        if (isImage) {
+                          const imgSrc = !val
+                            ? null
+                            : (val.startsWith('data:') || val.startsWith('http'))
+                              ? val
+                              : `http://localhost:1002/uploads/${val}`;
+                          return (
+                            <td key={col.key} style={{ textAlign: 'center' }}>
+                              {imgSrc ? (
+                                <img
+                                  src={imgSrc}
+                                  alt="Profile"
+                                  style={{
+                                    width: '38px',
+                                    height: '38px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: '2px solid #0b5299',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                                    display: 'inline-block',
+                                    verticalAlign: 'middle'
+                                  }}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>-</span>
+                              )}
+                            </td>
+                          );
+                        }
+                        const isFile = col.key === 'file' || col.type === 'file' || col.key === 'attachment';
+                        if (isFile) {
+                          const fileUrl = !val
+                            ? null
+                            : (val.startsWith('http') || val.startsWith('data:'))
+                              ? val
+                              : `http://localhost:1002/uploads/${val}`;
+                          return (
+                            <td key={col.key} style={{ textAlign: 'center' }}>
+                              {fileUrl ? (
+                                <a
+                                  href={fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ color: '#0b5299', fontWeight: 600, textDecoration: 'underline', fontSize: '12px' }}
+                                >
+                                  View File
+                                </a>
+                              ) : (
+                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>-</span>
+                              )}
+                            </td>
+                          );
+                        }
+                        if ((col.key === 'make' || col.key === 'vehiclemake') && (!val || val === '-')) {
+                          val = row.make || row.name || row.vehiclemake || row.makename || '-';
+                        }
+                        if ((col.key === 'vehicleregno' || col.key === 'regno' || col.key === 'vehicleno') && (!val || val === '-')) {
+                          val = row.vehicleregno || row.regno || row.vehicleno || row.busnumber || row.vno || row.vehicle_reg_no || '-';
+                        }
+                        return (
+                          <td key={col.key} style={{ fontWeight: 600 }}>
+                            {val !== undefined && val !== null && val !== '' ? String(val) : '-'}
+                          </td>
+                        );
+                      })}
                       <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
@@ -1106,223 +1622,486 @@ const ModulePage = ({ moduleKey }) => {
         {/* Dynamic Modal for Create / Edit */}
         {showModal && (
           <div className="admin-modal-backdrop" onClick={() => setShowModal(false)}>
-            <div className="admin-modal-card" style={{ maxWidth: '650px' }} onClick={e => e.stopPropagation()}>
-              <div className="admin-modal-header">
-                <h3>{editingId ? 'Edit' : 'Add New'} Record - {moduleKey} ({activeSub})</h3>
-                <button
-                  type="button"
-                  className="admin-modal-close-btn"
-                  onClick={() => setShowModal(false)}
-                >
-                  ✕
-                </button>
-              </div>
-              <form onSubmit={handleSaveRecord}>
-                <div className="admin-modal-body" style={{ maxHeight: '65vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  {activeCols.map(col => {
-                    const isImageField = col.key === 'profilepic' || col.type === 'image';
-                    return (
-                      <div
-                        key={col.key}
-                        className="admin-form-field"
-                        style={{ gridColumn: (activeCols.length === 1 || isImageField) ? 'span 2' : 'span 1' }}
-                      >
-                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-                          {col.label}
-                        </label>
+            {(() => {
+              const isVehicleInfo = (moduleKey === 'Vehicles' && (activeSub === 'info' || activeSub === 'lightmotor' || activeSub === 'heavymotor'));
+              const isBranchVehicle = (moduleKey === 'Vehicles' && activeSub === 'branch');
+              const isSingleColumnMode = isVehicleInfo || isBranchVehicle;
 
-                        {isImageField ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {formData[col.key] ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                                <img
-                                  src={
-                                    formData[col.key].startsWith('data:') || formData[col.key].startsWith('http')
-                                      ? formData[col.key]
-                                      : `http://localhost:1002/uploads/${formData[col.key]}`
-                                  }
-                                  alt="Preview"
-                                  style={{
-                                    width: '64px',
-                                    height: '74px',
-                                    objectFit: 'cover',
-                                    borderRadius: '6px',
-                                    border: '2px solid #0b5299',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                  }}
-                                  onError={(e) => { e.target.style.display = 'none'; }}
-                                />
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                  <label
-                                    htmlFor={`file-upload-${col.key}`}
-                                    style={{
-                                      padding: '5px 12px',
-                                      backgroundColor: '#0b5299',
-                                      color: '#ffffff',
-                                      borderRadius: '4px',
-                                      fontSize: '12px',
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                      display: 'inline-block',
-                                      textAlign: 'center'
-                                    }}
-                                  >
-                                    Change Photo
-                                  </label>
-                                  <button
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, [col.key]: '' })}
-                                    style={{
-                                      padding: '4px 10px',
-                                      backgroundColor: '#fee2e2',
-                                      color: '#dc2626',
-                                      border: '1px solid #fca5a5',
-                                      borderRadius: '4px',
-                                      fontSize: '11px',
-                                      fontWeight: 600,
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Remove Photo
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <label
-                                htmlFor={`file-upload-${col.key}`}
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  padding: '16px',
-                                  border: '2px dashed #0b5299',
-                                  borderRadius: '8px',
-                                  backgroundColor: '#f0f9ff',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s ease'
-                                }}
-                              >
-                                <span style={{ fontSize: '24px', marginBottom: '4px' }}>📷</span>
-                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#0b5299' }}>Click to Upload Profile Photo</span>
-                                <span style={{ fontSize: '11px', color: '#64748b' }}>PNG, JPG or WEBP (Max 5MB)</span>
+              return (
+                <div
+                  className="admin-modal-card"
+                  style={{
+                    maxWidth: isSingleColumnMode ? '520px' : '650px',
+                    width: '100%'
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div
+                    className="admin-modal-header"
+                    style={
+                      isSingleColumnMode
+                        ? { backgroundColor: '#54d4f3', borderBottom: 'none', padding: '14px 20px' }
+                        : {}
+                    }
+                  >
+                    <h3 style={{ width: '100%', textAlign: isSingleColumnMode ? 'center' : 'left', fontSize: '1.2rem', fontWeight: 600 }}>
+                      {isBranchVehicle
+                        ? 'Branch Vehicle Information'
+                        : isVehicleInfo
+                          ? 'Vehicle Information'
+                          : `${editingId ? 'Edit' : 'Add New'} Record - ${moduleKey} (${activeSub})`}
+                    </h3>
+                    <button
+                      type="button"
+                      className="admin-modal-close-btn"
+                      onClick={() => setShowModal(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <form onSubmit={handleSaveRecord}>
+                    <div
+                      className="admin-modal-body"
+                      style={{
+                        maxHeight: '65vh',
+                        overflowY: 'auto',
+                        display: 'grid',
+                        gridTemplateColumns: isSingleColumnMode ? '1fr' : '1fr 1fr',
+                        gap: '14px',
+                        padding: '20px'
+                      }}
+                    >
+                      {(() => {
+                        let fieldsToRender = activeCols;
+                        if (isVehicleInfo) {
+                          const statusCol = activeCols.find(c => c.key === 'status');
+                          const otherCols = activeCols.filter(c => c.key !== 'status');
+                          const modelIdx = otherCols.findIndex(c => c.key === 'model');
+                          if (modelIdx !== -1 && statusCol) {
+                            const copy = [...otherCols];
+                            copy.splice(modelIdx + 1, 0, statusCol);
+                            fieldsToRender = copy;
+                          }
+                        }
+                        return fieldsToRender.map(col => {
+                          const isImageField = col.key === 'profilepic' || col.type === 'image';
+                          return (
+                            <div
+                              key={col.key}
+                              className="admin-form-field"
+                              style={{ gridColumn: (isSingleColumnMode || fieldsToRender.length === 1 || isImageField || col.type === 'textarea' || col.type === 'file' || col.key === 'points') ? 'span 1' : 'span 1' }}
+                            >
+                              <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>
+                                {col.modalLabel || (col.label.endsWith(':') ? col.label : `${col.label} :`)}
                               </label>
-                            )}
-                            <input
-                              id={`file-upload-${col.key}`}
-                              type="file"
-                              accept="image/*"
-                              style={{ display: 'none' }}
-                              onChange={e => handleImageFileChange(e, col.key)}
-                            />
-                          </div>
-                        ) : col.type === 'society-select' || col.key === 'society' ? (
-                          <select
-                            value={formData[col.key] ?? ''}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setFormData(prev => ({ ...prev, [col.key]: val, branch: '' }));
-                            }}
+
+                              {isImageField ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {formData[col.key] ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                      <img
+                                        src={
+                                          formData[col.key].startsWith('data:') || formData[col.key].startsWith('http')
+                                            ? formData[col.key]
+                                            : `http://localhost:1002/uploads/${formData[col.key]}`
+                                        }
+                                        alt="Preview"
+                                        style={{
+                                          width: '64px',
+                                          height: '74px',
+                                          objectFit: 'cover',
+                                          borderRadius: '6px',
+                                          border: '2px solid #0b5299',
+                                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                        }}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                      />
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label
+                                          htmlFor={`file-upload-${col.key}`}
+                                          style={{
+                                            padding: '5px 12px',
+                                            backgroundColor: '#0b5299',
+                                            color: '#ffffff',
+                                            borderRadius: '4px',
+                                            fontSize: '12px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            display: 'inline-block',
+                                            textAlign: 'center'
+                                          }}
+                                        >
+                                          Change Photo
+                                        </label>
+                                        <button
+                                          type="button"
+                                          onClick={() => setFormData({ ...formData, [col.key]: '' })}
+                                          style={{
+                                            padding: '4px 10px',
+                                            backgroundColor: '#fee2e2',
+                                            color: '#dc2626',
+                                            border: '1px solid #fca5a5',
+                                            borderRadius: '4px',
+                                            fontSize: '11px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                          }}
+                                        >
+                                          Remove Photo
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <label
+                                      htmlFor={`file-upload-${col.key}`}
+                                      style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '16px',
+                                        border: '2px dashed #0b5299',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#f0f9ff',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease'
+                                      }}
+                                    >
+                                      <span style={{ fontSize: '24px', marginBottom: '4px' }}>📷</span>
+                                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#0b5299' }}>Click to Upload Profile Photo</span>
+                                      <span style={{ fontSize: '11px', color: '#64748b' }}>PNG, JPG or WEBP (Max 5MB)</span>
+                                    </label>
+                                  )}
+                                  <input
+                                    id={`file-upload-${col.key}`}
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    onChange={e => handleImageFileChange(e, col.key)}
+                                  />
+                                </div>
+                              ) : col.type === 'textarea' || col.key === 'points' || col.key === 'remarks' ? (
+                                <textarea
+                                  rows={4}
+                                  placeholder={`Enter ${col.label.toLowerCase()}...`}
+                                  value={formData[col.key] ?? ''}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    fontFamily: 'inherit',
+                                    resize: 'vertical'
+                                  }}
+                                />
+                              ) : col.type === 'file' || col.key === 'file' ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  <input
+                                    type="file"
+                                    onChange={e => {
+                                      const file = e.target.files[0];
+                                      if (!file) return;
+                                      const reader = new FileReader();
+                                      reader.onloadend = () => {
+                                        setFormData(prev => ({ ...prev, [col.key]: reader.result }));
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '6px 10px',
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#ffffff'
+                                    }}
+                                  />
+                                  {formData[col.key] && (
+                                    <div style={{ fontSize: '11px', color: '#0b5299', fontWeight: 600 }}>
+                                      {typeof formData[col.key] === 'string' && formData[col.key].startsWith('data:') ? 'New file selected' : `Current file: ${formData[col.key]}`}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : col.type === 'make-select' ? (
+                                <select
+                                  value={formData[col.key] ?? ''}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#ffffff'
+                                  }}
+                                >
+                                  <option value=""></option>
+                                  {makesList.map((m, idx) => (
+                                    <option key={idx} value={m}>{m}</option>
+                                  ))}
+                                </select>
+                              ) : col.type === 'vehicle-type-select' ? (
+                                <select
+                                  value={formData[col.key] ?? ''}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#ffffff'
+                                  }}
+                                >
+                                  <option value=""></option>
+                                  {['AUTO', 'B - TRAILERS', 'BIKE', 'BUS', 'CAR', 'FORCE', 'MINI BUS', 'TATA AC', 'TRACTOR', 'TRUCK', 'VAN'].map((vt, idx) => (
+                                    <option key={idx} value={vt}>{vt}</option>
+                                  ))}
+                                </select>
+                              ) : col.type === 'fuel-select' ? (
+                                <select
+                                  value={formData[col.key] ?? ''}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#ffffff'
+                                  }}
+                                >
+                                  <option value=""></option>
+                                  {['Diesel', 'Petrol', 'Others'].map((fl, idx) => (
+                                    <option key={idx} value={fl}>{fl}</option>
+                                  ))}
+                                </select>
+                              ) : col.type === 'model-select' ? (
+                                <select
+                                  value={formData[col.key] ?? ''}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#ffffff'
+                                  }}
+                                >
+                                  <option value=""></option>
+                                  {modelsList.map((md, idx) => (
+                                    <option key={idx} value={md}>{md}</option>
+                                  ))}
+                                </select>
+                              ) : col.type === 'status-select' ? (
+                                <select
+                                  value={formData[col.key] ?? 'Active'}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#ffffff'
+                                  }}
+                                >
+                                  <option value="Active">Active</option>
+                                  <option value="Lifetime Over">Lifetime Over</option>
+                                  <option value="Sold Out">Sold Out</option>
+                                </select>
+                              ) : col.type === 'staff-select' || (col.key === 'staffname' && isBranchVehicle) ? (
+                                <select
+                                  value={formData[col.key] ?? ''}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#ffffff'
+                                  }}
+                                >
+                                  <option value=""></option>
+                                  {staffList.map((st, idx) => (
+                                    <option key={idx} value={st}>{st}</option>
+                                  ))}
+                                </select>
+                              ) : col.type === 'society-select' || col.key === 'society' ? (
+                                <select
+                                  value={formData[col.key] ?? ''}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setFormData(prev => ({ ...prev, [col.key]: val, branch: '' }));
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#ffffff'
+                                  }}
+                                >
+                                  <option value=""></option>
+                                  {societiesList.map((soc, idx) => (
+                                    <option key={idx} value={soc}>{soc}</option>
+                                  ))}
+                                </select>
+                              ) : col.type === 'branch-select' || col.key === 'branch' ? (
+                                <select
+                                  value={formData[col.key] ?? ''}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#ffffff'
+                                  }}
+                                >
+                                  <option value=""></option>
+                                  {availableBranches.map((b, idx) => (
+                                    <option key={idx} value={b}>{b}</option>
+                                  ))}
+                                </select>
+                              ) : col.type === 'designation-select' || col.key === 'designation' ? (
+                                <select
+                                  value={formData[col.key] ?? ''}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#ffffff'
+                                  }}
+                                >
+                                  <option value=""></option>
+                                  {designationsList.map((des, idx) => (
+                                    <option key={idx} value={des}>{des}</option>
+                                  ))}
+                                </select>
+                              ) : col.type === 'vehicle-select' || col.key === 'vehicleno' || (col.key === 'vehicleregno' && !isBranchVehicle) || col.key === 'regno' ? (
+                                <VehicleAutocomplete
+                                  value={formData[col.key] ?? ''}
+                                  onChange={(val) => setFormData(prev => ({ ...prev, [col.key]: val }))}
+                                  placeholder={`Enter ${col.label.toLowerCase()}...`}
+                                />
+                              ) : col.type === 'date' || col.key === 'dateofjoin' || col.key === 'rdate' || col.key === 'valid' || col.key === 'date' || col.key === 'purchasedate' || col.key === 'servicedate' || col.key === 'validitydate' ? (
+                                <input
+                                  type="date"
+                                  value={formatDateForInput(formData[col.key])}
+                                  onChange={e => handleInputChange(col.key, e.target.value)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px'
+                                  }}
+                                />
+                              ) : (
+                                <input
+                                  type="text"
+                                  placeholder=""
+                                  value={formData[col.key] ?? ''}
+                                  readOnly={col.key === 'kms'}
+                                  onChange={e => handleInputChange(col.key, e.target.value)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '8px 10px',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    backgroundColor: col.key === 'kms' ? '#f1f5f9' : '#ffffff',
+                                    cursor: col.key === 'kms' ? 'not-allowed' : 'text'
+                                  }}
+                                />
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
+
+                      {isSingleColumnMode && (
+                        <div style={{ marginTop: '10px' }}>
+                          <button
+                            type="submit"
+                            disabled={submitting}
                             style={{
-                              width: '100%',
-                              padding: '8px 10px',
-                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#54d4f3',
+                              color: '#ffffff',
+                              border: 'none',
                               borderRadius: '4px',
-                              fontSize: '13px',
-                              backgroundColor: '#ffffff'
+                              padding: '7px 22px',
+                              fontSize: '14px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                             }}
                           >
-                            <option value="">-- Select Society --</option>
-                            {societiesList.map((soc, idx) => (
-                              <option key={idx} value={soc}>{soc}</option>
-                            ))}
-                          </select>
-                        ) : col.type === 'branch-select' || col.key === 'branch' ? (
-                          <select
-                            value={formData[col.key] ?? ''}
-                            onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                            style={{
-                              width: '100%',
-                              padding: '8px 10px',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '4px',
-                              fontSize: '13px',
-                              backgroundColor: '#ffffff'
-                            }}
+                            {submitting ? 'Saving...' : 'save'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      className="admin-modal-footer"
+                      style={{
+                        display: 'flex',
+                        justify: 'flex-end',
+                        padding: '12px 20px',
+                        borderTop: '1px solid #e2e8f0',
+                        backgroundColor: '#ffffff'
+                      }}
+                    >
+                      {isSingleColumnMode ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowModal(false)}
+                          style={{
+                            backgroundColor: '#ffffff',
+                            color: '#374151',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '4px',
+                            padding: '6px 18px',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Close
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="admin-modal-btn-cancel"
+                            onClick={() => setShowModal(false)}
                           >
-                            <option value="">-- Select Branch --</option>
-                            {availableBranches.map((b, idx) => (
-                              <option key={idx} value={b}>{b}</option>
-                            ))}
-                          </select>
-                        ) : col.type === 'designation-select' || col.key === 'designation' ? (
-                          <select
-                            value={formData[col.key] ?? ''}
-                            onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                            style={{
-                              width: '100%',
-                              padding: '8px 10px',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '4px',
-                              fontSize: '13px',
-                              backgroundColor: '#ffffff'
-                            }}
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="admin-modal-btn-submit"
+                            disabled={submitting}
                           >
-                            <option value="">-- Select Designation --</option>
-                            {designationsList.map((des, idx) => (
-                              <option key={idx} value={des}>{des}</option>
-                            ))}
-                          </select>
-                        ) : col.type === 'date' || col.key === 'dateofjoin' || col.key === 'rdate' || col.key === 'valid' ? (
-                          <input
-                            type="date"
-                            value={formatDateForInput(formData[col.key])}
-                            onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                            style={{
-                              width: '100%',
-                              padding: '8px 10px',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '4px',
-                              fontSize: '13px'
-                            }}
-                          />
-                        ) : (
-                          <input
-                            type="text"
-                            placeholder={`Enter ${col.label.toLowerCase()}...`}
-                            value={formData[col.key] ?? ''}
-                            onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                            style={{
-                              width: '100%',
-                              padding: '8px 10px',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '4px',
-                              fontSize: '13px'
-                            }}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
+                            {submitting ? 'Saving...' : editingId ? 'Update Record' : 'Save Record'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </form>
                 </div>
-                <div className="admin-modal-footer">
-                  <button
-                    type="button"
-                    className="admin-modal-btn-cancel"
-                    onClick={() => setShowModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="admin-modal-btn-submit"
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Saving...' : editingId ? 'Update Record' : 'Save Record'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              );
+            })()}
           </div>
         )}
 

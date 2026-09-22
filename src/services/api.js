@@ -123,7 +123,8 @@ export const searchVehicleInfo = async (value) => {
 
 // ================= STAFF =================
 export const getStaffData = async (type = 'Designations', branch, search = '') => {
-  const params = { type };
+  const actualType = typeof type === 'object' && type !== null ? (type.type || 'Designations') : type;
+  const params = { type: actualType };
   if (branch && branch !== 'ALL') params.branch = branch;
   if (search) params.search = search;
   const response = await api.get('/staff', { params });
@@ -145,9 +146,20 @@ export const deleteStaffItem = async (type, id) => {
   return response.data;
 };
 
-// ================= VEHICLES =================
-export const getVehiclesData = async (type = 'branch', branch, search = '') => {
-  const params = { type };
+export const fetchVehicleTripdata = async (branch, search = '', extraParams = {}) => {
+  const params = { ...extraParams };
+  if (branch && branch !== 'ALL') params.branch = branch;
+  if (search) params.search = search;
+  const response = await api.get('/getVehicleTripdata', { params });
+  return response.data;
+};
+
+export const getVehiclesData = async (type = 'branch', branch, search = '', extraParams = {}) => {
+  const t = (type || '').toLowerCase();
+  if (t === 'trips' || t === 'vehicletrip' || t === 'entrydata' || t === 'generatereport' || t === 'vehicletripdata') {
+    return fetchVehicleTripdata(branch, search, extraParams);
+  }
+  const params = { type, ...extraParams };
   if (branch && branch !== 'ALL') params.branch = branch;
   if (search) params.search = search;
   const response = await api.get('/vehicles', { params });
@@ -156,6 +168,11 @@ export const getVehiclesData = async (type = 'branch', branch, search = '') => {
 
 export const createVehicleItem = async (type, data) => {
   const response = await api.post(`/vehicles/${type}`, data);
+  return response.data;
+};
+
+export const bulkCreateVehicleItems = async (type, records) => {
+  const response = await api.post(`/vehicles/bulk/${type}`, { records });
   return response.data;
 };
 

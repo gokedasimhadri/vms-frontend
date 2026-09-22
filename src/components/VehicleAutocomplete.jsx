@@ -38,7 +38,24 @@ const VehicleAutocomplete = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch matching vehicles when user types
+  // Fetch matching vehicles when user types or focuses
+  const fetchVehicles = async (searchTerm) => {
+    setLoading(true);
+    try {
+      const res = await searchVehicleInfo(searchTerm || '');
+      const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+      setSuggestions(list);
+      setIsOpen(list.length > 0);
+      setHighlightedIndex(-1);
+    } catch (err) {
+      console.error('Failed searching vehicles:', err);
+      setSuggestions([]);
+      setIsOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (ignoreNextSearchRef.current) {
       ignoreNextSearchRef.current = false;
@@ -52,21 +69,8 @@ const VehicleAutocomplete = ({
       return;
     }
 
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await searchVehicleInfo(trimmed);
-        const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
-        setSuggestions(list);
-        setIsOpen(list.length > 0);
-        setHighlightedIndex(-1);
-      } catch (err) {
-        console.error('Failed searching vehicles:', err);
-        setSuggestions([]);
-        setIsOpen(false);
-      } finally {
-        setLoading(false);
-      }
+    const timer = setTimeout(() => {
+      fetchVehicles(trimmed);
     }, 150);
 
     return () => clearTimeout(timer);
@@ -115,7 +119,9 @@ const VehicleAutocomplete = ({
             onChange(val);
           }}
           onFocus={() => {
-            if (suggestions.length > 0) setIsOpen(true);
+            if ((query || '').trim() && suggestions.length > 0) {
+              setIsOpen(true);
+            }
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
