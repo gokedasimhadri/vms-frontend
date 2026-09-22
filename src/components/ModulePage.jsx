@@ -10,6 +10,7 @@ import { TableLoader } from './Loader';
 import { SIDEBAR_MODULE_CONFIG } from '../config/modules.config';
 import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
 import ConfirmModal from './ConfirmModal';
+import VehicleAutocomplete from './VehicleAutocomplete';
 import {
   createStaffItem, updateStaffItem, deleteStaffItem,
   createVehicleItem, updateVehicleItem, deleteVehicleItem,
@@ -94,6 +95,10 @@ const ModulePage = ({ moduleKey }) => {
   const [serviceRegNoInput, setServiceRegNoInput] = useState('');
   const [showServiceSuggestions, setShowServiceSuggestions] = useState(false);
   const [appliedServiceRegNo, setAppliedServiceRegNo] = useState('');
+
+  // Repair Bills Register No search & autocomplete state
+  const [repairRegNoInput, setRepairRegNoInput] = useState('');
+  const [appliedRepairRegNo, setAppliedRepairRegNo] = useState('');
 
   const serviceVehicleSuggestions = useMemo(() => {
     if (!serviceRegNoInput.trim()) return [];
@@ -284,7 +289,7 @@ const ModulePage = ({ moduleKey }) => {
   const filteredModuleData = useMemo(() => {
     let result = moduleData;
 
-    if (activeSub === 'adbluebusfill') {
+    if (activeSub === 'adbluebusfill' || activeSub === 'busfill') {
       if (!busDataFetched) {
         return [];
       }
@@ -292,6 +297,7 @@ const ModulePage = ({ moduleKey }) => {
         const bq = busRegisterNoFilter.trim().toLowerCase();
         result = result.filter(item =>
           (item.regno && String(item.regno).toLowerCase().includes(bq)) ||
+          (item.vehicleregno && String(item.vehicleregno).toLowerCase().includes(bq)) ||
           (item.vehicleno && String(item.vehicleno).toLowerCase().includes(bq))
         );
       }
@@ -329,6 +335,7 @@ const ModulePage = ({ moduleKey }) => {
         const bq = busSearchRegNo.trim().toLowerCase();
         result = result.filter(item =>
           (item.regno && String(item.regno).toLowerCase().includes(bq)) ||
+          (item.vehicleregno && String(item.vehicleregno).toLowerCase().includes(bq)) ||
           (item.vehicleno && String(item.vehicleno).toLowerCase().includes(bq))
         );
       }
@@ -338,6 +345,14 @@ const ModulePage = ({ moduleKey }) => {
       const q = appliedServiceRegNo.trim().toLowerCase();
       result = result.filter(item => {
         const reg = item.vehicleno || item.vehicleregno || item.busnumber || item.regno || '';
+        return String(reg).toLowerCase().includes(q);
+      });
+    }
+
+    if (moduleKey === 'Repair Bills' && appliedRepairRegNo.trim()) {
+      const q = appliedRepairRegNo.trim().toLowerCase();
+      result = result.filter(item => {
+        const reg = item.busnumber || item.vehicleno || item.vehicleregno || item.regno || '';
         return String(reg).toLowerCase().includes(q);
       });
     }
@@ -380,7 +395,7 @@ const ModulePage = ({ moduleKey }) => {
     ? currentConfig.columns(activeSub, nestedSubTab)
     : (currentConfig?.columns || []);
 
-  const isReportTab = activeSub === 'adbluebusfill' && nestedSubTab === 'generate_report';
+  const isReportTab = (activeSub === 'adbluebusfill' || activeSub === 'busfill') && nestedSubTab === 'generate_report';
   const hasActionCols = !isReportTab;
 
   const getModuleExportData = (cols) => {
@@ -578,11 +593,25 @@ const ModulePage = ({ moduleKey }) => {
 
         {/* Subtabs Ribbon using CustomTabs */}
         {currentConfig && currentConfig.subTabs.length > 1 && (
-          <div className="flex justify-center mb-6 mt-4 max-w-full overflow-x-auto">
+          <div className="flex justify-center mb-4 mt-4 max-w-full overflow-x-auto">
             <CustomTabs
               activeTab={activeSub}
               onChange={(id) => setModuleSubTab(id)}
               tabs={currentConfig.subTabs}
+            />
+          </div>
+        )}
+
+        {/* 2nd Level Nested Subtabs Ribbon (e.g. for Ad_Bus_Fillings / Bus Fillings) */}
+        {currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0 && (
+          <div className="flex justify-center mb-6 mt-1 max-w-full overflow-x-auto">
+            <CustomTabs
+              activeTab={nestedSubTab}
+              onChange={(id) => {
+                setNestedSubTab(id);
+                setBusDataFetched(false);
+              }}
+              tabs={currentSubConfig.nestedTabs}
             />
           </div>
         )}
@@ -766,8 +795,131 @@ const ModulePage = ({ moduleKey }) => {
           </div>
         )}
 
-        {/* Services Module Register No Search Bar & Controls */}
-        {moduleKey === 'Services' ? (
+        {/* Ad_Bus_Fillings / Bus Fillings Controls Bar */}
+        {(activeSub === 'adbluebusfill' || activeSub === 'busfill') ? (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#f1f5f9',
+            borderRadius: '6px',
+            border: '1px solid #cbd5e1',
+            flexWrap: 'wrap'
+          }}>
+            {nestedSubTab === 'generate_report' ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>fromdate:</label>
+                  <input
+                    type="date"
+                    value={reportFromDate}
+                    onChange={(e) => setReportFromDate(e.target.value)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '4px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      backgroundColor: '#ffffff'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>todate:</label>
+                  <input
+                    type="date"
+                    value={reportToDate}
+                    onChange={(e) => setReportToDate(e.target.value)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '4px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      backgroundColor: '#ffffff'
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBusDataFetched(true)}
+                  style={{
+                    backgroundColor: '#46b8da',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '7px 18px',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  getdata
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                    Register No:
+                  </label>
+                  <div style={{ position: 'relative', width: '220px' }}>
+                    <VehicleAutocomplete
+                      value={nestedSubTab === 'entry_data' ? busRegisterNoFilter : busSearchRegNo}
+                      onChange={(val) => {
+                        if (nestedSubTab === 'entry_data') setBusRegisterNoFilter(val);
+                        else setBusSearchRegNo(val);
+                      }}
+                      onSelectVehicle={(veh) => {
+                        const selectedReg = veh.regno || veh;
+                        if (nestedSubTab === 'entry_data') setBusRegisterNoFilter(selectedReg);
+                        else setBusSearchRegNo(selectedReg);
+                        setBusDataFetched(true);
+                      }}
+                      placeholder="Enter reg no..."
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setBusDataFetched(true)}
+                  style={{
+                    backgroundColor: '#46b8da',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '7px 18px',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  getdata
+                </button>
+
+                {nestedSubTab === 'entry_data' && (
+                  <button
+                    type="button"
+                    onClick={handleOpenAddModal}
+                    style={{
+                      backgroundColor: '#5bc0de',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '7px 18px',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Add New
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        ) : moduleKey === 'Services' ? (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -784,71 +936,18 @@ const ModulePage = ({ moduleKey }) => {
                 Register No:
               </label>
               <div style={{ position: 'relative', width: '220px' }}>
-                <input
-                  type="text"
-                  placeholder="Enter reg no..."
+                <VehicleAutocomplete
                   value={serviceRegNoInput}
-                  onChange={(e) => {
-                    setServiceRegNoInput(e.target.value);
-                    setShowServiceSuggestions(true);
+                  onChange={(val) => {
+                    setServiceRegNoInput(val);
                   }}
-                  onFocus={() => setShowServiceSuggestions(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setAppliedServiceRegNo(serviceRegNoInput.trim());
-                      setShowServiceSuggestions(false);
-                    }
+                  onSelectVehicle={(veh) => {
+                    const selectedReg = veh.regno || veh;
+                    setServiceRegNoInput(selectedReg);
+                    setAppliedServiceRegNo(selectedReg);
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '6px 12px',
-                    fontSize: '14px',
-                    border: '1px solid #94a3b8',
-                    borderRadius: '4px',
-                    outline: 'none',
-                    backgroundColor: '#ffffff',
-                    color: '#0f172a'
-                  }}
+                  placeholder="Enter reg no..."
                 />
-                {/* Autocomplete Suggestions Dropdown */}
-                {showServiceSuggestions && serviceVehicleSuggestions.length > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '0 0 6px 6px',
-                    boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
-                    maxHeight: '220px',
-                    overflowY: 'auto',
-                    zIndex: 1000,
-                    marginTop: '2px'
-                  }}>
-                    {serviceVehicleSuggestions.map((suggestion, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => {
-                          setServiceRegNoInput(suggestion);
-                          setAppliedServiceRegNo(suggestion);
-                          setShowServiceSuggestions(false);
-                        }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          color: '#1e293b',
-                          borderBottom: idx < serviceVehicleSuggestions.length - 1 ? '1px solid #f1f5f9' : 'none'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
-                      >
-                        {suggestion}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -913,6 +1012,97 @@ const ModulePage = ({ moduleKey }) => {
                 Clear Filter
               </button>
             )}
+          </div>
+        ) : (moduleKey === 'Repair Bills' && activeSub === 'repairbills') ? (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#f1f5f9',
+            borderRadius: '6px',
+            border: '1px solid #cbd5e1',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                Register No:
+              </label>
+              <div style={{ position: 'relative', width: '220px' }}>
+                <VehicleAutocomplete
+                  value={repairRegNoInput}
+                  onChange={(val) => {
+                    setRepairRegNoInput(val);
+                  }}
+                  onSelectVehicle={(veh) => {
+                    const selectedReg = veh.regno || veh;
+                    setRepairRegNoInput(selectedReg);
+                    setAppliedRepairRegNo(selectedReg);
+                  }}
+                  placeholder="Enter reg no..."
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAppliedRepairRegNo(repairRegNoInput.trim());
+              }}
+              style={{
+                backgroundColor: '#46b8da',
+                color: '#ffffff',
+                border: 'none',
+                padding: '7px 18px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              getdata
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setRepairRegNoInput('');
+                setAppliedRepairRegNo('');
+              }}
+              style={{
+                backgroundColor: '#46b8da',
+                color: '#ffffff',
+                border: 'none',
+                padding: '7px 18px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              get all data
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              style={{
+                backgroundColor: '#5bc0de',
+                color: '#ffffff',
+                border: 'none',
+                padding: '7px 18px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              Add New
+            </button>
           </div>
         ) : (
           /* Action Buttons: View Data / Add New */
@@ -1009,14 +1199,18 @@ const ModulePage = ({ moduleKey }) => {
                         : col.label}
                     </th>
                   ))}
-                  <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
-                  <th style={{ width: '70px', textAlign: 'center' }}>Remove</th>
+                  {hasActionCols && (
+                    <>
+                      <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                      <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {moduleLoading ? (
                   <TableLoader
-                    colSpan={activeCols.length + 3}
+                    colSpan={activeCols.length + (hasActionCols ? 3 : 1)}
                     message={`Loading ${moduleKey} (${moduleSubTab.replace('_', ' ')}) records, please wait...`}
                   />
                 ) : paginatedModuleData.length > 0 ? (
@@ -1030,35 +1224,39 @@ const ModulePage = ({ moduleKey }) => {
                             : '-'}
                         </td>
                       ))}
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="admin-icon-btn edit"
-                          title="Edit"
-                          onClick={() => handleOpenEditModal(row)}
-                        >
-                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="admin-icon-btn remove"
-                          title="Remove"
-                          onClick={() => handlePromptDelete(activeSub, row)}
-                        >
-                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </td>
+                      {hasActionCols && (
+                        <>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              className="admin-icon-btn edit"
+                              title="Edit"
+                              onClick={() => handleOpenEditModal(row)}
+                            >
+                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              className="admin-icon-btn remove"
+                              title="Delete"
+                              onClick={() => handlePromptDelete(activeSub, row)}
+                            >
+                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={activeCols.length + 3} className="empty-cell">
+                    <td colSpan={activeCols.length + (hasActionCols ? 3 : 1)} className="empty-cell">
                       No data available in table
                     </td>
                   </tr>
@@ -1285,6 +1483,21 @@ const ModulePage = ({ moduleKey }) => {
                               borderRadius: '4px',
                               fontSize: '13px'
                             }}
+                          />
+                        ) : (col.key === 'vehicleno' || col.key === 'vehicleregno' || col.key === 'busnumber' || col.key === 'busno' || col.key === 'regno' || col.type === 'vehicle-autocomplete') ? (
+                          <VehicleAutocomplete
+                            value={formData[col.key] ?? ''}
+                            onChange={val => setFormData(prev => ({ ...prev, [col.key]: val }))}
+                            onSelectVehicle={veh => {
+                              setFormData(prev => {
+                                const next = { ...prev, [col.key]: veh.regno || veh };
+                                if (veh.model) next.model = veh.model;
+                                if (veh.make) next.make = veh.make;
+                                return next;
+                              });
+                            }}
+                            placeholder={`Enter ${col.label.toLowerCase()}...`}
+                            required={col.required}
                           />
                         ) : (
                           <input
