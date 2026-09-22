@@ -1968,9 +1968,9 @@ const ModulePage = ({ moduleKey }) => {
                               )}
                             </div>
                           );
-                        })
-                      }
-                </div>
+                        });
+                      })()}
+                    </div>
                     <div className="admin-modal-footer">
                       <button
                         type="button"
@@ -1989,6 +1989,8 @@ const ModulePage = ({ moduleKey }) => {
                     </div>
                   </form>
                 </div>
+              );
+            })()}
           </div>
         )}
 
