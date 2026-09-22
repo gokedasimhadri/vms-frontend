@@ -12,6 +12,7 @@ import {
   deleteBusBreakdownItem,
 } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
+import VehicleAutocomplete from '../components/VehicleAutocomplete';
 
 const EMPTY_FORM = {
   busno: '',
@@ -353,7 +354,20 @@ export default function BusBreakdown() {
               {/* Row 1 */}
               <div className="bb-field">
                 <label>Bus No. :</label>
-                <input value={form.busno} onChange={e => setField('busno', e.target.value)} placeholder="" />
+                <VehicleAutocomplete
+                  value={form.busno}
+                  onChange={val => setField('busno', val)}
+                  onSelectVehicle={veh => {
+                    setForm(prev => {
+                      const next = { ...prev, busno: veh.regno || veh };
+                      if (veh.society && !prev.society) next.society = veh.society;
+                      if (veh.branch && !prev.branch) next.branch = veh.branch;
+                      if (veh.drivername && !prev.drivername) next.drivername = veh.drivername;
+                      return next;
+                    });
+                  }}
+                  placeholder="Enter Bus No..."
+                />
               </div>
               <div className="bb-field">
                 <label>Society</label>

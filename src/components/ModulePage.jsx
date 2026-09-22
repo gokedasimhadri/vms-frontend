@@ -10,8 +10,6 @@ import { TableLoader } from './Loader';
 import { SIDEBAR_MODULE_CONFIG } from '../config/modules.config';
 import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
 import ConfirmModal from './ConfirmModal';
-import VehicleAutocomplete from './VehicleAutocomplete';
-import * as XLSX from 'xlsx';
 import {
   createStaffItem, updateStaffItem, deleteStaffItem,
   createVehicleItem, bulkCreateVehicleItems, updateVehicleItem, deleteVehicleItem,
@@ -99,6 +97,10 @@ const ModulePage = ({ moduleKey }) => {
   const [serviceRegNoInput, setServiceRegNoInput] = useState('');
   const [showServiceSuggestions, setShowServiceSuggestions] = useState(false);
   const [appliedServiceRegNo, setAppliedServiceRegNo] = useState('');
+
+  // Repair Bills Register No search & autocomplete state
+  const [repairRegNoInput, setRepairRegNoInput] = useState('');
+  const [appliedRepairRegNo, setAppliedRepairRegNo] = useState('');
 
   const serviceVehicleSuggestions = useMemo(() => {
     if (!serviceRegNoInput.trim()) return [];
@@ -383,7 +385,7 @@ const ModulePage = ({ moduleKey }) => {
   const filteredModuleData = useMemo(() => {
     let result = moduleData;
 
-    if (activeSub === 'adbluebusfill') {
+    if (activeSub === 'adbluebusfill' || activeSub === 'busfill') {
       if (!busDataFetched) {
         return [];
       }
@@ -391,6 +393,7 @@ const ModulePage = ({ moduleKey }) => {
         const bq = busRegisterNoFilter.trim().toLowerCase();
         result = result.filter(item =>
           (item.regno && String(item.regno).toLowerCase().includes(bq)) ||
+          (item.vehicleregno && String(item.vehicleregno).toLowerCase().includes(bq)) ||
           (item.vehicleno && String(item.vehicleno).toLowerCase().includes(bq))
         );
       }
@@ -428,6 +431,7 @@ const ModulePage = ({ moduleKey }) => {
         const bq = busSearchRegNo.trim().toLowerCase();
         result = result.filter(item =>
           (item.regno && String(item.regno).toLowerCase().includes(bq)) ||
+          (item.vehicleregno && String(item.vehicleregno).toLowerCase().includes(bq)) ||
           (item.vehicleno && String(item.vehicleno).toLowerCase().includes(bq))
         );
       }
@@ -439,23 +443,6 @@ const ModulePage = ({ moduleKey }) => {
         const reg = item.vehicleno || item.vehicleregno || item.busnumber || item.regno || '';
         return String(reg).toLowerCase().includes(q);
       });
-    }
-
-    if (moduleKey === 'Vehicles' && (moduleChildSubTab === 'generatereport' || activeSub === 'generatereport')) {
-      if (reportFromDate) {
-        result = result.filter(item => {
-          const itemDate = formatDateForInput(item.date || item.uploaddate || item.createdAt);
-          if (!itemDate) return true;
-          return itemDate >= reportFromDate;
-        });
-      }
-      if (reportToDate) {
-        result = result.filter(item => {
-          const itemDate = formatDateForInput(item.date || item.uploaddate || item.createdAt);
-          if (!itemDate) return true;
-          return itemDate <= reportToDate;
-        });
-      }
     }
 
     if (moduleKey === 'Repair Bills' && activeSub === 'generatereport') {
@@ -496,7 +483,7 @@ const ModulePage = ({ moduleKey }) => {
     ? currentConfig.columns(activeSub, nestedSubTab)
     : (currentConfig?.columns || []);
 
-  const isReportTab = activeSub === 'adbluebusfill' && nestedSubTab === 'generate_report';
+  const isReportTab = (activeSub === 'adbluebusfill' || activeSub === 'busfill') && nestedSubTab === 'generate_report';
   const hasActionCols = !isReportTab;
 
   const getModuleExportData = (cols) => {
@@ -829,11 +816,25 @@ const ModulePage = ({ moduleKey }) => {
 
         {/* Subtabs Ribbon using CustomTabs */}
         {currentConfig && currentConfig.subTabs.length > 1 && (
-          <div className="flex justify-center mb-6 mt-4 max-w-full overflow-x-auto">
+          <div className="flex justify-center mb-4 mt-4 max-w-full overflow-x-auto">
             <CustomTabs
               activeTab={activeSub}
               onChange={(id) => setModuleSubTab(id)}
               tabs={currentConfig.subTabs}
+            />
+          </div>
+        )}
+
+        {/* 2nd Level Nested Subtabs Ribbon (e.g. for Ad_Bus_Fillings / Bus Fillings) */}
+        {currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0 && (
+          <div className="flex justify-center mb-6 mt-1 max-w-full overflow-x-auto">
+            <CustomTabs
+              activeTab={nestedSubTab}
+              onChange={(id) => {
+                setNestedSubTab(id);
+                setBusDataFetched(false);
+              }}
+              tabs={currentSubConfig.nestedTabs}
             />
           </div>
         )}
@@ -1017,8 +1018,131 @@ const ModulePage = ({ moduleKey }) => {
           </div>
         )}
 
-        {/* Services Module Register No Search Bar & Controls */}
-        {moduleKey === 'Services' ? (
+        {/* Ad_Bus_Fillings / Bus Fillings Controls Bar */}
+        {(activeSub === 'adbluebusfill' || activeSub === 'busfill') ? (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#f1f5f9',
+            borderRadius: '6px',
+            border: '1px solid #cbd5e1',
+            flexWrap: 'wrap'
+          }}>
+            {nestedSubTab === 'generate_report' ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>fromdate:</label>
+                  <input
+                    type="date"
+                    value={reportFromDate}
+                    onChange={(e) => setReportFromDate(e.target.value)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '4px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      backgroundColor: '#ffffff'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>todate:</label>
+                  <input
+                    type="date"
+                    value={reportToDate}
+                    onChange={(e) => setReportToDate(e.target.value)}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '4px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                      backgroundColor: '#ffffff'
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBusDataFetched(true)}
+                  style={{
+                    backgroundColor: '#46b8da',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '7px 18px',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  getdata
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                    Register No:
+                  </label>
+                  <div style={{ position: 'relative', width: '220px' }}>
+                    <VehicleAutocomplete
+                      value={nestedSubTab === 'entry_data' ? busRegisterNoFilter : busSearchRegNo}
+                      onChange={(val) => {
+                        if (nestedSubTab === 'entry_data') setBusRegisterNoFilter(val);
+                        else setBusSearchRegNo(val);
+                      }}
+                      onSelectVehicle={(veh) => {
+                        const selectedReg = veh.regno || veh;
+                        if (nestedSubTab === 'entry_data') setBusRegisterNoFilter(selectedReg);
+                        else setBusSearchRegNo(selectedReg);
+                        setBusDataFetched(true);
+                      }}
+                      placeholder="Enter reg no..."
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setBusDataFetched(true)}
+                  style={{
+                    backgroundColor: '#46b8da',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '7px 18px',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  getdata
+                </button>
+
+                {nestedSubTab === 'entry_data' && (
+                  <button
+                    type="button"
+                    onClick={handleOpenAddModal}
+                    style={{
+                      backgroundColor: '#5bc0de',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '7px 18px',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Add New
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        ) : moduleKey === 'Services' ? (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -1035,71 +1159,18 @@ const ModulePage = ({ moduleKey }) => {
                 Register No:
               </label>
               <div style={{ position: 'relative', width: '220px' }}>
-                <input
-                  type="text"
-                  placeholder="Enter reg no..."
+                <VehicleAutocomplete
                   value={serviceRegNoInput}
-                  onChange={(e) => {
-                    setServiceRegNoInput(e.target.value);
-                    setShowServiceSuggestions(true);
+                  onChange={(val) => {
+                    setServiceRegNoInput(val);
                   }}
-                  onFocus={() => setShowServiceSuggestions(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setAppliedServiceRegNo(serviceRegNoInput.trim());
-                      setShowServiceSuggestions(false);
-                    }
+                  onSelectVehicle={(veh) => {
+                    const selectedReg = veh.regno || veh;
+                    setServiceRegNoInput(selectedReg);
+                    setAppliedServiceRegNo(selectedReg);
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '6px 12px',
-                    fontSize: '14px',
-                    border: '1px solid #94a3b8',
-                    borderRadius: '4px',
-                    outline: 'none',
-                    backgroundColor: '#ffffff',
-                    color: '#0f172a'
-                  }}
+                  placeholder="Enter reg no..."
                 />
-                {/* Autocomplete Suggestions Dropdown */}
-                {showServiceSuggestions && serviceVehicleSuggestions.length > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '0 0 6px 6px',
-                    boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
-                    maxHeight: '220px',
-                    overflowY: 'auto',
-                    zIndex: 1000,
-                    marginTop: '2px'
-                  }}>
-                    {serviceVehicleSuggestions.map((suggestion, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => {
-                          setServiceRegNoInput(suggestion);
-                          setAppliedServiceRegNo(suggestion);
-                          setShowServiceSuggestions(false);
-                        }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          color: '#1e293b',
-                          borderBottom: idx < serviceVehicleSuggestions.length - 1 ? '1px solid #f1f5f9' : 'none'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = '#ffffff'}
-                      >
-                        {suggestion}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -1164,6 +1235,97 @@ const ModulePage = ({ moduleKey }) => {
                 Clear Filter
               </button>
             )}
+          </div>
+        ) : (moduleKey === 'Repair Bills' && activeSub === 'repairbills') ? (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#f1f5f9',
+            borderRadius: '6px',
+            border: '1px solid #cbd5e1',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                Register No:
+              </label>
+              <div style={{ position: 'relative', width: '220px' }}>
+                <VehicleAutocomplete
+                  value={repairRegNoInput}
+                  onChange={(val) => {
+                    setRepairRegNoInput(val);
+                  }}
+                  onSelectVehicle={(veh) => {
+                    const selectedReg = veh.regno || veh;
+                    setRepairRegNoInput(selectedReg);
+                    setAppliedRepairRegNo(selectedReg);
+                  }}
+                  placeholder="Enter reg no..."
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAppliedRepairRegNo(repairRegNoInput.trim());
+              }}
+              style={{
+                backgroundColor: '#46b8da',
+                color: '#ffffff',
+                border: 'none',
+                padding: '7px 18px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              getdata
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setRepairRegNoInput('');
+                setAppliedRepairRegNo('');
+              }}
+              style={{
+                backgroundColor: '#46b8da',
+                color: '#ffffff',
+                border: 'none',
+                padding: '7px 18px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              get all data
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              style={{
+                backgroundColor: '#5bc0de',
+                color: '#ffffff',
+                border: 'none',
+                padding: '7px 18px',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+            >
+              Add New
+            </button>
           </div>
         ) : (
           /* Action Buttons: View Data / Add New */
@@ -1460,92 +1622,31 @@ const ModulePage = ({ moduleKey }) => {
                         : col.label}
                     </th>
                   ))}
-                  <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
-                  <th style={{ width: '70px', textAlign: 'center' }}>Remove</th>
+                  {hasActionCols && (
+                    <>
+                      <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                      <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {moduleLoading ? (
                   <TableLoader
-                    colSpan={activeCols.length + 3}
+                    colSpan={activeCols.length + (hasActionCols ? 3 : 1)}
                     message={`Loading ${moduleKey} (${moduleSubTab.replace('_', ' ')}) records, please wait...`}
                   />
                 ) : paginatedModuleData.length > 0 ? (
                   paginatedModuleData.map((row, index) => (
                     <tr key={row._id || row.id || index}>
                       <td><strong>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</strong></td>
-                      {activeCols.map(col => {
-                        const isImage = col.key === 'profilepic' || col.type === 'image';
-                        let val = row[col.key];
-                        if (isImage) {
-                          const imgSrc = !val
-                            ? null
-                            : (val.startsWith('data:') || val.startsWith('http'))
-                              ? val
-                              : `http://localhost:1002/uploads/${val}`;
-                          return (
-                            <td key={col.key} style={{ textAlign: 'center' }}>
-                              {imgSrc ? (
-                                <img
-                                  src={imgSrc}
-                                  alt="Profile"
-                                  style={{
-                                    width: '38px',
-                                    height: '38px',
-                                    borderRadius: '50%',
-                                    objectFit: 'cover',
-                                    border: '2px solid #0b5299',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-                                    display: 'inline-block',
-                                    verticalAlign: 'middle'
-                                  }}
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>-</span>
-                              )}
-                            </td>
-                          );
-                        }
-                        const isFile = col.key === 'file' || col.type === 'file' || col.key === 'attachment';
-                        if (isFile) {
-                          const fileUrl = !val
-                            ? null
-                            : (val.startsWith('http') || val.startsWith('data:'))
-                              ? val
-                              : `http://localhost:1002/uploads/${val}`;
-                          return (
-                            <td key={col.key} style={{ textAlign: 'center' }}>
-                              {fileUrl ? (
-                                <a
-                                  href={fileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{ color: '#0b5299', fontWeight: 600, textDecoration: 'underline', fontSize: '12px' }}
-                                >
-                                  View File
-                                </a>
-                              ) : (
-                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>-</span>
-                              )}
-                            </td>
-                          );
-                        }
-                        if ((col.key === 'make' || col.key === 'vehiclemake') && (!val || val === '-')) {
-                          val = row.make || row.name || row.vehiclemake || row.makename || '-';
-                        }
-                        if ((col.key === 'vehicleregno' || col.key === 'regno' || col.key === 'vehicleno') && (!val || val === '-')) {
-                          val = row.vehicleregno || row.regno || row.vehicleno || row.busnumber || row.vno || row.vehicle_reg_no || '-';
-                        }
-                        return (
-                          <td key={col.key} style={{ fontWeight: 600 }}>
-                            {val !== undefined && val !== null && val !== '' ? String(val) : '-'}
-                          </td>
-                        );
-                      })}
+                      {activeCols.map(col => (
+                        <td key={col.key} style={{ fontWeight: 600 }}>
+                          {row[col.key] !== undefined && row[col.key] !== null
+                            ? String(row[col.key])
+                            : '-'}
+                        </td>
+                      ))}
                       <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
@@ -1574,7 +1675,7 @@ const ModulePage = ({ moduleKey }) => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={activeCols.length + 3} className="empty-cell">
+                    <td colSpan={activeCols.length + (hasActionCols ? 3 : 1)} className="empty-cell">
                       No data available in table
                     </td>
                   </tr>
@@ -1780,157 +1881,6 @@ const ModulePage = ({ moduleKey }) => {
                                     onChange={e => handleImageFileChange(e, col.key)}
                                   />
                                 </div>
-                              ) : col.type === 'textarea' || col.key === 'points' || col.key === 'remarks' ? (
-                                <textarea
-                                  rows={4}
-                                  placeholder={`Enter ${col.label.toLowerCase()}...`}
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    fontFamily: 'inherit',
-                                    resize: 'vertical'
-                                  }}
-                                />
-                              ) : col.type === 'file' || col.key === 'file' ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                  <input
-                                    type="file"
-                                    onChange={e => {
-                                      const file = e.target.files[0];
-                                      if (!file) return;
-                                      const reader = new FileReader();
-                                      reader.onloadend = () => {
-                                        setFormData(prev => ({ ...prev, [col.key]: reader.result }));
-                                      };
-                                      reader.readAsDataURL(file);
-                                    }}
-                                    style={{
-                                      width: '100%',
-                                      padding: '6px 10px',
-                                      border: '1px solid #cbd5e1',
-                                      borderRadius: '4px',
-                                      fontSize: '13px',
-                                      backgroundColor: '#ffffff'
-                                    }}
-                                  />
-                                  {formData[col.key] && (
-                                    <div style={{ fontSize: '11px', color: '#0b5299', fontWeight: 600 }}>
-                                      {typeof formData[col.key] === 'string' && formData[col.key].startsWith('data:') ? 'New file selected' : `Current file: ${formData[col.key]}`}
-                                    </div>
-                                  )}
-                                </div>
-                              ) : col.type === 'make-select' ? (
-                                <select
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: '#ffffff'
-                                  }}
-                                >
-                                  <option value=""></option>
-                                  {makesList.map((m, idx) => (
-                                    <option key={idx} value={m}>{m}</option>
-                                  ))}
-                                </select>
-                              ) : col.type === 'vehicle-type-select' ? (
-                                <select
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: '#ffffff'
-                                  }}
-                                >
-                                  <option value=""></option>
-                                  {['AUTO', 'B - TRAILERS', 'BIKE', 'BUS', 'CAR', 'FORCE', 'MINI BUS', 'TATA AC', 'TRACTOR', 'TRUCK', 'VAN'].map((vt, idx) => (
-                                    <option key={idx} value={vt}>{vt}</option>
-                                  ))}
-                                </select>
-                              ) : col.type === 'fuel-select' ? (
-                                <select
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: '#ffffff'
-                                  }}
-                                >
-                                  <option value=""></option>
-                                  {['Diesel', 'Petrol', 'Others'].map((fl, idx) => (
-                                    <option key={idx} value={fl}>{fl}</option>
-                                  ))}
-                                </select>
-                              ) : col.type === 'model-select' ? (
-                                <select
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: '#ffffff'
-                                  }}
-                                >
-                                  <option value=""></option>
-                                  {modelsList.map((md, idx) => (
-                                    <option key={idx} value={md}>{md}</option>
-                                  ))}
-                                </select>
-                              ) : col.type === 'status-select' ? (
-                                <select
-                                  value={formData[col.key] ?? 'Active'}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: '#ffffff'
-                                  }}
-                                >
-                                  <option value="Active">Active</option>
-                                  <option value="Lifetime Over">Lifetime Over</option>
-                                  <option value="Sold Out">Sold Out</option>
-                                </select>
-                              ) : col.type === 'staff-select' || (col.key === 'staffname' && isBranchVehicle) ? (
-                                <select
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: '#ffffff'
-                                  }}
-                                >
-                                  <option value=""></option>
-                                  {staffList.map((st, idx) => (
-                                    <option key={idx} value={st}>{st}</option>
-                                  ))}
-                                </select>
                               ) : col.type === 'society-select' || col.key === 'society' ? (
                                 <select
                                   value={formData[col.key] ?? ''}
@@ -1947,7 +1897,7 @@ const ModulePage = ({ moduleKey }) => {
                                     backgroundColor: '#ffffff'
                                   }}
                                 >
-                                  <option value=""></option>
+                                  <option value="">-- Select Society --</option>
                                   {societiesList.map((soc, idx) => (
                                     <option key={idx} value={soc}>{soc}</option>
                                   ))}
@@ -1965,7 +1915,7 @@ const ModulePage = ({ moduleKey }) => {
                                     backgroundColor: '#ffffff'
                                   }}
                                 >
-                                  <option value=""></option>
+                                  <option value="">-- Select Branch --</option>
                                   {availableBranches.map((b, idx) => (
                                     <option key={idx} value={b}>{b}</option>
                                   ))}
@@ -1983,22 +1933,16 @@ const ModulePage = ({ moduleKey }) => {
                                     backgroundColor: '#ffffff'
                                   }}
                                 >
-                                  <option value=""></option>
+                                  <option value="">-- Select Designation --</option>
                                   {designationsList.map((des, idx) => (
                                     <option key={idx} value={des}>{des}</option>
                                   ))}
                                 </select>
-                              ) : col.type === 'vehicle-select' || col.key === 'vehicleno' || (col.key === 'vehicleregno' && !isBranchVehicle) || col.key === 'regno' ? (
-                                <VehicleAutocomplete
-                                  value={formData[col.key] ?? ''}
-                                  onChange={(val) => setFormData(prev => ({ ...prev, [col.key]: val }))}
-                                  placeholder={`Enter ${col.label.toLowerCase()}...`}
-                                />
-                              ) : col.type === 'date' || col.key === 'dateofjoin' || col.key === 'rdate' || col.key === 'valid' || col.key === 'date' || col.key === 'purchasedate' || col.key === 'servicedate' || col.key === 'validitydate' ? (
+                              ) : col.type === 'date' || col.key === 'dateofjoin' || col.key === 'rdate' || col.key === 'valid' ? (
                                 <input
                                   type="date"
                                   value={formatDateForInput(formData[col.key])}
-                                  onChange={e => handleInputChange(col.key, e.target.value)}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
                                   style={{
                                     width: '100%',
                                     padding: '8px 10px',
@@ -2010,98 +1954,41 @@ const ModulePage = ({ moduleKey }) => {
                               ) : (
                                 <input
                                   type="text"
-                                  placeholder=""
+                                  placeholder={`Enter ${col.label.toLowerCase()}...`}
                                   value={formData[col.key] ?? ''}
-                                  readOnly={col.key === 'kms'}
-                                  onChange={e => handleInputChange(col.key, e.target.value)}
+                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
                                   style={{
                                     width: '100%',
                                     padding: '8px 10px',
                                     border: '1px solid #cbd5e1',
                                     borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: col.key === 'kms' ? '#f1f5f9' : '#ffffff',
-                                    cursor: col.key === 'kms' ? 'not-allowed' : 'text'
+                                    fontSize: '13px'
                                   }}
                                 />
                               )}
                             </div>
                           );
-                        });
-                      })()}
-
-                      {isSingleColumnMode && (
-                        <div style={{ marginTop: '10px' }}>
-                          <button
-                            type="submit"
-                            disabled={submitting}
-                            style={{
-                              backgroundColor: '#54d4f3',
-                              color: '#ffffff',
-                              border: 'none',
-                              borderRadius: '4px',
-                              padding: '7px 22px',
-                              fontSize: '14px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                            }}
-                          >
-                            {submitting ? 'Saving...' : 'save'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      className="admin-modal-footer"
-                      style={{
-                        display: 'flex',
-                        justify: 'flex-end',
-                        padding: '12px 20px',
-                        borderTop: '1px solid #e2e8f0',
-                        backgroundColor: '#ffffff'
-                      }}
-                    >
-                      {isSingleColumnMode ? (
-                        <button
-                          type="button"
-                          onClick={() => setShowModal(false)}
-                          style={{
-                            backgroundColor: '#ffffff',
-                            color: '#374151',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '4px',
-                            padding: '6px 18px',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Close
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            className="admin-modal-btn-cancel"
-                            onClick={() => setShowModal(false)}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="admin-modal-btn-submit"
-                            disabled={submitting}
-                          >
-                            {submitting ? 'Saving...' : editingId ? 'Update Record' : 'Save Record'}
-                          </button>
-                        </>
-                      )}
+                        })
+                      }
+                </div>
+                    <div className="admin-modal-footer">
+                      <button
+                        type="button"
+                        className="admin-modal-btn-cancel"
+                        onClick={() => setShowModal(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="admin-modal-btn-submit"
+                        disabled={submitting}
+                      >
+                        {submitting ? 'Saving...' : editingId ? 'Update Record' : 'Save Record'}
+                      </button>
                     </div>
                   </form>
                 </div>
-              );
-            })()}
           </div>
         )}
 
