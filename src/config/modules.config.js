@@ -360,10 +360,10 @@ export const SIDEBAR_MODULE_CONFIG = {
       { 
         id: 'busfill', 
         label: 'Bus Fillings',
-        childSubTabs: [
-          { id: 'entrydata', label: 'Entry Data' },
-          { id: 'generatereport', label: 'Generate Report' },
-          { id: 'searchbusreport', label: 'Search Bus Report' },
+        nestedTabs: [
+          { id: 'entry_data', label: 'Entry Data' },
+          { id: 'generate_report', label: 'Generate Report' },
+          { id: 'search_bus_report', label: 'Search Bus Report' },
         ]
       },
     ],
@@ -401,6 +401,24 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'quantity', label: 'Quantity' },
           { key: 'rate', label: 'Rate Per Liter' },
           { key: 'totalrate', label: 'Total Rate' },
+        ];
+      }
+      if (subTab === 'busfill') {
+        return [
+          { key: 'regno', label: 'Register No.' },
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'model', label: 'Model' },
+          { key: 'drivername', label: 'Driver Name' },
+          { key: 'fuelsupplier', label: 'Fuel Supplier' },
+          { key: 'capacity', label: 'Tank capacity' },
+          { key: 'date', label: 'Date' },
+          { key: 'token_no', label: 'Token No.' },
+          { key: 'token_issued_by', label: 'Token Issued By' },
+          { key: 'omr', label: 'OMR' },
+          { key: 'cmr', label: 'CMR' },
+          { key: 'kms', label: 'KMS' },
+          { key: 'filled_Qty', label: 'Filled Qty' },
         ];
       }
       return [
@@ -570,28 +588,33 @@ export const SIDEBAR_MODULE_CONFIG = {
     columns: (subTab) => {
       if (subTab === 'generatereport') {
         return [
-          { key: 'busnumber', label: 'Bus Number' },
           { key: 'society', label: 'Society' },
           { key: 'branch', label: 'Branch' },
-          { key: 'repairtype', label: 'Repair Type' },
-          { key: 'vendorname', label: 'Vendor / Workshop' },
-          { key: 'amount', label: 'Amount (₹)' },
-          { key: 'vouchernumber', label: 'Voucher No' },
-          { key: 'repairdate', label: 'Repair Date' },
-          { key: 'description', label: 'Description' },
+          { key: 'model', label: 'Model' },
+          { key: 'busnumber', label: 'Bus Number' },
+          { key: 'repairdate', label: 'Date', type: 'date' },
+          { key: 'repairtype', label: 'Type Of Repair' },
+          { key: 'description', label: 'Repair Description' },
+          { key: 'vendorname', label: 'Vendor Name' },
+          { key: 'materialinfo', label: 'Material information' },
+          { key: 'amount', label: 'Amount' },
+          { key: 'vouchernumber', label: 'Voucher Number' },
           { key: 'remarks', label: 'Remarks' },
         ];
       }
       return [
-        { key: 'busnumber', label: 'Bus Number' },
         { key: 'society', label: 'Society' },
         { key: 'branch', label: 'Branch' },
-        { key: 'repairtype', label: 'Repair Type' },
-        { key: 'vendorname', label: 'Vendor / Workshop' },
-        { key: 'amount', label: 'Amount (₹)' },
-        { key: 'vouchernumber', label: 'Voucher No' },
-        { key: 'repairdate', label: 'Repair Date' },
-        { key: 'description', label: 'Description' },
+        { key: 'model', label: 'Model' },
+        { key: 'busnumber', label: 'Bus Number' },
+        { key: 'repairdate', label: 'Date', type: 'date' },
+        { key: 'repairtype', label: 'Type Of Repair' },
+        { key: 'description', label: 'Repair Description' },
+        { key: 'vendorname', label: 'Vendor Name' },
+        { key: 'materialinfo', label: 'Material information' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'vouchernumber', label: 'Voucher Number' },
+        { key: 'remarks', label: 'Remarks' },
       ];
     }
   },

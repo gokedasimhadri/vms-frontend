@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, User, Users, Bus, FileText, Fuel,
-  Droplet, Settings, Wrench, AlertTriangle, Battery, Disc
+  Droplet, Settings, Wrench, AlertTriangle, Battery, Disc, FileSpreadsheet
 } from 'lucide-react';
 
 export const referenceMenuItems = [
@@ -18,6 +18,7 @@ export const referenceMenuItems = [
   { id: 'Bus Breakdown', label: 'Bus Breakdown', icon: 'alert', path: '/bus-breakdown' },
   { id: 'Batteries', label: 'Batteries', icon: 'battery', path: '/batteries' },
   { id: 'Vehicle Tyres', label: 'Vehicle Tyres', icon: 'disc', path: '/vehicle-tyres' },
+  { id: 'Reports', label: 'Reports', icon: 'reports', path: '/reports' },
 ];
 
 const Sidebar = ({
@@ -78,7 +79,8 @@ const Sidebar = ({
               wrench: Wrench,
               alert: AlertTriangle,
               battery: Battery,
-              disc: Disc
+              disc: Disc,
+              reports: FileSpreadsheet
             }[item.icon];
 
             const isActive = activeTab

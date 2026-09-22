@@ -374,9 +374,9 @@
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 7px 12px;
   border-radius: 8px;
   background: transparent;
   border: none;
