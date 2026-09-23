@@ -9,7 +9,9 @@ import ExportButtons from './ExportButtons';
 import { TableLoader } from './Loader';
 import { SIDEBAR_MODULE_CONFIG } from '../config/modules.config';
 import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
+import * as XLSX from 'xlsx';
 import ConfirmModal from './ConfirmModal';
+import VehicleAutocomplete from './VehicleAutocomplete';
 import {
   createStaffItem, updateStaffItem, deleteStaffItem,
   createVehicleItem, bulkCreateVehicleItems, updateVehicleItem, deleteVehicleItem,
@@ -91,7 +93,7 @@ const ModulePage = ({ moduleKey }) => {
   const [reportToDate, setReportToDate] = useState('');
   const [busSearchRegNo, setBusSearchRegNo] = useState('');
   const [busRegisterNoFilter, setBusRegisterNoFilter] = useState('');
-  const [busDataFetched, setBusDataFetched] = useState(false);
+  const [busDataFetched, setBusDataFetched] = useState(true);
 
   // Services Register No search & autocomplete state
   const [serviceRegNoInput, setServiceRegNoInput] = useState('');
@@ -378,34 +380,30 @@ const ModulePage = ({ moduleKey }) => {
     } else {
       setNestedSubTab('');
     }
-    setBusDataFetched(false);
+    setBusDataFetched(true);
     setBusRegisterNoFilter('');
   }, [activeSub]);
 
   const filteredModuleData = useMemo(() => {
-    let result = moduleData;
+    let result = Array.isArray(moduleData) ? moduleData : [];
 
     if (activeSub === 'adbluebusfill' || activeSub === 'busfill') {
-      if (!busDataFetched) {
-        return [];
-      }
       if (nestedSubTab === 'entry_data' && busRegisterNoFilter.trim()) {
         const bq = busRegisterNoFilter.trim().toLowerCase();
-        result = result.filter(item =>
-          (item.regno && String(item.regno).toLowerCase().includes(bq)) ||
-          (item.vehicleregno && String(item.vehicleregno).toLowerCase().includes(bq)) ||
-          (item.vehicleno && String(item.vehicleno).toLowerCase().includes(bq))
-        );
+        result = result.filter(item => {
+          const reg = item?.regno || item?.vehicleregno || item?.vehicleno || '';
+          return String(reg).toLowerCase().includes(bq);
+        });
       }
       if (nestedSubTab === 'generate_report') {
         if (reportFromDate) {
           result = result.filter(item => {
-            const d = item.date || item.filldate;
+            const d = item?.date || item?.filldate;
             if (!d) return true;
-            let itemDate = d;
-            if (typeof d === 'string' && d.includes('-')) {
-              const parts = d.split('-');
-              if (parts[0].length === 2 && parts[2]?.length === 4) {
+            let itemDate = String(d);
+            if (itemDate.includes('-')) {
+              const parts = itemDate.split('-');
+              if (parts[0]?.length === 2 && parts[2]?.length === 4) {
                 itemDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
               }
             }
@@ -414,12 +412,12 @@ const ModulePage = ({ moduleKey }) => {
         }
         if (reportToDate) {
           result = result.filter(item => {
-            const d = item.date || item.filldate;
+            const d = item?.date || item?.filldate;
             if (!d) return true;
-            let itemDate = d;
-            if (typeof d === 'string' && d.includes('-')) {
-              const parts = d.split('-');
-              if (parts[0].length === 2 && parts[2]?.length === 4) {
+            let itemDate = String(d);
+            if (itemDate.includes('-')) {
+              const parts = itemDate.split('-');
+              if (parts[0]?.length === 2 && parts[2]?.length === 4) {
                 itemDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
               }
             }
@@ -428,12 +426,11 @@ const ModulePage = ({ moduleKey }) => {
         }
       }
       if (nestedSubTab === 'search_bus_report' && busSearchRegNo.trim()) {
-        const bq = busSearchRegNo.trim().toLowerCase();
-        result = result.filter(item =>
-          (item.regno && String(item.regno).toLowerCase().includes(bq)) ||
-          (item.vehicleregno && String(item.vehicleregno).toLowerCase().includes(bq)) ||
-          (item.vehicleno && String(item.vehicleno).toLowerCase().includes(bq))
-        );
+        const sq = busSearchRegNo.trim().toLowerCase();
+        result = result.filter(item => {
+          const reg = item?.regno || item?.vehicleregno || item?.vehicleno || '';
+          return String(reg).toLowerCase().includes(sq);
+        });
       }
     }
 
@@ -1327,7 +1324,7 @@ const ModulePage = ({ moduleKey }) => {
               Add New
             </button>
           </div>
-        ) : (
+        ) : (currentSubTabObj?.childSubTabs?.length > 0 || currentSubConfig?.nestedTabs?.length > 0) ? null : (
           /* Action Buttons: View Data / Add New */
           <div className="admin-actions-bar">
             <button
@@ -1363,37 +1360,17 @@ const ModulePage = ({ moduleKey }) => {
           </div>
         )}
 
-        {/* Child Sub-Tabs Strip (e.g. Light Motor / Heavy Motor) */}
+        {/* Child Sub-Tabs Ribbon using CustomTabs (e.g. Entry Data / Generate Report, Light Motor / Heavy Motor) */}
         {currentSubTabObj?.childSubTabs?.length > 0 && (
-          <div style={{ display: 'flex', width: '100%', marginBottom: '16px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #2c3e50', backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            {currentSubTabObj.childSubTabs.map((childTab) => {
-              const isActive = (moduleChildSubTab || currentSubTabObj.childSubTabs[0].id) === childTab.id;
-              return (
-                <button
-                  key={childTab.id}
-                  type="button"
-                  onClick={() => {
-                    setModuleChildSubTab(childTab.id);
-                    fetchModuleData(childTab.id, selectedBranch, false);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '12px 16px',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    backgroundColor: isActive ? '#ffffff' : '#2c3e50',
-                    color: isActive ? '#2c3e50' : '#ffffff',
-                    border: 'none',
-                    borderRight: '1px solid #cbd5e1',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {childTab.label}
-                </button>
-              );
-            })}
+          <div className="flex justify-center mb-6 mt-2 max-w-full overflow-x-auto">
+            <CustomTabs
+              activeTab={moduleChildSubTab || currentSubTabObj.childSubTabs[0].id}
+              onChange={(id) => {
+                setModuleChildSubTab(id);
+                fetchModuleData(id, selectedBranch, false);
+              }}
+              tabs={currentSubTabObj.childSubTabs}
+            />
           </div>
         )}
 
@@ -1638,7 +1615,7 @@ const ModulePage = ({ moduleKey }) => {
                   />
                 ) : paginatedModuleData.length > 0 ? (
                   paginatedModuleData.map((row, index) => (
-                    <tr key={row._id || row.id || index}>
+                    <tr key={typeof (row._id || row.id) === 'object' ? (row._id?.$oid || row._id?.toString() || index) : (row._id || row.id || index)}>
                       <td><strong>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</strong></td>
                       {activeCols.map(col => (
                         <td key={col.key} style={{ fontWeight: 600 }}>
@@ -1647,30 +1624,34 @@ const ModulePage = ({ moduleKey }) => {
                             : '-'}
                         </td>
                       ))}
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="admin-icon-btn edit"
-                          title="Edit"
-                          onClick={() => handleOpenEditModal(row)}
-                        >
-                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="admin-icon-btn remove"
-                          title="Remove"
-                          onClick={() => handlePromptDelete(activeSub, row)}
-                        >
-                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </td>
+                      {hasActionCols && (
+                        <>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              className="admin-icon-btn edit"
+                              title="Edit"
+                              onClick={() => handleOpenEditModal(row)}
+                            >
+                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              className="admin-icon-btn remove"
+                              title="Remove"
+                              onClick={() => handlePromptDelete(activeSub, row)}
+                            >
+                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))
                 ) : (
@@ -1793,7 +1774,7 @@ const ModulePage = ({ moduleKey }) => {
                               style={{ gridColumn: (isSingleColumnMode || fieldsToRender.length === 1 || isImageField || col.type === 'textarea' || col.type === 'file' || col.key === 'points') ? 'span 1' : 'span 1' }}
                             >
                               <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>
-                                {col.modalLabel || (col.label.endsWith(':') ? col.label : `${col.label} :`)}
+                                {col?.modalLabel || ((col?.label || col?.key || '').endsWith(':') ? (col?.label || col?.key || '') : `${col?.label || col?.key || ''} :`)}
                               </label>
 
                               {isImageField ? (
