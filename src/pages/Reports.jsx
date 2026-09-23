@@ -567,7 +567,20 @@ const Reports = () => {
     if (!token) { navigate('/'); return; }
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      try { setUser(JSON.parse(userStr)); } catch (e) { }
+      try {
+        const parsed = JSON.parse(userStr);
+        setUser(parsed);
+        const uLower = (parsed.username || '').toLowerCase();
+        const rUpper = (parsed.role || '').toUpperCase();
+        const isBranchAdmin = rUpper === 'BRANCH_ADMIN' ||
+                              rUpper === 'BRANCH_USER' ||
+                              uLower.includes('adchr') ||
+                              uLower.includes('branch') ||
+                              (!['ADMIN', 'SUPER_ADMIN'].includes(rUpper) && !['vms', 'vmskkd', 'vc', 'admin'].includes(uLower) && parsed.branch && parsed.branch !== 'VMS' && parsed.branch !== 'ALL');
+        if (isBranchAdmin) {
+          navigate('/dashboard', { replace: true });
+        }
+      } catch (e) { }
     }
   }, [navigate]);
 
