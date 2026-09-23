@@ -308,6 +308,27 @@ const Admin = () => {
     }
   }, [navigate]);
 
+  const visibleSubTabs = useMemo(() => {
+    const uL = (user?.username || '').toLowerCase();
+    const rU = (user?.role || '').toUpperCase();
+    const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) || rU === 'SUPER_ADMIN';
+    if (!isVms) {
+      return ADMIN_SUBTABS.filter(st => st.id !== 'Societies' && st.id !== 'Branches');
+    }
+    return ADMIN_SUBTABS;
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      const uL = (user.username || '').toLowerCase();
+      const rU = (user.role || '').toUpperCase();
+      const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) || rU === 'SUPER_ADMIN';
+      if (!isVms && (adminSubTab === 'Societies' || adminSubTab === 'Branches')) {
+        setAdminSubTab('Route_Details');
+      }
+    }
+  }, [user]);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -315,7 +336,13 @@ const Admin = () => {
   };
 
   const fetchAdminData = async (subTab, branch, forceRefresh = false) => {
-    const activeSub = subTab || 'Societies';
+    const uL = (user?.username || '').toLowerCase();
+    const rU = (user?.role || '').toUpperCase();
+    const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) || rU === 'SUPER_ADMIN';
+    let activeSub = subTab || (isVms ? 'Societies' : 'Route_Details');
+    if (!isVms && (activeSub === 'Societies' || activeSub === 'Branches')) {
+      activeSub = 'Route_Details';
+    }
     const effectiveBranch = (branch && branch !== 'VMS' && branch !== 'College') ? branch : 'ALL';
     const cacheKey = `${activeSub}_${effectiveBranch}`;
     if (!forceRefresh && adminCacheRef.current[cacheKey] && adminCacheRef.current[cacheKey].length > 0) {
@@ -607,7 +634,7 @@ const Admin = () => {
           <CustomTabs
             activeTab={adminSubTab}
             onChange={(id) => setAdminSubTab(id)}
-            tabs={ADMIN_SUBTABS}
+            tabs={visibleSubTabs}
           />
         </div>
 

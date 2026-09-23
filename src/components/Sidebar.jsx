@@ -44,6 +44,21 @@ const Sidebar = ({
 
   const accountName = loggedUser?.name || loggedUser?.username || 'ADITYA DEGREE COLLEGE HR';
 
+  const usernameLower = (loggedUser?.username || '').toLowerCase();
+  const roleUpper = (loggedUser?.role || '').toUpperCase();
+  const isBranchAdmin = roleUpper === 'BRANCH_ADMIN' ||
+                        roleUpper === 'BRANCH_USER' ||
+                        usernameLower.includes('adchr') ||
+                        usernameLower.includes('branch') ||
+                        (!['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) && !['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) && loggedUser?.branch && loggedUser?.branch !== 'VMS' && loggedUser?.branch !== 'ALL');
+
+  const visibleMenuItems = referenceMenuItems.filter(item => {
+    if (item.id === 'Reports' && isBranchAdmin) {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <aside className={`sidebar-left ${mobileLeftOpen ? 'open' : ''}`}>
       {/* Top Blue Profile Header (Yellow Bus Logo + Brand Name + System Subtitle) */}
@@ -66,7 +81,7 @@ const Sidebar = ({
       <div className="sidebar-section">
         <span className="sidebar-heading">MAIN MENU</span>
         <nav className="nav-menu">
-          {referenceMenuItems.map(item => {
+          {visibleMenuItems.map(item => {
             const IconComponent = {
               speedometer: LayoutDashboard,
               user: User,
