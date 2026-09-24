@@ -308,26 +308,28 @@ const Admin = () => {
     }
   }, [navigate]);
 
+  const isVmsUser = useMemo(() => {
+    if (!user) return true;
+    const uL = (user.username || '').toLowerCase();
+    const rU = (user.role || '').toUpperCase();
+    const b = user.branch || '';
+    return ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) ||
+           ['ADMIN', 'SUPER_ADMIN'].includes(rU) ||
+           b === 'VMS' || b === 'ALL';
+  }, [user]);
+
   const visibleSubTabs = useMemo(() => {
-    const uL = (user?.username || '').toLowerCase();
-    const rU = (user?.role || '').toUpperCase();
-    const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) || rU === 'SUPER_ADMIN';
-    if (!isVms) {
+    if (!isVmsUser) {
       return ADMIN_SUBTABS.filter(st => st.id !== 'Societies' && st.id !== 'Branches');
     }
     return ADMIN_SUBTABS;
-  }, [user]);
+  }, [isVmsUser]);
 
   useEffect(() => {
-    if (user) {
-      const uL = (user.username || '').toLowerCase();
-      const rU = (user.role || '').toUpperCase();
-      const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) || rU === 'SUPER_ADMIN';
-      if (!isVms && (adminSubTab === 'Societies' || adminSubTab === 'Branches')) {
-        setAdminSubTab('Route_Details');
-      }
+    if (user && !isVmsUser && (adminSubTab === 'Societies' || adminSubTab === 'Branches')) {
+      setAdminSubTab('Route_Details');
     }
-  }, [user]);
+  }, [user, isVmsUser, adminSubTab]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -336,12 +338,13 @@ const Admin = () => {
   };
 
   const fetchAdminData = async (subTab, branch, forceRefresh = false) => {
-    const uL = (user?.username || '').toLowerCase();
-    const rU = (user?.role || '').toUpperCase();
-    const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) || rU === 'SUPER_ADMIN';
+    const isVms = isVmsUser;
     let activeSub = subTab || (isVms ? 'Societies' : 'Route_Details');
     if (!isVms && (activeSub === 'Societies' || activeSub === 'Branches')) {
       activeSub = 'Route_Details';
+      if (adminSubTab !== 'Route_Details') {
+        setAdminSubTab('Route_Details');
+      }
     }
     const effectiveBranch = (branch && branch !== 'VMS' && branch !== 'College') ? branch : 'ALL';
     const cacheKey = `${activeSub}_${effectiveBranch}`;
