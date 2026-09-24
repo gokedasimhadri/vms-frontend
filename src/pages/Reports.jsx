@@ -1223,7 +1223,7 @@ const Reports = () => {
                         />
                       ) : paginated.length > 0 ? (
                         paginated.map((row, idx) => (
-                          <tr key={row._id || row.id || idx}>
+                          <tr key={typeof (row._id || row.id) === 'object' ? (row._id?.$oid || row._id?.toString() || idx) : (row._id || row.id || idx)}>
                             <td><strong>{(page - 1) * entries + idx + 1}</strong></td>
                             {activeColumns.map(col => (
                               <td key={col.key}>
