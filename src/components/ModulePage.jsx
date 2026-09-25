@@ -790,6 +790,141 @@ const ModulePage = ({ moduleKey }) => {
     win.print();
   };
 
+  const renderTableCell = (row, col) => {
+    const rawVal = row[col.key];
+    if (rawVal === undefined || rawVal === null || rawVal === '' || rawVal === 'null' || rawVal === 'undefined') {
+      return '-';
+    }
+
+    const valStr = String(rawVal).trim();
+    if (!valStr || valStr === '-') return '-';
+
+    const colKeyLower = (col.key || '').toLowerCase();
+    const isFileCol = col.type === 'image' || col.type === 'file' || [
+      'file', 'upload', 'profilepic', 'image', 'pic', 'aadharpic', 'liciensepic', 'licensepic', 'photo'
+    ].includes(colKeyLower);
+
+    const isPdf = /\.pdf$/i.test(valStr);
+    const isImg = /\.(jpg|jpeg|png|webp|gif|bmp|svg)$/i.test(valStr) || valStr.startsWith('data:image/') || col.type === 'image';
+
+    if (isFileCol || isPdf || isImg) {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:1002';
+      let fileUrl = valStr;
+      if (!valStr.startsWith('http://') && !valStr.startsWith('https://') && !valStr.startsWith('data:')) {
+        const cleanPath = valStr.startsWith('/') ? valStr.slice(1) : valStr;
+        if (cleanPath.startsWith('uploads/')) {
+          fileUrl = `${baseUrl}/${cleanPath}`;
+        } else {
+          fileUrl = `${baseUrl}/uploads/${cleanPath}`;
+        }
+      }
+
+      if (isImg) {
+        return (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <img
+              src={fileUrl}
+              alt={col.label || 'Preview'}
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '6px',
+                objectFit: 'cover',
+                border: '1px solid #cbd5e1',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}
+              onClick={() => setPreviewImageModal({ url: fileUrl, title: col.label || 'Image Preview', name: valStr })}
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewImageModal({ url: fileUrl, title: col.label || 'Image Preview', name: valStr })}
+              style={{
+                backgroundColor: '#e0f2fe',
+                color: '#0284c7',
+                border: '1px solid #bae6fd',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              🖼️ View Image
+            </button>
+          </div>
+        );
+      }
+
+      if (isPdf) {
+        return (
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              backgroundColor: '#fee2e2',
+              color: '#dc2626',
+              border: '1px solid #fca5a5',
+              borderRadius: '4px',
+              padding: '4px 10px',
+              fontSize: '12px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+            }}
+            title={`Open PDF: ${valStr}`}
+          >
+            <span>📄</span>
+            <span>View PDF</span>
+          </a>
+        );
+      }
+
+      return (
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            backgroundColor: '#f1f5f9',
+            color: '#0284c7',
+            border: '1px solid #cbd5e1',
+            borderRadius: '4px',
+            padding: '4px 10px',
+            fontSize: '12px',
+            fontWeight: 600,
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            maxWidth: '220px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+          title={`Open file: ${valStr}`}
+        >
+          <span>📎</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{valStr}</span>
+        </a>
+      );
+    }
+
+    return valStr;
+  };
+
   const IconComponent = MODULE_ICONS[moduleKey] || FileText;
 
   return (
@@ -1619,9 +1754,7 @@ const ModulePage = ({ moduleKey }) => {
                       <td><strong>{(moduleCurrentPage - 1) * moduleEntriesPerPage + index + 1}</strong></td>
                       {activeCols.map(col => (
                         <td key={col.key} style={{ fontWeight: 600 }}>
-                          {row[col.key] !== undefined && row[col.key] !== null
-                            ? String(row[col.key])
-                            : '-'}
+                          {renderTableCell(row, col)}
                         </td>
                       ))}
                       {hasActionCols && (
@@ -1766,7 +1899,11 @@ const ModulePage = ({ moduleKey }) => {
                           }
                         }
                         return fieldsToRender.map(col => {
-                          const isImageField = col.key === 'profilepic' || col.type === 'image';
+                          const colKeyLower = (col.key || '').toLowerCase();
+                          const isImageField = col.type === 'image' || col.type === 'file' || [
+                            'file', 'upload', 'profilepic', 'image', 'pic', 'photo', 'aadharpic', 'liciensepic', 'licensepic'
+                          ].includes(colKeyLower);
+
                           return (
                             <div
                               key={col.key}
@@ -1779,18 +1916,26 @@ const ModulePage = ({ moduleKey }) => {
 
                               {isImageField ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                  {formData[col.key] ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '14px',
+                                    backgroundColor: '#ffffff',
+                                    padding: '12px 16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #cbd5e1'
+                                  }}>
+                                    {formData[col.key] ? (
                                       <img
                                         src={
                                           formData[col.key].startsWith('data:') || formData[col.key].startsWith('http')
                                             ? formData[col.key]
-                                            : `http://localhost:1002/uploads/${formData[col.key]}`
+                                            : `${import.meta.env.VITE_API_URL || 'http://localhost:1002'}/uploads/${formData[col.key]}`
                                         }
                                         alt="Preview"
                                         style={{
                                           width: '64px',
-                                          height: '74px',
+                                          height: '64px',
                                           objectFit: 'cover',
                                           borderRadius: '6px',
                                           border: '2px solid #0b5299',
@@ -1798,66 +1943,62 @@ const ModulePage = ({ moduleKey }) => {
                                         }}
                                         onError={(e) => { e.target.style.display = 'none'; }}
                                       />
-                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <label
-                                          htmlFor={`file-upload-${col.key}`}
-                                          style={{
-                                            padding: '5px 12px',
-                                            backgroundColor: '#0b5299',
-                                            color: '#ffffff',
-                                            borderRadius: '4px',
-                                            fontSize: '12px',
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                            display: 'inline-block',
-                                            textAlign: 'center'
-                                          }}
-                                        >
-                                          Change Photo
-                                        </label>
-                                        <button
-                                          type="button"
-                                          onClick={() => setFormData({ ...formData, [col.key]: '' })}
-                                          style={{
-                                            padding: '4px 10px',
-                                            backgroundColor: '#fee2e2',
-                                            color: '#dc2626',
-                                            border: '1px solid #fca5a5',
-                                            borderRadius: '4px',
-                                            fontSize: '11px',
-                                            fontWeight: 600,
-                                            cursor: 'pointer'
-                                          }}
-                                        >
-                                          Remove Photo
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <label
-                                      htmlFor={`file-upload-${col.key}`}
-                                      style={{
+                                    ) : (
+                                      <div style={{
+                                        width: '64px',
+                                        height: '64px',
+                                        borderRadius: '6px',
+                                        border: '2px dashed #cbd5e1',
+                                        backgroundColor: '#f8fafc',
                                         display: 'flex',
-                                        flexDirection: 'column',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        padding: '16px',
-                                        border: '2px dashed #0b5299',
-                                        borderRadius: '8px',
-                                        backgroundColor: '#f0f9ff',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease'
-                                      }}
-                                    >
-                                      <span style={{ fontSize: '24px', marginBottom: '4px' }}>📷</span>
-                                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#0b5299' }}>Click to Upload Profile Photo</span>
-                                      <span style={{ fontSize: '11px', color: '#64748b' }}>PNG, JPG or WEBP (Max 5MB)</span>
-                                    </label>
-                                  )}
+                                        color: '#94a3b8',
+                                        fontSize: '22px'
+                                      }}>
+                                        🖼️
+                                      </div>
+                                    )}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      <label
+                                        htmlFor={`file-upload-${col.key}`}
+                                        style={{
+                                          padding: '7px 16px',
+                                          backgroundColor: '#0b5299',
+                                          color: '#ffffff',
+                                          borderRadius: '6px',
+                                          fontSize: '13px',
+                                          fontWeight: 600,
+                                          cursor: 'pointer',
+                                          display: 'inline-block',
+                                          textAlign: 'center',
+                                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                        }}
+                                      >
+                                        Change Photo
+                                      </label>
+                                      <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, [col.key]: '' }))}
+                                        style={{
+                                          padding: '5px 14px',
+                                          backgroundColor: '#fef2f2',
+                                          color: '#dc2626',
+                                          border: '1px solid #fca5a5',
+                                          borderRadius: '6px',
+                                          fontSize: '12px',
+                                          fontWeight: 600,
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        Remove Photo
+                                      </button>
+                                    </div>
+                                  </div>
                                   <input
                                     id={`file-upload-${col.key}`}
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/*,application/pdf"
                                     style={{ display: 'none' }}
                                     onChange={e => handleImageFileChange(e, col.key)}
                                   />
@@ -2013,7 +2154,7 @@ const ModulePage = ({ moduleKey }) => {
                 position: 'relative',
                 backgroundColor: '#ffffff',
                 borderRadius: '12px',
-                padding: '16px',
+                padding: '20px',
                 maxWidth: '90vw',
                 maxHeight: '90vh',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
@@ -2027,8 +2168,8 @@ const ModulePage = ({ moduleKey }) => {
                 onClick={() => setPreviewImageModal(null)}
                 style={{
                   position: 'absolute',
-                  top: '10px',
-                  right: '10px',
+                  top: '12px',
+                  right: '12px',
                   backgroundColor: '#f1f5f9',
                   border: 'none',
                   borderRadius: '50%',
@@ -2045,20 +2186,38 @@ const ModulePage = ({ moduleKey }) => {
               >
                 ✕
               </button>
-              <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#0f172a', fontWeight: 600 }}>
-                Profile Photo Preview
+              <h4 style={{ margin: '0 0 14px 0', fontSize: '16px', color: '#0f172a', fontWeight: 600 }}>
+                {typeof previewImageModal === 'object' ? (previewImageModal.title || previewImageModal.name || 'File Preview') : 'File Preview'}
               </h4>
               <img
-                src={previewImageModal}
-                alt="Profile Preview"
+                src={typeof previewImageModal === 'object' ? previewImageModal.url : previewImageModal}
+                alt="Preview"
                 style={{
                   maxWidth: '80vw',
-                  maxHeight: '75vh',
+                  maxHeight: '70vh',
                   objectFit: 'contain',
                   borderRadius: '8px',
                   border: '1px solid #cbd5e1'
                 }}
               />
+              <div style={{ marginTop: '14px', display: 'flex', gap: '12px' }}>
+                <a
+                  href={typeof previewImageModal === 'object' ? previewImageModal.url : previewImageModal}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    backgroundColor: '#0284c7',
+                    color: '#ffffff',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    textDecoration: 'none'
+                  }}
+                >
+                  Open Full File in New Tab
+                </a>
+              </div>
             </div>
           </div>
         )}
