@@ -101,7 +101,7 @@ const ModulePage = ({ moduleKey }) => {
   const [reportToDate, setReportToDate] = useState(getTodayIsoString);
   const [busSearchRegNo, setBusSearchRegNo] = useState('');
   const [busRegisterNoFilter, setBusRegisterNoFilter] = useState('');
-  const [busDataFetched, setBusDataFetched] = useState(true);
+  const [busDataFetched, setBusDataFetched] = useState(false);
 
   // Services Register No search & autocomplete state
   const [serviceRegNoInput, setServiceRegNoInput] = useState('');
@@ -371,10 +371,10 @@ const ModulePage = ({ moduleKey }) => {
     navigate('/');
   };
 
-  const fetchModuleData = async (subTab, branch, forceRefresh = false, extraParams = {}) => {
+  const fetchModuleData = async (subTab, branch, forceRefresh = false, extraParams = {}, searchQueryParam = '') => {
     if (!currentConfig) return;
     const activeSub = subTab || currentConfig.subTabs[0].id;
-    const cacheKey = `${moduleKey}_${activeSub}_${branch || 'ALL'}_${JSON.stringify(extraParams)}`;
+    const cacheKey = `${moduleKey}_${activeSub}_${branch || 'ALL'}_${searchQueryParam}_${JSON.stringify(extraParams)}`;
     if (!forceRefresh && Array.isArray(cacheRef.current[cacheKey]) && cacheRef.current[cacheKey].length > 0) {
       setModuleData(cacheRef.current[cacheKey]);
       setModuleCurrentPage(1);
@@ -384,7 +384,7 @@ const ModulePage = ({ moduleKey }) => {
 
     setModuleLoading(true);
     try {
-      const res = await currentConfig.apiFn(activeSub, branch, '', extraParams);
+      const res = await currentConfig.apiFn(activeSub, branch, searchQueryParam, extraParams);
       const data = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
       if (data.length > 0) {
         cacheRef.current[cacheKey] = data;
@@ -410,12 +410,21 @@ const ModulePage = ({ moduleKey }) => {
       const activeSubToFetch = (currentSubTabObj?.childSubTabs?.length > 0 && moduleChildSubTab)
         ? moduleChildSubTab
         : validSub;
+
+      if (activeSubToFetch === 'busfill' || activeSubToFetch === 'adbluebusfill') {
+        if (!busDataFetched) {
+          setModuleLoading(false);
+          setModuleData([]);
+          return;
+        }
+      }
+
       const extraParams = (activeSubToFetch === 'generatereport' || activeSubToFetch === 'generate_report' || activeSubToFetch === 'entrydata' || activeSubToFetch === 'vehicletrip' || activeSubToFetch === 'trips')
         ? { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() }
         : {};
       fetchModuleData(activeSubToFetch, selectedBranch, false, extraParams);
     }
-  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch]);
+  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch, busDataFetched]);
 
   const activeSub = moduleSubTab || currentConfig?.subTabs[0]?.id;
   const currentSubConfig = currentConfig?.subTabs?.find(s => s.id === activeSub);
@@ -426,14 +435,36 @@ const ModulePage = ({ moduleKey }) => {
     } else {
       setNestedSubTab('');
     }
-    setBusDataFetched(true);
+    if (activeSub === 'busfill' || activeSub === 'adbluebusfill') {
+      setBusDataFetched(false);
+      setModuleLoading(false);
+      setModuleData([]);
+    } else {
+      setBusDataFetched(true);
+    }
     setBusRegisterNoFilter('');
+    setBusSearchRegNo('');
   }, [activeSub]);
+
+  const handleBusFillGetData = (regNoOverride = null) => {
+    let targetReg = regNoOverride;
+    if (targetReg === null) {
+      targetReg = (nestedSubTab === 'entry_data' || !nestedSubTab) ? busRegisterNoFilter : busSearchRegNo;
+    } else {
+      if (nestedSubTab === 'entry_data') setBusRegisterNoFilter(regNoOverride);
+      else setBusSearchRegNo(regNoOverride);
+    }
+    setBusDataFetched(true);
+    fetchModuleData(activeSub, selectedBranch, true, {}, targetReg);
+  };
 
   const filteredModuleData = useMemo(() => {
     let result = Array.isArray(moduleData) ? moduleData : [];
 
     if (activeSub === 'adbluebusfill' || activeSub === 'busfill') {
+      if (!busDataFetched) {
+        return [];
+      }
       if (nestedSubTab === 'entry_data' && busRegisterNoFilter.trim()) {
         const bq = busRegisterNoFilter.trim().toLowerCase();
         result = result.filter(item => {
@@ -1089,7 +1120,14 @@ const ModulePage = ({ moduleKey }) => {
           <div className="flex justify-center mb-4 mt-4 max-w-full overflow-x-auto">
             <CustomTabs
               activeTab={activeSub}
-              onChange={(id) => setModuleSubTab(id)}
+              onChange={(id) => {
+                if (id === 'busfill' || id === 'adbluebusfill') {
+                  setBusDataFetched(false);
+                  setModuleLoading(false);
+                  setModuleData([]);
+                }
+                setModuleSubTab(id);
+              }}
               tabs={currentConfig.subTabs}
             />
           </div>
@@ -1103,6 +1141,8 @@ const ModulePage = ({ moduleKey }) => {
               onChange={(id) => {
                 setNestedSubTab(id);
                 setBusDataFetched(false);
+                setModuleLoading(false);
+                setModuleData([]);
               }}
               tabs={currentSubConfig.nestedTabs}
             />
@@ -1335,7 +1375,7 @@ const ModulePage = ({ moduleKey }) => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setBusDataFetched(true)}
+                  onClick={() => handleBusFillGetData()}
                   style={{
                     backgroundColor: '#46b8da',
                     color: '#ffffff',
@@ -1365,9 +1405,7 @@ const ModulePage = ({ moduleKey }) => {
                       }}
                       onSelectVehicle={(veh) => {
                         const selectedReg = veh.regno || veh;
-                        if (nestedSubTab === 'entry_data') setBusRegisterNoFilter(selectedReg);
-                        else setBusSearchRegNo(selectedReg);
-                        setBusDataFetched(true);
+                        handleBusFillGetData(selectedReg);
                       }}
                       placeholder="Enter reg no..."
                     />
@@ -1376,7 +1414,7 @@ const ModulePage = ({ moduleKey }) => {
 
                 <button
                   type="button"
-                  onClick={() => setBusDataFetched(true)}
+                  onClick={() => handleBusFillGetData()}
                   style={{
                     backgroundColor: '#46b8da',
                     color: '#ffffff',

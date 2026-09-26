@@ -23,7 +23,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'Staff_Meeting_Register', label: 'Staff_Meeting_Register' },
       { id: 'Staff_Remarks', label: 'Staff_Remarks' },
     ],
-    apiFn: (subTab, branch) => getStaffData(subTab, branch),
+    apiFn: (subTab, branch, search, extra) => getStaffData(subTab, branch, search, extra),
     columns: (subTab) => {
       if (subTab === 'Designations') {
         return [
@@ -232,7 +232,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'challan', label: 'Vehicle Challan Register' },
       { id: 'insuranceclaim', label: 'Vehicle Insurance Claim' },
     ],
-    apiFn: (subTab, branch) => getCertificatesData(subTab, branch),
+    apiFn: (subTab, branch, search, extra) => getCertificatesData(subTab, branch, search, extra),
     columns: (subTab) => {
       if (subTab === 'rta') {
         return [
@@ -363,7 +363,7 @@ export const SIDEBAR_MODULE_CONFIG = {
         ]
       },
     ],
-    apiFn: (subTab, branch) => getFuelsData(subTab, branch),
+    apiFn: (subTab, branch, search, extra) => getFuelsData(subTab, branch, search, extra),
     columns: (subTab) => {
       if (subTab === 'suppliers' || subTab === 'fuelsuppliers') {
         return [
@@ -456,7 +456,7 @@ export const SIDEBAR_MODULE_CONFIG = {
         ]
       },
     ],
-    apiFn: (subTab, branch) => getAdBlueData(subTab, branch),
+    apiFn: (subTab, branch, search, extra) => getAdBlueData(subTab, branch, search, extra),
     columns: (subTab) => {
       if (subTab === 'Ad_Suppliers' || subTab === 'adblue') {
         return [
@@ -512,7 +512,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'service', label: 'Vehicle Services' },
       { id: 'repair', label: 'Vehicle Repairs' },
     ],
-    apiFn: (subTab, branch) => getServicesData(subTab, branch),
+    apiFn: (subTab, branch, search, extra) => getServicesData(subTab, branch, search, extra),
     columns: (subTab) => {
       if (subTab === 'dailymaintenance' || subTab === 'daily') {
         return [
@@ -580,7 +580,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'repairbills', label: 'All Repair Bills' },
       { id: 'generatereport', label: 'Generate Report' },
     ],
-    apiFn: (subTab, branch) => getRepairBillsData(subTab, branch),
+    apiFn: (subTab, branch, search, extra) => getRepairBillsData(subTab, branch, search, extra?.fromDate, extra?.toDate),
     columns: (subTab) => {
       if (subTab === 'generatereport') {
         return [
@@ -619,7 +619,7 @@ export const SIDEBAR_MODULE_CONFIG = {
     subTabs: [
       { id: 'breakdown', label: 'Breakdown Logs' }
     ],
-    apiFn: (subTab, branch) => getBusBreakdownData(branch),
+    apiFn: (subTab, branch, search, extra) => getBusBreakdownData(branch, search),
     columns: () => [
       { key: 'busno', label: 'Bus No' },
       { key: 'society', label: 'Society' },
@@ -639,7 +639,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'reports', label: 'Battery Change Report' },
       { id: 'trackbattery', label: 'Track Battery' },
     ],
-    apiFn: (subTab, branch) => getBatteriesData(subTab, branch),
+    apiFn: (subTab, branch, search, extra) => getBatteriesData(subTab, branch, search, extra),
     columns: (subTab) => {
       if (subTab === 'trackbattery') {
         return [
@@ -693,7 +693,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'status', label: 'Tyre Status' },
       { id: 'tracktyre', label: 'Track Tyre' },
     ],
-    apiFn: (subTab, branch) => getVehicleTyresData(subTab, branch),
+    apiFn: (subTab, branch, search, extra) => getVehicleTyresData(subTab, branch, search, extra),
     columns: (subTab) => {
       if (subTab === 'tracktyre') {
         return [
