@@ -18,6 +18,7 @@ export const referenceMenuItems = [
   { id: 'Bus Breakdown', label: 'Bus Breakdown', icon: 'alert', path: '/bus-breakdown' },
   { id: 'Batteries', label: 'Batteries', icon: 'battery', path: '/batteries' },
   { id: 'Vehicle Tyres', label: 'Vehicle Tyres', icon: 'disc', path: '/vehicle-tyres' },
+  { id: 'User Management', label: 'User Management', icon: 'users', path: '/user-management' },
   { id: 'Reports', label: 'Reports', icon: 'reports', path: '/reports' },
 ];
 
@@ -46,14 +47,18 @@ const Sidebar = ({
 
   const usernameLower = (loggedUser?.username || '').toLowerCase();
   const roleUpper = (loggedUser?.role || '').toUpperCase();
-  const isBranchAdmin = roleUpper === 'BRANCH_ADMIN' ||
-                        roleUpper === 'BRANCH_USER' ||
-                        usernameLower.includes('adchr') ||
-                        usernameLower.includes('branch') ||
-                        (!['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) && !['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) && loggedUser?.branch && loggedUser?.branch !== 'VMS' && loggedUser?.branch !== 'ALL');
+  const isVmsUser = ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
+                    ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+                    loggedUser?.branch === 'VMS' ||
+                    loggedUser?.branch === 'ALL';
+
+  const isBranchAdmin = !isVmsUser;
 
   const visibleMenuItems = referenceMenuItems.filter(item => {
     if (item.id === 'Reports' && isBranchAdmin) {
+      return false;
+    }
+    if (item.id === 'User Management' && !isVmsUser) {
       return false;
     }
     return true;

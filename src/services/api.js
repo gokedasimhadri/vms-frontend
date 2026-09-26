@@ -146,6 +146,31 @@ export const deleteStaffItem = async (type, id) => {
   return response.data;
 };
 
+// ================= USERS =================
+export const getUsersData = async (search = '', branch = 'ALL', role = 'ALL') => {
+  const params = {};
+  if (search) params.search = search;
+  if (branch && branch !== 'ALL') params.branch = branch;
+  if (role && role !== 'ALL') params.role = role;
+  const response = await api.get('/users', { params });
+  return response.data;
+};
+
+export const createUserItem = async (data) => {
+  const response = await api.post('/users', data);
+  return response.data;
+};
+
+export const updateUserItem = async (id, data) => {
+  const response = await api.put(`/users/${id}`, data);
+  return response.data;
+};
+
+export const deleteUserItem = async (id) => {
+  const response = await api.delete(`/users/${id}`);
+  return response.data;
+};
+
 export const fetchVehicleTripdata = async (branch, search = '', extraParams = {}) => {
   const params = { ...extraParams };
   if (branch && branch !== 'ALL') params.branch = branch;
@@ -157,7 +182,7 @@ export const fetchVehicleTripdata = async (branch, search = '', extraParams = {}
 export const getVehiclesData = async (type = 'branch', branch, search = '', extraParams = {}) => {
   const t = (type || '').toLowerCase();
   if (t === 'trips' || t === 'vehicletrip' || t === 'entrydata' || t === 'generatereport' || t === 'vehicletripdata') {
-    return fetchVehicleTripdata(branch, search, extraParams);
+    return fetchVehicleTripdata(branch, search, { subTab: t, type: t, ...extraParams });
   }
   const params = { type, ...extraParams };
   if (branch && branch !== 'ALL') params.branch = branch;

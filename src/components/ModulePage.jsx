@@ -64,8 +64,16 @@ const ModulePage = ({ moduleKey }) => {
     const subObj = currentConfig?.subTabs?.find(t => t.id === (validRequestedTab || currentConfig?.subTabs[0]?.id));
     return subObj?.childSubTabs?.length > 0 ? subObj.childSubTabs[0].id : '';
   });
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const getTodayIsoString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [fromDate, setFromDate] = useState(getTodayIsoString);
+  const [toDate, setToDate] = useState(getTodayIsoString);
 
   useEffect(() => {
     if (currentSubTabObj?.childSubTabs?.length > 0) {
@@ -89,8 +97,8 @@ const ModulePage = ({ moduleKey }) => {
 
   // Second-level nested tab state (e.g. for Ad_Bus_Fillings)
   const [nestedSubTab, setNestedSubTab] = useState('');
-  const [reportFromDate, setReportFromDate] = useState('');
-  const [reportToDate, setReportToDate] = useState('');
+  const [reportFromDate, setReportFromDate] = useState(getTodayIsoString);
+  const [reportToDate, setReportToDate] = useState(getTodayIsoString);
   const [busSearchRegNo, setBusSearchRegNo] = useState('');
   const [busRegisterNoFilter, setBusRegisterNoFilter] = useState('');
   const [busDataFetched, setBusDataFetched] = useState(true);
@@ -367,7 +375,10 @@ const ModulePage = ({ moduleKey }) => {
       const activeSubToFetch = (currentSubTabObj?.childSubTabs?.length > 0 && moduleChildSubTab)
         ? moduleChildSubTab
         : validSub;
-      fetchModuleData(activeSubToFetch, selectedBranch);
+      const extraParams = (activeSubToFetch === 'generatereport' || activeSubToFetch === 'generate_report' || activeSubToFetch === 'entrydata' || activeSubToFetch === 'vehicletrip' || activeSubToFetch === 'trips')
+        ? { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() }
+        : {};
+      fetchModuleData(activeSubToFetch, selectedBranch, false, extraParams);
     }
   }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch]);
 
@@ -442,21 +453,53 @@ const ModulePage = ({ moduleKey }) => {
       });
     }
 
-    if (moduleKey === 'Repair Bills' && activeSub === 'generatereport') {
-      if (fromDate) {
+    const toIsoDateStr = (dStr) => {
+      if (!dStr) return '';
+      const str = String(dStr).trim();
+      if (str.includes('-')) {
+        const parts = str.split('-');
+        if (parts[0]?.length === 2 && parts[2]?.length === 4) {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        if (parts[0]?.length === 4) {
+          return str.slice(0, 10);
+        }
+      }
+      if (str.includes('/')) {
+        const parts = str.split('/');
+        if (parts[0]?.length === 2 && parts[2]?.length === 4) {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        if (parts[0]?.length === 4) {
+          return `${parts[0]}-${parts[1]}-${parts[2]}`;
+        }
+      }
+      return str.slice(0, 10);
+    };
+
+    const isVehicleReport = moduleKey === 'Vehicles' && (activeSub === 'generatereport' || nestedSubTab === 'generatereport' || moduleChildSubTab === 'generatereport');
+    const isRepairReport = moduleKey === 'Repair Bills' && activeSub === 'generatereport';
+
+    if (isVehicleReport || isRepairReport) {
+      const fDate = isVehicleReport ? reportFromDate : fromDate;
+      const tDate = isVehicleReport ? reportToDate : toDate;
+      const fromIso = toIsoDateStr(fDate);
+      const toIso = toIsoDateStr(tDate);
+
+      if (fromIso) {
         result = result.filter(item => {
-          const d = item.repairdate || item.date || item.createdAt;
+          const d = item.repairdate || item.date || item.uploaddate || item.createdAt;
           if (!d) return true;
-          let itemDate = typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10);
-          return itemDate >= fromDate;
+          const itemIso = toIsoDateStr(d);
+          return itemIso >= fromIso;
         });
       }
-      if (toDate) {
+      if (toIso) {
         result = result.filter(item => {
-          const d = item.repairdate || item.date || item.createdAt;
+          const d = item.repairdate || item.date || item.uploaddate || item.createdAt;
           if (!d) return true;
-          let itemDate = typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10);
-          return itemDate <= toDate;
+          const itemIso = toIsoDateStr(d);
+          return itemIso <= toIso;
         });
       }
     }
@@ -468,7 +511,7 @@ const ModulePage = ({ moduleKey }) => {
         k !== '_id' && k !== 'id' && val && String(val).toLowerCase().includes(q)
       )
     );
-  }, [moduleData, moduleSearchQuery, nestedSubTab, activeSub, busDataFetched, busRegisterNoFilter, reportFromDate, reportToDate, busSearchRegNo, appliedServiceRegNo]);
+  }, [moduleData, moduleSearchQuery, nestedSubTab, activeSub, busDataFetched, busRegisterNoFilter, reportFromDate, reportToDate, busSearchRegNo, appliedServiceRegNo, fromDate, toDate, moduleKey, moduleChildSubTab]);
 
   const totalModulePages = Math.ceil(filteredModuleData.length / moduleEntriesPerPage) || 1;
   const paginatedModuleData = useMemo(() => {
@@ -573,12 +616,27 @@ const ModulePage = ({ moduleKey }) => {
           const val = row[k];
           if (keyClean === 'society') obj.society = String(val).trim();
           else if (keyClean === 'branch') obj.branch = String(val).trim();
-          else if (keyClean === 'regno' || keyClean === 'vehicleregno' || keyClean === 'vno') obj.regno = String(val).trim();
-          else if (keyClean === 'routename' || keyClean === 'route') obj.route = String(val).trim();
-          else if (keyClean === 'date') obj.date = String(val).trim();
+          else if (keyClean === 'regno' || keyClean === 'vehicleregno' || keyClean === 'vno' || keyClean === 'busnumber') {
+            obj.regno = String(val).trim();
+            obj.vehicleregno = String(val).trim();
+          }
+          else if (keyClean === 'routename' || keyClean === 'route') {
+            obj.route = String(val).trim();
+            obj.routename = String(val).trim();
+          }
+          else if (keyClean === 'date' || keyClean === 'uploaddate') {
+            obj.date = String(val).trim();
+            obj.uploaddate = String(val).trim();
+          }
           else if (keyClean === 'capacity') obj.capacity = val;
-          else if (keyClean === 'students' || keyClean === 'studentsstrength') obj.studentsstrength = val;
-          else if (keyClean === 'strength' || keyClean === 'fixedstrength') obj.fixedstrength = val;
+          else if (keyClean === 'students' || keyClean === 'studentsstrength') {
+            obj.students = val;
+            obj.studentsstrength = val;
+          }
+          else if (keyClean === 'strength' || keyClean === 'fixedstrength') {
+            obj.strength = val;
+            obj.fixedstrength = val;
+          }
           else if (keyClean === 'omr') obj.omr = val;
           else if (keyClean === 'cmr') obj.cmr = val;
           else if (keyClean === 'kms') obj.kms = val;
@@ -1510,7 +1568,10 @@ const ModulePage = ({ moduleKey }) => {
               activeTab={moduleChildSubTab || currentSubTabObj.childSubTabs[0].id}
               onChange={(id) => {
                 setModuleChildSubTab(id);
-                fetchModuleData(id, selectedBranch, false);
+                const extraParams = (id === 'generatereport' || id === 'generate_report' || id === 'entrydata' || id === 'vehicletrip' || id === 'trips')
+                  ? { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() }
+                  : {};
+                fetchModuleData(id, selectedBranch, false, extraParams);
               }}
               tabs={currentSubTabObj.childSubTabs}
             />
@@ -1602,7 +1663,7 @@ const ModulePage = ({ moduleKey }) => {
           >
             <button
               type="button"
-              onClick={() => fetchModuleData(moduleChildSubTab || activeSub, selectedBranch, true)}
+              onClick={() => fetchModuleData(moduleChildSubTab || activeSub, selectedBranch, true, { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() })}
               style={{
                 backgroundColor: '#54d4f3',
                 color: '#ffffff',

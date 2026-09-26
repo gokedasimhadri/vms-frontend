@@ -14,6 +14,7 @@ import RepairBills from './pages/RepairBills';
 import BusBreakdown from './pages/BusBreakdown';
 import Batteries from './pages/Batteries';
 import VehicleTyres from './pages/VehicleTyres';
+import UserManagement from './pages/UserManagement';
 import Reports from './pages/Reports';
 import './App.css';
 
@@ -54,6 +55,7 @@ function App() {
         <Route path="/bus-breakdown" element={<ProtectedRoute><BusBreakdown /></ProtectedRoute>} />
         <Route path="/batteries" element={<ProtectedRoute><Batteries /></ProtectedRoute>} />
         <Route path="/vehicle-tyres" element={<ProtectedRoute><VehicleTyres /></ProtectedRoute>} />
+        <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
