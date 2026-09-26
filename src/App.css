@@ -2461,6 +2461,16 @@
   background-color: #c9302c;
 }
 
+.admin-icon-btn.print {
+  background-color: #0b5299;
+  border: 1px solid #08427b;
+  color: #ffffff;
+}
+
+.admin-icon-btn.print:hover {
+  background-color: #083b6f;
+}
+
 .admin-data-table th:nth-last-child(1),
 .admin-data-table th:nth-last-child(2),
 .admin-data-table td:nth-last-child(1),

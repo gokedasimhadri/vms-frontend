@@ -613,6 +613,40 @@ const Admin = () => {
     }
   };
 
+  const handleGeneratePDFRow = (row) => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const title = adminSubTab.replace(/_/g, ' ');
+    const fields = TAB_FIELDS[adminSubTab] || [];
+    win.document.write(`
+      <!DOCTYPE html>
+      <html><head><title>${title} Report</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 24px; color: #1e293b; background: #fff; }
+        .header { text-align: center; border-bottom: 2px solid #0b5299; padding-bottom: 12px; margin-bottom: 20px; }
+        .header h2 { margin: 0; color: #0b5299; font-size: 22px; text-transform: capitalize; }
+        .header p { margin: 4px 0 0; font-size: 13px; color: #64748b; }
+        table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+        th, td { border: 1px solid #cbd5e1; padding: 10px 14px; font-size: 13px; text-align: left; }
+        th { background-color: #f1f5f9; width: 35%; font-weight: 600; color: #0d233b; }
+        @media print {
+          body { padding: 0; }
+        }
+      </style>
+      </head><body>
+      <div class="header">
+        <h2>${title} Details</h2>
+        <p>Generated on ${new Date().toLocaleDateString()}</p>
+      </div>
+      <table>
+        ${Object.entries(row).filter(([k]) => k !== '_id' && k !== 'id' && k !== '__v').map(([k, v]) => `<tr><th style="text-transform: capitalize;">${k}</th><td>${v !== undefined && v !== null ? String(v) : '-'}</td></tr>`).join('')}
+      </table>
+      </body></html>
+    `);
+    win.document.close();
+    win.print();
+  };
+
   return (
     <MainLayout
       mobileLeftOpen={mobileLeftOpen}
@@ -750,6 +784,7 @@ const Admin = () => {
                     <th>Society Name</th>
                     <th>Edit</th>
                     <th>Remove</th>
+                    <th>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Branches' && (
@@ -759,6 +794,7 @@ const Admin = () => {
                     <th>Branch Name</th>
                     <th>Edit</th>
                     <th>Remove</th>
+                    <th>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Route_Details' && (
@@ -773,6 +809,7 @@ const Admin = () => {
                     <th>Distance(in kms)</th>
                     <th>Edit</th>
                     <th>Remove</th>
+                    <th>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Handovers' && (
@@ -786,6 +823,7 @@ const Admin = () => {
                     <th>Status</th>
                     <th>Edit</th>
                     <th>Remove</th>
+                    <th>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Issues' && (
@@ -799,6 +837,7 @@ const Admin = () => {
                     <th>Status</th>
                     <th>Edit</th>
                     <th>Remove</th>
+                    <th>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Transfers' && (
@@ -815,6 +854,7 @@ const Admin = () => {
                     <th>Date of transfer</th>
                     <th>Edit</th>
                     <th>Remove</th>
+                    <th>Print</th>
                   </tr>
                 )}
               </thead>
@@ -822,10 +862,10 @@ const Admin = () => {
                 {adminLoading ? (
                   <TableLoader
                     colSpan={
-                      adminSubTab === 'Transfers' ? 12 :
-                        adminSubTab === 'Route_Details' ? 10 :
-                          adminSubTab === 'Handovers' || adminSubTab === 'Issues' ? 9 :
-                            adminSubTab === 'Branches' ? 5 : 4
+                      adminSubTab === 'Transfers' ? 13 :
+                        adminSubTab === 'Route_Details' ? 11 :
+                          adminSubTab === 'Handovers' || adminSubTab === 'Issues' ? 10 :
+                            adminSubTab === 'Branches' ? 6 : 5
                     }
                     message={`Loading ${adminSubTab.replace('_', ' ')} records, please wait...`}
                   />
@@ -910,11 +950,23 @@ const Admin = () => {
                           </svg>
                         </button>
                       </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-icon-btn print"
+                          title="Print PDF"
+                          onClick={() => handleGeneratePDFRow(row)}
+                        >
+                          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H7a2 2 0 00-2 2v4h10z" />
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="11" className="empty-cell">
+                    <td colSpan="12" className="empty-cell">
                       No data available in table
                     </td>
                   </tr>

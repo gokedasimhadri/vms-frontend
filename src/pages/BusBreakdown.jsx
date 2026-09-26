@@ -212,6 +212,65 @@ export default function BusBreakdown() {
     }
   };
 
+  // ---- Print row PDF ----
+  const handleGeneratePDFRow = (row) => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Bus Breakdown Report - ${row.busno || 'Vehicle'}</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 24px; color: #1e293b; background: #fff; }
+          .header { text-align: center; border-bottom: 2px solid #0b5299; padding-bottom: 12px; margin-bottom: 20px; }
+          .header h2 { margin: 0; color: #0b5299; font-size: 22px; }
+          .header p { margin: 4px 0 0; font-size: 13px; color: #64748b; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; }
+          th, td { border: 1px solid #cbd5e1; padding: 8px 12px; font-size: 12.5px; text-align: left; }
+          th { background-color: #f1f5f9; width: 35%; font-weight: 600; color: #0d233b; }
+          .section-title { font-size: 15px; font-weight: 700; color: #0d233b; margin-top: 20px; margin-bottom: 8px; border-left: 4px solid #0b5299; padding-left: 8px; }
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>Bus Breakdown Report</h2>
+          <p>Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+        <table>
+          ${ALL_COLUMNS.map(c => `<tr><th>${c.label}</th><td>${row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '-'}</td></tr>`).join('')}
+        </table>
+        ${Array.isArray(row.workers) && row.workers.length > 0 ? `
+          <div class="section-title">Workers Data</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:10%;">S.No</th>
+                <th style="width:45%;">Worker Name</th>
+                <th style="width:45%;">Worker Designation</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${row.workers.map((w, i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${w.workername || '-'}</td>
+                  <td>${w.workerdesignation || '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+      </body>
+      </html>
+    `);
+    win.document.close();
+    win.print();
+  };
+
   // ---- Filtered & paginated table ----
   const filtered = tableData.filter(row => {
     if (!searchQuery.trim()) return true;
@@ -533,11 +592,12 @@ export default function BusBreakdown() {
                       <th style={{ width: 50, textAlign: 'center' }}>▴ S.No</th>
                       {ALL_COLUMNS.map(c => <th key={c.key}>{c.label}</th>)}
                       <th style={{ textAlign: 'center' }}>Delete</th>
+                      <th style={{ textAlign: 'center' }}>Print</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tableLoading ? (
-                      <TableLoader colSpan={ALL_COLUMNS.length + 2} message="Loading Bus Breakdown records, please wait..." />
+                      <TableLoader colSpan={ALL_COLUMNS.length + 3} message="Loading Bus Breakdown records, please wait..." />
                     ) : paginated.length > 0 ? (
                       paginated.map((row, idx) => (
                         <tr key={row._id || row.id || idx}>
@@ -547,15 +607,24 @@ export default function BusBreakdown() {
                           ))}
                           <td style={{ textAlign: 'center' }}>
                             <button
+                              type="button"
                               className="bb-del-btn"
                               title="Delete"
                               onClick={() => handlePromptDelete(row)}
                             >🗑</button>
                           </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              className="bb-print-btn"
+                              title="Print / Download PDF"
+                              onClick={() => handleGeneratePDFRow(row)}
+                            >Print</button>
+                          </td>
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan={ALL_COLUMNS.length + 2} className="empty-cell">No data available in table</td></tr>
+                      <tr><td colSpan={ALL_COLUMNS.length + 3} className="empty-cell">No data available in table</td></tr>
                     )}
                   </tbody>
                 </table>
