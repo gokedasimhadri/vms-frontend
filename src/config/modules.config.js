@@ -105,8 +105,8 @@ export const SIDEBAR_MODULE_CONFIG = {
     title: 'Vehicles Management',
     subTabs: [
       { id: 'makes', label: 'Vehicles Makes' },
-      { 
-        id: 'info', 
+      {
+        id: 'info',
         label: 'Vehicle Information',
         childSubTabs: [
           { id: 'lightmotor', label: 'Light Motor' },
@@ -114,8 +114,8 @@ export const SIDEBAR_MODULE_CONFIG = {
         ]
       },
       { id: 'branch', label: 'Branch Vehicle Info' },
-      { 
-        id: 'trips', 
+      {
+        id: 'trips',
         label: 'Vehicle Trips',
         childSubTabs: [
           { id: 'entrydata', label: 'Entry Data' },
@@ -353,8 +353,8 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'bunk', label: 'Fuel Bunk' },
       { id: 'servicing', label: 'Bunk Servicing' },
       { id: 'fuelfill', label: 'Bunk Fillings' },
-      { 
-        id: 'busfill', 
+      {
+        id: 'busfill',
         label: 'Bus Fillings',
         nestedTabs: [
           { id: 'entry_data', label: 'Entry Data' },
