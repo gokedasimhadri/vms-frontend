@@ -573,10 +573,10 @@ const Reports = () => {
         const uLower = (parsed.username || '').toLowerCase();
         const rUpper = (parsed.role || '').toUpperCase();
         const isBranchAdmin = rUpper === 'BRANCH_ADMIN' ||
-                              rUpper === 'BRANCH_USER' ||
-                              uLower.includes('adchr') ||
-                              uLower.includes('branch') ||
-                              (!['ADMIN', 'SUPER_ADMIN'].includes(rUpper) && !['vms', 'vmskkd', 'vc', 'admin'].includes(uLower) && parsed.branch && parsed.branch !== 'VMS' && parsed.branch !== 'ALL');
+          rUpper === 'BRANCH_USER' ||
+          uLower.includes('adchr') ||
+          uLower.includes('branch') ||
+          (!['ADMIN', 'SUPER_ADMIN'].includes(rUpper) && !['vms', 'vmskkd', 'vc', 'admin'].includes(uLower) && parsed.branch && parsed.branch !== 'VMS' && parsed.branch !== 'ALL');
         if (isBranchAdmin) {
           navigate('/dashboard', { replace: true });
         }
@@ -670,6 +670,7 @@ const Reports = () => {
     });
   };
 
+
   const toggleSection = (secId) => {
     // If clicking the currently open tab, toggle or keep it; if clicking another, switch to it (closing previous)
     const newSecId = activeSectionId === secId ? null : secId;
@@ -745,7 +746,7 @@ const Reports = () => {
       handleLogout={handleLogout}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', paddingBottom: '30px' }}>
-        
+
         {/* ── Top Header Banner (Matching Screenshot 1) ── */}
         <div style={{
           position: 'relative',
@@ -782,7 +783,7 @@ const Reports = () => {
               </p>
             </div>
           </div>
-          
+
           {/* Subtle Graphic Silhouette */}
           <div style={{
             position: 'absolute',
@@ -809,7 +810,7 @@ const Reports = () => {
           <label style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b' }}>
             Register No:
           </label>
-          
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <div style={{ width: '300px', maxWidth: '100%' }}>
               <VehicleAutocomplete
