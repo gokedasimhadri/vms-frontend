@@ -823,22 +823,30 @@ const ModulePage = ({ moduleKey }) => {
     }
   };
 
-  const showPDFColumn = moduleKey === 'Vehicles' && activeSub === 'accidents';
-
   const handleGeneratePDF = (row) => {
     const win = window.open('', '_blank');
     if (!win) return;
+    const title = `${moduleKey} (${activeSub.replace(/_/g, ' ')})`;
     win.document.write(`
-      <html><head><title>Vehicle Accident Report</title>
+      <!DOCTYPE html>
+      <html><head><title>${title} Report</title>
       <style>
-        body { font-family: Arial, sans-serif; padding: 24px; color: #1e293b; }
-        h2 { text-align: center; color: #0b5299; border-bottom: 2px solid #0b5299; padding-bottom: 8px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 24px; color: #1e293b; background: #fff; }
+        .header { text-align: center; border-bottom: 2px solid #0b5299; padding-bottom: 12px; margin-bottom: 20px; }
+        .header h2 { margin: 0; color: #0b5299; font-size: 22px; text-transform: capitalize; }
+        .header p { margin: 4px 0 0; font-size: 13px; color: #64748b; }
         table { border-collapse: collapse; width: 100%; margin-top: 16px; }
         th, td { border: 1px solid #cbd5e1; padding: 10px 14px; font-size: 13px; text-align: left; }
-        th { background-color: #f1f5f9; width: 35%; font-weight: 600; }
+        th { background-color: #f1f5f9; width: 35%; font-weight: 600; color: #0d233b; }
+        @media print {
+          body { padding: 0; }
+        }
       </style>
       </head><body>
-      <h2>Vehicle Accident Report</h2>
+      <div class="header">
+        <h2>${title} Report</h2>
+        <p>Generated on ${new Date().toLocaleDateString()}</p>
+      </div>
       <table>
         ${activeCols.map(c => `<tr><th>${c.label}</th><td>${row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '-'}</td></tr>`).join('')}
       </table>
@@ -1799,6 +1807,7 @@ const ModulePage = ({ moduleKey }) => {
                     <>
                       <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
                       <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                      <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                     </>
                   )}
                 </tr>
@@ -1806,7 +1815,7 @@ const ModulePage = ({ moduleKey }) => {
               <tbody>
                 {moduleLoading ? (
                   <TableLoader
-                    colSpan={activeCols.length + (hasActionCols ? 3 : 1)}
+                    colSpan={activeCols.length + (hasActionCols ? 4 : 1)}
                     message={`Loading ${moduleKey} (${moduleSubTab.replace('_', ' ')}) records, please wait...`}
                   />
                 ) : paginatedModuleData.length > 0 ? (
@@ -1844,13 +1853,25 @@ const ModulePage = ({ moduleKey }) => {
                               </svg>
                             </button>
                           </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              className="admin-icon-btn print"
+                              title="Print PDF"
+                              onClick={() => handleGeneratePDF(row)}
+                            >
+                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H7a2 2 0 00-2 2v4h10z" />
+                              </svg>
+                            </button>
+                          </td>
                         </>
                       )}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={activeCols.length + (hasActionCols ? 3 : 1)} className="empty-cell">
+                    <td colSpan={activeCols.length + (hasActionCols ? 4 : 1)} className="empty-cell">
                       No data available in table
                     </td>
                   </tr>
