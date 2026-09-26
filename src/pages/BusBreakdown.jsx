@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import MainLayout from '../components/MainLayout';
@@ -10,6 +10,7 @@ import {
   getBusBreakdownData,
   createBusBreakdownItem,
   deleteBusBreakdownItem,
+  getAdminData
 } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import VehicleAutocomplete from '../components/VehicleAutocomplete';
@@ -104,12 +105,65 @@ export default function BusBreakdown() {
 
   const hasFetchedRef = useRef(false);
 
+  const [selectedBranch, setSelectedBranch] = useState('ALL');
+  const [branchesList, setBranchesList] = useState([]);
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const branchRes = await getAdminData('branches', 'ALL').catch(() => null);
+        const branchData = Array.isArray(branchRes) ? branchRes : (Array.isArray(branchRes?.data) ? branchRes.data : []);
+        const branchNames = branchData.map(b => (b.name || b.branchname || '').trim()).filter(Boolean);
+        setBranchesList(Array.from(new Set(branchNames)).sort());
+      } catch (err) {
+        console.error('Failed to fetch branches in BusBreakdown:', err);
+      }
+    };
+    fetchBranches();
+  }, []);
+
+  const isVmsUser = useMemo(() => {
+    if (!user) return true;
+    const uL = (user.username || '').toLowerCase();
+    const rU = (user.role || '').toUpperCase();
+    const b = user.branch || '';
+    return ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) ||
+           ['ADMIN', 'SUPER_ADMIN'].includes(rU) ||
+           b === 'VMS' || b === 'ALL';
+  }, [user]);
+
+  const selectableBranches = useMemo(() => {
+    if (isVmsUser) {
+      return branchesList;
+    }
+    if (user?.branches && user.branches.length > 0) {
+      return user.branches.filter(b => b && b !== 'ALL' && b !== 'College' && b !== 'VMS');
+    }
+    if (user?.branch && user.branch !== 'ALL' && user.branch !== 'VMS' && user.branch !== 'College') {
+      return [user.branch];
+    }
+    return [];
+  }, [user, isVmsUser, branchesList]);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/'); return; }
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      try { setUser(JSON.parse(userStr)); } catch (e) { }
+      try {
+        const parsed = JSON.parse(userStr);
+        setUser(parsed);
+        const uL = (parsed.username || '').toLowerCase();
+        const rU = (parsed.role || '').toUpperCase();
+        const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) ||
+                      ['ADMIN', 'SUPER_ADMIN'].includes(rU) ||
+                      parsed.branch === 'VMS' || parsed.branch === 'ALL';
+        if (!isVms && parsed.branch && parsed.branch !== 'College' && (!parsed.branches || parsed.branches.length === 0)) {
+          setSelectedBranch(parsed.branch);
+        } else {
+          setSelectedBranch('ALL');
+        }
+      } catch (e) { }
     }
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
@@ -124,10 +178,10 @@ export default function BusBreakdown() {
   };
 
   // ---- Fetch table data ----
-  const fetchTable = async () => {
+  const fetchTable = async (branchToFetch = selectedBranch) => {
     setTableLoading(true);
     try {
-      const res = await getBusBreakdownData();
+      const res = await getBusBreakdownData(branchToFetch);
       setTableData(res?.data || []);
     } catch (e) {
       console.error(e);
@@ -380,13 +434,49 @@ export default function BusBreakdown() {
       <div className="bb-page-wrapper">
 
         {/* ── Top badge ── */}
-        <div className="module-top-badge-wrapper">
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
           <div className="module-top-badge">
             <div className="module-top-badge-icon">
               <AlertTriangle size={16} />
             </div>
             <div className="module-top-badge-label">Bus Break Down</div>
           </div>
+
+          {selectableBranches.length > 0 && (
+            <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
+              {selectableBranches.length === 1 && !isVmsUser ? (
+                <div style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>
+                  Branch: {selectableBranches[0]}
+                </div>
+              ) : (
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => {
+                    setSelectedBranch(e.target.value);
+                    fetchTable(e.target.value);
+                  }}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    color: '#1e293b',
+                    padding: '5px 12px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="ALL">
+                    {isVmsUser ? `All Branches (${selectableBranches.length})` : `All Assigned Branches (${selectableBranches.length})`}
+                  </option>
+                  {selectableBranches.map((b, i) => (
+                    <option key={i} value={b}>{b}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Tab ribbon (pill style) ── */}

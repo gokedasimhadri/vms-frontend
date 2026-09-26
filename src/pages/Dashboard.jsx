@@ -12,7 +12,8 @@ import {
   fetchInsuranceExpired,
   fetchBusfilldata,
   fetchVehicletripexceed,
-  updateRoadtaxStatus
+  updateRoadtaxStatus,
+  getAdminData
 } from '../services/api';
 import ExportButtons from '../components/ExportButtons';
 import { TableLoader, PageLoader } from '../components/Loader';
@@ -56,6 +57,45 @@ const Dashboard = () => {
 
   const overviewCacheRef = useRef({});
 
+  const isVmsUser = useMemo(() => {
+    if (!user) return true;
+    const usernameLower = (user.username || '').toLowerCase();
+    const roleUpper = (user.role || '').toUpperCase();
+    const b = user.branch || '';
+    return ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
+           ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+           b === 'VMS' || b === 'ALL';
+  }, [user]);
+
+  const [allMetadataBranches, setAllMetadataBranches] = useState([]);
+
+  useEffect(() => {
+    const fetchAllBranches = async () => {
+      try {
+        const branchRes = await getAdminData('branches', 'ALL').catch(() => null);
+        const branchData = Array.isArray(branchRes) ? branchRes : (Array.isArray(branchRes?.data) ? branchRes.data : []);
+        const branchNames = branchData.map(b => (b.name || b.branchname || '').trim()).filter(Boolean);
+        setAllMetadataBranches(Array.from(new Set(branchNames)).sort());
+      } catch (err) {
+        console.error('Failed to fetch metadata branches:', err);
+      }
+    };
+    fetchAllBranches();
+  }, []);
+
+  const selectableBranches = useMemo(() => {
+    if (isVmsUser) {
+      return allMetadataBranches;
+    }
+    if (user?.branches && user.branches.length > 0) {
+      return user.branches.filter(b => b && b !== 'ALL' && b !== 'College' && b !== 'VMS');
+    }
+    if (user?.branch && user.branch !== 'ALL' && user.branch !== 'VMS' && user.branch !== 'College') {
+      return [user.branch];
+    }
+    return [];
+  }, [user, isVmsUser, allMetadataBranches]);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -68,8 +108,15 @@ const Dashboard = () => {
       try {
         const parsed = JSON.parse(userStr);
         setUser(parsed);
-        if (parsed.branch && parsed.branch !== 'College') {
+        const usernameLower = (parsed.username || '').toLowerCase();
+        const roleUpper = (parsed.role || '').toUpperCase();
+        const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
+                      ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+                      parsed.branch === 'VMS' || parsed.branch === 'ALL';
+        if (!isVms && parsed.branch && parsed.branch !== 'College' && (!parsed.branches || parsed.branches.length === 0)) {
           setSelectedBranch(parsed.branch);
+        } else {
+          setSelectedBranch('ALL');
         }
       } catch (e) {
         console.error('Failed to parse user session', e);
@@ -308,18 +355,26 @@ const Dashboard = () => {
             <div className="pill-text-box">Dashboard</div>
           </div>
 
-          {branchesList.length > 0 && (
+          {selectableBranches.length > 0 && (
             <div style={{ position: 'absolute', right: 0, top: 0 }}>
-              <select
-                value={selectedBranch}
-                onChange={(e) => setSelectedBranch(e.target.value)}
-                className="bg-white border border-slate-300 text-slate-700 py-1 px-2.5 rounded text-xs outline-none cursor-pointer hover:bg-slate-50"
-              >
-                <option value="ALL">All Branches ({branchesList.length})</option>
-                {branchesList.map((b, i) => (
-                  <option key={i} value={b}>{b}</option>
-                ))}
-              </select>
+              {selectableBranches.length === 1 && !isVmsUser ? (
+                <div className="bg-slate-100 border border-slate-300 text-slate-700 py-1 px-2.5 rounded text-xs font-semibold">
+                  Branch: {selectableBranches[0]}
+                </div>
+              ) : (
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  className="bg-white border border-slate-300 text-slate-700 py-1 px-2.5 rounded text-xs outline-none cursor-pointer hover:bg-slate-50"
+                >
+                  <option value="ALL">
+                    {isVmsUser ? `All Branches (${selectableBranches.length})` : `All Assigned Branches (${selectableBranches.length})`}
+                  </option>
+                  {selectableBranches.map((b, i) => (
+                    <option key={i} value={b}>{b}</option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
         </div>

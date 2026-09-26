@@ -205,16 +205,44 @@ const Admin = () => {
     fetchFormMetadata();
   }, []);
 
+  const isVmsUser = useMemo(() => {
+    if (!user) return true;
+    const uL = (user.username || '').toLowerCase();
+    const rU = (user.role || '').toUpperCase();
+    const b = user.branch || '';
+    return ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) ||
+           ['ADMIN', 'SUPER_ADMIN'].includes(rU) ||
+           b === 'VMS' || b === 'ALL';
+  }, [user]);
+
+  const selectableBranches = useMemo(() => {
+    if (isVmsUser) {
+      const allNames = branchesList.map(b => b.name).filter(Boolean);
+      return Array.from(new Set(allNames)).sort();
+    }
+    if (user?.branches && user.branches.length > 0) {
+      return user.branches.filter(b => b && b !== 'ALL' && b !== 'College' && b !== 'VMS');
+    }
+    if (user?.branch && user.branch !== 'ALL' && user.branch !== 'VMS' && user.branch !== 'College') {
+      return [user.branch];
+    }
+    return [];
+  }, [user, isVmsUser, branchesList]);
+
   // Filtered branches for single-select dropdown based on selected society
   const availableBranches = useMemo(() => {
-    if (!formData.society) {
-      return Array.from(new Set(branchesList.map(b => b.name))).sort();
+    let list = branchesList.map(b => b.name).filter(Boolean);
+    if (formData.society) {
+      list = branchesList
+        .filter(b => b.society.toLowerCase() === formData.society.toLowerCase())
+        .map(b => b.name);
     }
-    const filtered = branchesList
-      .filter(b => b.society.toLowerCase() === formData.society.toLowerCase())
-      .map(b => b.name);
-    return Array.from(new Set(filtered)).sort();
-  }, [branchesList, formData.society]);
+    if (!isVmsUser && selectableBranches.length > 0) {
+      list = list.filter(b => selectableBranches.includes(b));
+      if (list.length === 0) list = selectableBranches;
+    }
+    return Array.from(new Set(list)).sort();
+  }, [branchesList, formData.society, isVmsUser, selectableBranches]);
 
   // Route Details options (Route Name and Start Point dropdowns)
   const [routeFormOptions, setRouteFormOptions] = useState({
@@ -299,8 +327,15 @@ const Admin = () => {
       try {
         const parsed = JSON.parse(userStr);
         setUser(parsed);
-        if (parsed.branch && parsed.branch !== 'College') {
+        const usernameLower = (parsed.username || '').toLowerCase();
+        const roleUpper = (parsed.role || '').toUpperCase();
+        const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
+                      ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+                      parsed.branch === 'VMS' || parsed.branch === 'ALL';
+        if (!isVms && parsed.branch && parsed.branch !== 'College' && (!parsed.branches || parsed.branches.length === 0)) {
           setSelectedBranch(parsed.branch);
+        } else {
+          setSelectedBranch('ALL');
         }
       } catch (e) {
         console.error('Failed to parse user session', e);
@@ -308,15 +343,7 @@ const Admin = () => {
     }
   }, [navigate]);
 
-  const isVmsUser = useMemo(() => {
-    if (!user) return true;
-    const uL = (user.username || '').toLowerCase();
-    const rU = (user.role || '').toUpperCase();
-    const b = user.branch || '';
-    return ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) ||
-           ['ADMIN', 'SUPER_ADMIN'].includes(rU) ||
-           b === 'VMS' || b === 'ALL';
-  }, [user]);
+
 
   const visibleSubTabs = useMemo(() => {
     if (!isVmsUser) {
@@ -488,6 +515,8 @@ const Admin = () => {
       initial.transferdate = `${y}-${m}-${d}`;
     } else if (selectedBranch && selectedBranch !== 'ALL' && selectedBranch !== 'College') {
       initial.branch = selectedBranch;
+    } else if (!isVmsUser && selectableBranches.length === 1) {
+      initial.branch = selectableBranches[0];
     }
     setFormData(initial);
     setShowModal(true);
@@ -657,13 +686,49 @@ const Admin = () => {
     >
       <div className="admin-page-container">
         {/* Module Header Badge */}
-        <div className="module-top-badge-wrapper">
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
           <div className="module-top-badge">
             <div className="module-top-badge-icon">
               <User size={16} />
             </div>
             <div className="module-top-badge-label">Admin</div>
           </div>
+
+          {selectableBranches.length > 0 && (
+            <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
+              {selectableBranches.length === 1 && !isVmsUser ? (
+                <div style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>
+                  Branch: {selectableBranches[0]}
+                </div>
+              ) : (
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => {
+                    setSelectedBranch(e.target.value);
+                    fetchAdminData(adminSubTab, e.target.value, true);
+                  }}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    color: '#1e293b',
+                    padding: '5px 12px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="ALL">
+                    {isVmsUser ? `All Branches (${selectableBranches.length})` : `All Assigned Branches (${selectableBranches.length})`}
+                  </option>
+                  {selectableBranches.map((b, i) => (
+                    <option key={i} value={b}>{b}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Subtabs matching Staff page tabs design */}
