@@ -173,6 +173,8 @@ const ModulePage = ({ moduleKey }) => {
   const [formData, setFormData] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState('');
+  const [wasValidated, setWasValidated] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
 
   // Custom Delete Confirm Modal State
   const [deleteConfirmModal, setDeleteConfirmModal] = useState({
@@ -806,6 +808,8 @@ const ModulePage = ({ moduleKey }) => {
 
   const handleOpenAddModal = () => {
     setEditingId(null);
+    setWasValidated(false);
+    setFormErrors({});
     const initial = {};
     activeCols.forEach(col => {
       initial[col.key] = '';
@@ -822,6 +826,8 @@ const ModulePage = ({ moduleKey }) => {
   // Open modal for Editing an existing record
   const handleOpenEditModal = (row) => {
     setEditingId(row._id || row.id);
+    setWasValidated(false);
+    setFormErrors({});
     const initial = {};
     activeCols.forEach(col => {
       initial[col.key] = row[col.key] ?? '';
@@ -882,16 +888,62 @@ const ModulePage = ({ moduleKey }) => {
     }
   };
 
+  const isColumnRequired = (col, isEditing = false) => {
+    const k = (col.key || '').toLowerCase();
+    const optionalKeys = [
+      'remarks', 'description', 'points', 'file', 'upload', 'profilepic', 'image', 'pic',
+      'photo', 'aadharpic', 'liciensepic', 'licensepic', 'claimamount', 'claimedfrom',
+      'driverremarks', 'actiontaken', 'settlementmode', 'accidentdescription', 'accidentplace',
+      'waterservicing', 'engineoil', 'chasis', 'springs', 'centerjoints', 'allubolts',
+      'airfilling', 'greesing', 'batterymaintenance', 'lights', 'glasses', 'bodypaint',
+      'seats', 'gearoil', 'difoil', 'brakeoil', 'atfoil', 'radiatorwater', 'meterreading',
+      'warranty', 'status'
+    ];
+    if (optionalKeys.includes(k)) return false;
+    if ((col.type === 'image' || col.type === 'file') && isEditing) return false;
+    return true;
+  };
+
   // Generic create/update dispatcher
   const handleSaveRecord = async (e) => {
     e.preventDefault();
+
+    const payload = { ...formData };
+    if (!payload.branch && selectedBranch !== 'ALL' && selectedBranch !== 'College') {
+      payload.branch = selectedBranch;
+    }
+
+    const isVehicleInfo = (moduleKey === 'Vehicles' && (activeSub === 'info' || activeSub === 'lightmotor' || activeSub === 'heavymotor'));
+    let fieldsToRender = activeCols;
+    if (isVehicleInfo) {
+      const statusCol = activeCols.find(c => c.key === 'status');
+      const otherCols = activeCols.filter(c => c.key !== 'status');
+      const modelIdx = otherCols.findIndex(c => c.key === 'model');
+      if (modelIdx !== -1 && statusCol) {
+        const copy = [...otherCols];
+        copy.splice(modelIdx + 1, 0, statusCol);
+        fieldsToRender = copy;
+      }
+    }
+
+    const newErrors = {};
+    for (const col of fieldsToRender) {
+      if (!isColumnRequired(col, !!editingId)) continue;
+      const val = payload[col.key];
+      if (val === undefined || val === null || String(val).trim() === '') {
+        const fieldName = (col.modalLabel || col.label || col.key).replace(/\s*:\s*$/, '');
+        newErrors[col.key] = `${fieldName} is required`;
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFormErrors(newErrors);
+      setWasValidated(true);
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const payload = { ...formData };
-      if (!payload.branch && selectedBranch !== 'ALL' && selectedBranch !== 'College') {
-        payload.branch = selectedBranch;
-      }
-
       if (editingId) {
         // UPDATE
         if (moduleKey === 'Staff') await updateStaffItem(activeSub, editingId, payload);
@@ -2124,6 +2176,12 @@ const ModulePage = ({ moduleKey }) => {
                         padding: '20px'
                       }}
                     >
+                      {wasValidated && Object.keys(formErrors).length > 0 && (
+                        <div className="alert-danger-bs" style={{ gridColumn: '1 / -1' }}>
+                          <span>⚠️</span>
+                          <span>Please fill in all required fields highlighted below.</span>
+                        </div>
+                      )}
                       {(() => {
                         let fieldsToRender = activeCols;
                         if (isVehicleInfo) {
@@ -2142,6 +2200,16 @@ const ModulePage = ({ moduleKey }) => {
                             'file', 'upload', 'profilepic', 'image', 'pic', 'photo', 'aadharpic', 'liciensepic', 'licensepic'
                           ].includes(colKeyLower);
 
+                          const isReq = isColumnRequired(col, !!editingId);
+                          const isInvalid = wasValidated && !!formErrors[col.key];
+
+                          const handleFieldChange = (val) => {
+                            setFormData(prev => ({ ...prev, [col.key]: val }));
+                            if (formErrors[col.key]) {
+                              setFormErrors(prev => ({ ...prev, [col.key]: null }));
+                            }
+                          };
+
                           return (
                             <div
                               key={col.key}
@@ -2150,6 +2218,7 @@ const ModulePage = ({ moduleKey }) => {
                             >
                               <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px', display: 'block' }}>
                                 {col?.modalLabel || ((col?.label || col?.key || '').endsWith(':') ? (col?.label || col?.key || '') : `${col?.label || col?.key || ''} :`)}
+                                {isReq && <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>}
                               </label>
 
                               {isImageField ? (
@@ -2161,7 +2230,7 @@ const ModulePage = ({ moduleKey }) => {
                                     backgroundColor: '#ffffff',
                                     padding: '12px 16px',
                                     borderRadius: '8px',
-                                    border: '1px solid #cbd5e1'
+                                    border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1'
                                   }}>
                                     {formData[col.key] ? (
                                       <img
@@ -2217,7 +2286,7 @@ const ModulePage = ({ moduleKey }) => {
                                       </label>
                                       <button
                                         type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, [col.key]: '' }))}
+                                        onClick={() => handleFieldChange('')}
                                         style={{
                                           padding: '5px 14px',
                                           backgroundColor: '#fef2f2',
@@ -2238,93 +2307,122 @@ const ModulePage = ({ moduleKey }) => {
                                     type="file"
                                     accept="image/*,application/pdf"
                                     style={{ display: 'none' }}
-                                    onChange={e => handleImageFileChange(e, col.key)}
+                                    onChange={e => {
+                                      handleImageFileChange(e, col.key);
+                                      if (formErrors[col.key]) {
+                                        setFormErrors(prev => ({ ...prev, [col.key]: null }));
+                                      }
+                                    }}
                                   />
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
                                 </div>
                               ) : col.type === 'society-select' || col.key === 'society' ? (
-                                <select
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => {
-                                    const val = e.target.value;
-                                    setFormData(prev => ({ ...prev, [col.key]: val, branch: '' }));
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: '#ffffff'
-                                  }}
-                                >
-                                  <option value="">-- Select Society --</option>
-                                  {societiesList.map((soc, idx) => (
-                                    <option key={idx} value={soc}>{soc}</option>
-                                  ))}
-                                </select>
+                                <div>
+                                  <select
+                                    value={formData[col.key] ?? ''}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      setFormData(prev => ({ ...prev, [col.key]: val, branch: '' }));
+                                      if (formErrors[col.key]) {
+                                        setFormErrors(prev => ({ ...prev, [col.key]: null }));
+                                      }
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#ffffff'
+                                    }}
+                                  >
+                                    <option value="">-- Select Society --</option>
+                                    {societiesList.map((soc, idx) => (
+                                      <option key={idx} value={soc}>{soc}</option>
+                                    ))}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
                               ) : col.type === 'branch-select' || col.key === 'branch' ? (
-                                <select
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: '#ffffff'
-                                  }}
-                                >
-                                  <option value="">-- Select Branch --</option>
-                                  {availableBranches.map((b, idx) => (
-                                    <option key={idx} value={b}>{b}</option>
-                                  ))}
-                                </select>
+                                <div>
+                                  <select
+                                    value={formData[col.key] ?? ''}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#ffffff'
+                                    }}
+                                  >
+                                    <option value="">-- Select Branch --</option>
+                                    {availableBranches.map((b, idx) => (
+                                      <option key={idx} value={b}>{b}</option>
+                                    ))}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
                               ) : col.type === 'designation-select' || col.key === 'designation' ? (
-                                <select
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    backgroundColor: '#ffffff'
-                                  }}
-                                >
-                                  <option value="">-- Select Designation --</option>
-                                  {designationsList.map((des, idx) => (
-                                    <option key={idx} value={des}>{des}</option>
-                                  ))}
-                                </select>
+                                <div>
+                                  <select
+                                    value={formData[col.key] ?? ''}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#ffffff'
+                                    }}
+                                  >
+                                    <option value="">-- Select Designation --</option>
+                                    {designationsList.map((des, idx) => (
+                                      <option key={idx} value={des}>{des}</option>
+                                    ))}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
                               ) : col.type === 'date' || col.key === 'dateofjoin' || col.key === 'rdate' || col.key === 'valid' ? (
-                                <input
-                                  type="date"
-                                  value={formatDateForInput(formData[col.key])}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px'
-                                  }}
-                                />
+                                <div>
+                                  <input
+                                    type="date"
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    value={formatDateForInput(formData[col.key])}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px'
+                                    }}
+                                  />
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
                               ) : (
-                                <input
-                                  type="text"
-                                  placeholder={`Enter ${col.label.toLowerCase()}...`}
-                                  value={formData[col.key] ?? ''}
-                                  onChange={e => setFormData({ ...formData, [col.key]: e.target.value })}
-                                  style={{
-                                    width: '100%',
-                                    padding: '8px 10px',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    fontSize: '13px'
-                                  }}
-                                />
+                                <div>
+                                  <input
+                                    type="text"
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    placeholder={`Enter ${col.label.toLowerCase()}...`}
+                                    value={formData[col.key] ?? ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px'
+                                    }}
+                                  />
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
                               )}
                             </div>
                           );

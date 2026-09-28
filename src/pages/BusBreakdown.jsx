@@ -214,9 +214,33 @@ export default function BusBreakdown() {
   };
 
   const [editingId, setEditingId] = useState(null);
+  const [wasValidated, setWasValidated] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+
+  // Helper to set single form field and clear its error
+  const updateFormField = (key, val) => {
+    setField(key, val);
+    if (formErrors[key]) {
+      setFormErrors(prev => ({ ...prev, [key]: null }));
+    }
+  };
 
   // ---- Save record ----
   const handleSave = async () => {
+    const newErrors = {};
+    if (!form.busno || !form.busno.trim()) newErrors.busno = 'Bus No is required';
+    if (!form.society || !form.society.trim()) newErrors.society = 'Society is required';
+    if (!form.branch || !form.branch.trim()) newErrors.branch = 'Branch is required';
+    if (!form.breakedownplace || !form.breakedownplace.trim()) newErrors.breakedownplace = 'Breakdown Place is required';
+    if (!form.complaint || !form.complaint.trim()) newErrors.complaint = 'Complaint / Fault is required';
+    if (!form.drivername || !form.drivername.trim()) newErrors.drivername = 'Driver is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setFormErrors(newErrors);
+      setWasValidated(true);
+      return;
+    }
+
     setSaving(true);
     setSaveMsg('');
     try {
@@ -526,15 +550,23 @@ export default function BusBreakdown() {
         {activeTab === 'breakdown' && (
           <div className="bb-content-card bb-content-card--gap">
 
+            {wasValidated && Object.keys(formErrors).length > 0 && (
+              <div className="alert-danger-bs">
+                <span>⚠️</span>
+                <span>Please fill in all required fields highlighted in red below.</span>
+              </div>
+            )}
+
             {/* ── Main form grid ── */}
             <div className="bb-form-grid">
 
               {/* Row 1 */}
               <div className="bb-field">
-                <label>Bus No. :</label>
+                <label>Bus No. : <span style={{ color: '#ef4444' }}>*</span></label>
                 <VehicleAutocomplete
                   value={form.busno}
-                  onChange={val => setField('busno', val)}
+                  className={wasValidated && formErrors.busno ? 'is-invalid' : ''}
+                  onChange={val => updateFormField('busno', val)}
                   onSelectVehicle={veh => {
                     setForm(prev => {
                       const next = { ...prev, busno: veh.regno || veh };
@@ -543,31 +575,53 @@ export default function BusBreakdown() {
                       if (veh.drivername && !prev.drivername) next.drivername = veh.drivername;
                       return next;
                     });
+                    if (formErrors.busno) setFormErrors(prev => ({ ...prev, busno: null }));
                   }}
                   placeholder="Enter Bus No..."
                 />
+                {wasValidated && formErrors.busno && <div className="invalid-feedback">{formErrors.busno}</div>}
               </div>
               <div className="bb-field">
-                <label>Society</label>
-                <input value={form.society} onChange={e => setField('society', e.target.value)} />
+                <label>Society : <span style={{ color: '#ef4444' }}>*</span></label>
+                <input
+                  className={wasValidated && formErrors.society ? 'is-invalid' : ''}
+                  value={form.society}
+                  onChange={e => updateFormField('society', e.target.value)}
+                />
+                {wasValidated && formErrors.society && <div className="invalid-feedback">{formErrors.society}</div>}
               </div>
               <div className="bb-field">
-                <label>Branch :</label>
-                <input value={form.branch} onChange={e => setField('branch', e.target.value)} />
+                <label>Branch : <span style={{ color: '#ef4444' }}>*</span></label>
+                <input
+                  className={wasValidated && formErrors.branch ? 'is-invalid' : ''}
+                  value={form.branch}
+                  onChange={e => updateFormField('branch', e.target.value)}
+                />
+                {wasValidated && formErrors.branch && <div className="invalid-feedback">{formErrors.branch}</div>}
               </div>
 
               {/* Row 2 */}
               <div className="bb-field">
-                <label>Name of the Driver :</label>
-                <input value={form.drivername} onChange={e => setField('drivername', e.target.value)} />
+                <label>Name of the Driver : <span style={{ color: '#ef4444' }}>*</span></label>
+                <input
+                  className={wasValidated && formErrors.drivername ? 'is-invalid' : ''}
+                  value={form.drivername}
+                  onChange={e => updateFormField('drivername', e.target.value)}
+                />
+                {wasValidated && formErrors.drivername && <div className="invalid-feedback">{formErrors.drivername}</div>}
               </div>
               <div className="bb-field">
                 <label>Driver Phone NO :</label>
-                <input value={form.driverphoneno} onChange={e => setField('driverphoneno', e.target.value)} />
+                <input value={form.driverphoneno} onChange={e => updateFormField('driverphoneno', e.target.value)} />
               </div>
               <div className="bb-field">
-                <label>Breake Down place :</label>
-                <input value={form.breakedownplace} onChange={e => setField('breakedownplace', e.target.value)} />
+                <label>Breake Down place : <span style={{ color: '#ef4444' }}>*</span></label>
+                <input
+                  className={wasValidated && formErrors.breakedownplace ? 'is-invalid' : ''}
+                  value={form.breakedownplace}
+                  onChange={e => updateFormField('breakedownplace', e.target.value)}
+                />
+                {wasValidated && formErrors.breakedownplace && <div className="invalid-feedback">{formErrors.breakedownplace}</div>}
               </div>
 
               {/* Row 3 */}

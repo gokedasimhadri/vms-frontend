@@ -220,6 +220,21 @@ const UserManagement = () => {
       return;
     }
 
+    if (!formData.name || !formData.name.trim()) {
+      setFormError('Full Name is required.');
+      return;
+    }
+
+    if (!formData.role || !formData.role.trim()) {
+      setFormError('Role is required.');
+      return;
+    }
+
+    if (!formData.branch || !formData.branch.trim()) {
+      setFormError('Primary Branch is required.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {

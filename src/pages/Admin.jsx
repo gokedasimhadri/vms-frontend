@@ -166,6 +166,8 @@ const Admin = () => {
   const [formData, setFormData] = useState({});
   const [modalSubmitting, setModalSubmitting] = useState(false);
   const [actionSuccessToast, setActionSuccessToast] = useState('');
+  const [wasValidated, setWasValidated] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
   const [societiesList, setSocietiesList] = useState([]);
   const [branchesList, setBranchesList] = useState([]);
 
@@ -496,6 +498,8 @@ const Admin = () => {
 
   const handleOpenAddModal = () => {
     setEditingId(null);
+    setWasValidated(false);
+    setFormErrors({});
     const fields = TAB_FIELDS[adminSubTab] || [];
     const initial = {};
     fields.forEach(f => {
@@ -528,6 +532,8 @@ const Admin = () => {
     const rawId = row._id || row.id;
     const id = typeof rawId === 'object' ? (rawId._id || rawId.$oid || String(rawId)) : String(rawId || '');
     setEditingId(id);
+    setWasValidated(false);
+    setFormErrors({});
     const fields = TAB_FIELDS[adminSubTab] || [];
     const initial = {};
     fields.forEach(f => {
@@ -558,11 +564,29 @@ const Admin = () => {
 
   const handleSaveRecord = async (e) => {
     e.preventDefault();
+    const newErrors = {};
     if (adminSubTab === 'Branches') {
-      if (!formData.societies || formData.societies.length === 0) {
-        alert('Please select at least one Society for this branch.');
-        return;
+      if (!formData.name || !formData.name.trim()) {
+        newErrors.name = 'Branch Name is required';
       }
+      if (!formData.societies || formData.societies.length === 0) {
+        newErrors.societies = 'At least one Society is required';
+      }
+    } else {
+      const currentFields = TAB_FIELDS[adminSubTab] || [];
+      for (const field of currentFields) {
+        if (field.required) {
+          const val = formData[field.key];
+          if (val === undefined || val === null || String(val).trim() === '') {
+            newErrors[field.key] = `${field.label} is required`;
+          }
+        }
+      }
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setFormErrors(newErrors);
+      setWasValidated(true);
+      return;
     }
     setModalSubmitting(true);
     try {
@@ -1094,11 +1118,24 @@ const Admin = () => {
               </div>
               <form onSubmit={handleSaveRecord}>
                 <div className="admin-modal-body">
-                  {(TAB_FIELDS[adminSubTab] || []).map((field) => (
-                    <div className="admin-form-field" key={field.key}>
-                      <label>
-                        {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
-                      </label>
+                  {wasValidated && Object.keys(formErrors).length > 0 && (
+                    <div className="alert-danger-bs" style={{ gridColumn: '1 / -1' }}>
+                      <span>⚠️</span>
+                      <span>Please fill in all required fields highlighted below.</span>
+                    </div>
+                  )}
+                  {(TAB_FIELDS[adminSubTab] || []).map((field) => {
+                    const isInvalid = wasValidated && !!formErrors[field.key];
+                    const clearFieldError = () => {
+                      if (formErrors[field.key]) {
+                        setFormErrors(prev => ({ ...prev, [field.key]: null }));
+                      }
+                    };
+                    return (
+                      <div className="admin-form-field" key={field.key}>
+                        <label>
+                          {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
+                        </label>
                       {field.type === 'society-select' ? (
                         <select
                           value={formData[field.key] ?? ''}
@@ -1293,21 +1330,29 @@ const Admin = () => {
                       ) : field.type === 'date' ? (
                         <input
                           type="date"
+                          className={isInvalid ? 'is-invalid' : ''}
                           value={formatDateForInput(formData[field.key])}
-                          onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
-                          required={field.required}
+                          onChange={e => {
+                            setFormData({ ...formData, [field.key]: e.target.value });
+                            clearFieldError();
+                          }}
                         />
                       ) : (
                         <input
                           type={field.type || 'text'}
+                          className={isInvalid ? 'is-invalid' : ''}
                           value={formData[field.key] ?? ''}
-                          onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
-                          required={field.required}
+                          onChange={e => {
+                            setFormData({ ...formData, [field.key]: e.target.value });
+                            clearFieldError();
+                          }}
                           placeholder={`Enter ${field.label}...`}
                         />
                       )}
+                      {isInvalid && <div className="invalid-feedback">{formErrors[field.key]}</div>}
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
 
                 <div className="admin-modal-footer">
