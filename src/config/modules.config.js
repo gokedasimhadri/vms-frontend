@@ -355,7 +355,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'fuelfill', label: 'Bunk Fillings' },
       {
         id: 'busfill',
-        label: 'Bus Fillings',
+        label: 'Bus_Fillings',
         nestedTabs: [
           { id: 'entry_data', label: 'Entry Data' },
           { id: 'generate_report', label: 'Generate Report' },
@@ -364,7 +364,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       },
     ],
     apiFn: (subTab, branch, search, extra) => getFuelsData(subTab, branch, search, extra),
-    columns: (subTab) => {
+    columns: (subTab, isVmsUser = true) => {
       if (subTab === 'suppliers' || subTab === 'fuelsuppliers') {
         return [
           { key: 'companyname', label: 'Company Name' },
@@ -399,7 +399,7 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'totalrate', label: 'Total Rate' },
         ];
       }
-      if (subTab === 'busfill') {
+      if (subTab === 'busfill' && isVmsUser) {
         return [
           { key: 'regno', label: 'Register No.' },
           { key: 'society', label: 'Society' },
