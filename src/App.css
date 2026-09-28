@@ -2428,12 +2428,14 @@
   font-style: normal;
 }
 
-/* Action Icons (Edit / Remove) */
+/* Action Icons (Edit / Remove / Print) */
 .admin-icon-btn {
   border: none;
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 4px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2442,18 +2444,18 @@
 }
 
 .admin-icon-btn.edit {
-  background-color: #5bc0de;
-  border: 1px solid #46b8da;
+  background-color: #54d4f3;
+  border: none;
   color: #ffffff;
 }
 
 .admin-icon-btn.edit:hover {
-  background-color: #31b0d5;
+  background-color: #38bdf8;
 }
 
 .admin-icon-btn.remove {
   background-color: #d9534f;
-  border: 1px solid #d43f3a;
+  border: none;
   color: #ffffff;
 }
 
@@ -2463,22 +2465,12 @@
 
 .admin-icon-btn.print {
   background-color: #0b5299;
-  border: 1px solid #08427b;
+  border: none;
   color: #ffffff;
 }
 
 .admin-icon-btn.print:hover {
   background-color: #083b6f;
-}
-
-.admin-data-table th:nth-last-child(1),
-.admin-data-table th:nth-last-child(2),
-.admin-data-table td:nth-last-child(1),
-.admin-data-table td:nth-last-child(2) {
-  text-align: left;
-  padding-left: 16px;
-  width: 140px;
-  min-width: 120px;
 }
 
 /* Table Footer & Pagination */

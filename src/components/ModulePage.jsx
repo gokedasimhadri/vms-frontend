@@ -633,8 +633,7 @@ const ModulePage = ({ moduleKey }) => {
     ? currentConfig.columns(activeSub, isVmsUser)
     : (currentConfig?.columns || []);
 
-  const isReportTab = isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill') && nestedSubTab === 'generate_report';
-  const hasActionCols = !isReportTab;
+  const hasActionCols = true;
 
   const getModuleExportData = (cols) => {
     if (!filteredModuleData.length) {
