@@ -460,10 +460,10 @@ const ModulePage = ({ moduleKey }) => {
         : {};
       fetchModuleData(activeSubToFetch, selectedBranch, false, extraParams);
     }
-  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch, busDataFetched]);
+  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch, busDataFetched, visibleSubTabs]);
 
-  const activeSub = moduleSubTab || currentConfig?.subTabs[0]?.id;
-  const currentSubConfig = currentConfig?.subTabs?.find(s => s.id === activeSub);
+  const activeSub = moduleSubTab || visibleSubTabs[0]?.id || currentConfig?.subTabs[0]?.id;
+  const currentSubConfig = visibleSubTabs.find(s => s.id === activeSub) || currentConfig?.subTabs?.find(s => s.id === activeSub);
 
   useEffect(() => {
     if (moduleKey === 'Ad-Blue' && !isVmsUser) {
@@ -479,7 +479,7 @@ const ModulePage = ({ moduleKey }) => {
     } else {
       setNestedSubTab('');
     }
-    if (activeSub === 'busfill' || activeSub === 'adbluebusfill') {
+    if (isVmsUser && (activeSub === 'busfill' || activeSub === 'adbluebusfill')) {
       setBusDataFetched(false);
       setModuleLoading(false);
       setModuleData([]);
@@ -633,7 +633,8 @@ const ModulePage = ({ moduleKey }) => {
     ? currentConfig.columns(activeSub, isVmsUser)
     : (currentConfig?.columns || []);
 
-  const hasActionCols = true;
+  const isReportTab = isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill') && nestedSubTab === 'generate_report';
+  const hasActionCols = !isReportTab;
 
   const getModuleExportData = (cols) => {
     if (!filteredModuleData.length) {
@@ -1159,25 +1160,25 @@ const ModulePage = ({ moduleKey }) => {
         </div>
 
         {/* Subtabs Ribbon using CustomTabs */}
-        {currentConfig && currentConfig.subTabs.length > 1 && (
+        {currentConfig && visibleSubTabs.length >= 1 && (
           <div className="flex justify-center mb-4 mt-4 max-w-full overflow-x-auto">
             <CustomTabs
               activeTab={activeSub}
               onChange={(id) => {
-                if (id === 'busfill' || id === 'adbluebusfill') {
+                if (isVmsUser && (id === 'busfill' || id === 'adbluebusfill')) {
                   setBusDataFetched(false);
                   setModuleLoading(false);
                   setModuleData([]);
                 }
                 setModuleSubTab(id);
               }}
-              tabs={currentConfig.subTabs}
+              tabs={visibleSubTabs}
             />
           </div>
         )}
 
         {/* 2nd Level Nested Subtabs Ribbon (e.g. for Ad_Bus_Fillings / Bus Fillings) */}
-        {currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0 && (
+        {isVmsUser && currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0 && (
           <div className="flex justify-center mb-6 mt-1 max-w-full overflow-x-auto">
             <CustomTabs
               activeTab={nestedSubTab}
