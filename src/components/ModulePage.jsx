@@ -465,8 +465,24 @@ const ModulePage = ({ moduleKey }) => {
   const activeSub = moduleSubTab || visibleSubTabs[0]?.id || currentConfig?.subTabs[0]?.id;
   const currentSubConfig = visibleSubTabs.find(s => s.id === activeSub) || currentConfig?.subTabs?.find(s => s.id === activeSub);
 
+  const displayedSubTabs = useMemo(() => {
+    if (!currentConfig?.subTabs) return [];
+    if (moduleKey === 'Ad-Blue' && !isVmsUser) {
+      return currentConfig.subTabs.filter(s => s.id === 'adbluebusfill');
+    }
+    return currentConfig.subTabs;
+  }, [currentConfig, moduleKey, isVmsUser]);
+
   useEffect(() => {
-    if (currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0) {
+    if (moduleKey === 'Ad-Blue' && !isVmsUser) {
+      if (moduleSubTab !== 'adbluebusfill') {
+        setModuleSubTab('adbluebusfill');
+      }
+    }
+  }, [moduleKey, isVmsUser, moduleSubTab]);
+
+  useEffect(() => {
+    if (currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0 && !(moduleKey === 'Ad-Blue' && !isVmsUser)) {
       setNestedSubTab(currentSubConfig.nestedTabs[0].id);
     } else {
       setNestedSubTab('');
@@ -480,7 +496,7 @@ const ModulePage = ({ moduleKey }) => {
     }
     setBusRegisterNoFilter('');
     setBusSearchRegNo('');
-  }, [activeSub]);
+  }, [activeSub, moduleKey, isVmsUser, currentSubConfig]);
 
   const handleBusFillGetData = (regNoOverride = null) => {
     let targetReg = regNoOverride;
@@ -1465,7 +1481,7 @@ const ModulePage = ({ moduleKey }) => {
                   getdata
                 </button>
 
-                {nestedSubTab === 'entry_data' && (
+                {(nestedSubTab === 'entry_data' || (activeSub === 'adbluebusfill' && !isVmsUser)) && (
                   <button
                     type="button"
                     onClick={handleOpenAddModal}
@@ -1632,26 +1648,28 @@ const ModulePage = ({ moduleKey }) => {
               getdata
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setRepairRegNoInput('');
-                setAppliedRepairRegNo('');
-              }}
-              style={{
-                backgroundColor: '#46b8da',
-                color: '#ffffff',
-                border: 'none',
-                padding: '7px 18px',
-                borderRadius: '4px',
-                fontSize: '13px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}
-            >
-              get all data
-            </button>
+            {isVmsUser && (
+              <button
+                type="button"
+                onClick={() => {
+                  setRepairRegNoInput('');
+                  setAppliedRepairRegNo('');
+                }}
+                style={{
+                  backgroundColor: '#46b8da',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '7px 18px',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}
+              >
+                get all data
+              </button>
+            )}
 
             <button
               type="button"
