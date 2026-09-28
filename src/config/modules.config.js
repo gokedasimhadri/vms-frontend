@@ -577,7 +577,7 @@ export const SIDEBAR_MODULE_CONFIG = {
   'Repair Bills': {
     title: 'Repair Bills',
     subTabs: [
-      { id: 'repairbills', label: 'All Repair Bills' },
+      { id: 'repairbills', label: 'Repair Bills Entry' },
       { id: 'generatereport', label: 'Generate Report' },
     ],
     apiFn: (subTab, branch, search, extra) => getRepairBillsData(subTab, branch, search, extra?.fromDate, extra?.toDate),
