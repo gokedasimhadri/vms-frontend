@@ -43,25 +43,67 @@ const MODULE_ICONS = {
 const ModulePage = ({ moduleKey }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const userStr = sessionStorage.getItem('user') || localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [selectedBranch, setSelectedBranch] = useState('ALL');
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
 
   const currentConfig = SIDEBAR_MODULE_CONFIG[moduleKey];
 
+  const isVmsUser = useMemo(() => {
+    const u = user || (() => {
+      try {
+        const uStr = sessionStorage.getItem('user') || localStorage.getItem('user');
+        return uStr ? JSON.parse(uStr) : null;
+      } catch (e) { return null; }
+    })();
+    if (!u) return false;
+    const usernameLower = (u.username || '').toLowerCase();
+    const roleUpper = (u.role || '').toUpperCase();
+    const b = u.branch || '';
+
+    if (roleUpper === 'BRANCH_ADMIN' || roleUpper === 'BRANCH_USER' || usernameLower.includes('adchr')) {
+      return false;
+    }
+
+    return ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
+      ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+      b === 'VMS' || b === 'ALL';
+  }, [user]);
+
+  const visibleSubTabs = useMemo(() => {
+    if (!currentConfig?.subTabs) return [];
+    if (moduleKey === 'Staff' && !isVmsUser) {
+      return currentConfig.subTabs.filter(st => st.id !== 'Designations');
+    }
+    if (moduleKey === 'Vehicles' && !isVmsUser) {
+      return currentConfig.subTabs.filter(st => st.id !== 'makes' && st.id !== 'info');
+    }
+    if (moduleKey === 'Fuels' && !isVmsUser) {
+      return currentConfig.subTabs.filter(st => !['suppliers', 'bunk', 'servicing', 'fuelfill'].includes(st.id));
+    }
+    return currentConfig.subTabs;
+  }, [currentConfig, moduleKey, isVmsUser]);
+
   const requestedTab = new URLSearchParams(location.search).get('tab');
-  const validRequestedTab = currentConfig?.subTabs?.some(t => t.id === requestedTab) ? requestedTab : null;
+  const validRequestedTab = visibleSubTabs.some(t => t.id === requestedTab) ? requestedTab : null;
 
   const [moduleSubTab, setModuleSubTab] = useState(
-    validRequestedTab || currentConfig?.subTabs[0]?.id || ''
+    validRequestedTab || visibleSubTabs[0]?.id || ''
   );
 
   const currentSubTabObj = useMemo(() => {
-    return currentConfig?.subTabs?.find(t => t.id === moduleSubTab);
-  }, [currentConfig, moduleSubTab]);
+    return visibleSubTabs.find(t => t.id === moduleSubTab);
+  }, [visibleSubTabs, moduleSubTab]);
 
   const [moduleChildSubTab, setModuleChildSubTab] = useState(() => {
-    const subObj = currentConfig?.subTabs?.find(t => t.id === (validRequestedTab || currentConfig?.subTabs[0]?.id));
+    const subObj = visibleSubTabs.find(t => t.id === (validRequestedTab || visibleSubTabs[0]?.id));
     return subObj?.childSubTabs?.length > 0 ? subObj.childSubTabs[0].id : '';
   });
   const getTodayIsoString = () => {
@@ -251,15 +293,7 @@ const ModulePage = ({ moduleKey }) => {
     fetchMetadata();
   }, []);
 
-  const isVmsUser = useMemo(() => {
-    if (!user) return true;
-    const usernameLower = (user.username || '').toLowerCase();
-    const roleUpper = (user.role || '').toUpperCase();
-    const b = user.branch || '';
-    return ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
-           ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
-           b === 'VMS' || b === 'ALL';
-  }, [user]);
+
 
   const selectableBranches = useMemo(() => {
     if (isVmsUser) {
@@ -352,8 +386,8 @@ const ModulePage = ({ moduleKey }) => {
         const usernameLower = (parsed.username || '').toLowerCase();
         const roleUpper = (parsed.role || '').toUpperCase();
         const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
-                      ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
-                      parsed.branch === 'VMS' || parsed.branch === 'ALL';
+          ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+          parsed.branch === 'VMS' || parsed.branch === 'ALL';
         if (!isVms && parsed.branch && parsed.branch !== 'College' && (!parsed.branches || parsed.branches.length === 0)) {
           setSelectedBranch(parsed.branch);
         } else {
@@ -375,7 +409,7 @@ const ModulePage = ({ moduleKey }) => {
 
   const fetchModuleData = async (subTab, branch, forceRefresh = false, extraParams = {}, searchQueryParam = '') => {
     if (!currentConfig) return;
-    const activeSub = subTab || currentConfig.subTabs[0].id;
+    const activeSub = subTab || visibleSubTabs[0]?.id || currentConfig.subTabs[0].id;
     const cacheKey = `${moduleKey}_${activeSub}_${branch || 'ALL'}_${searchQueryParam}_${JSON.stringify(extraParams)}`;
     if (!forceRefresh && Array.isArray(cacheRef.current[cacheKey]) && cacheRef.current[cacheKey].length > 0) {
       setModuleData(cacheRef.current[cacheKey]);
@@ -402,10 +436,10 @@ const ModulePage = ({ moduleKey }) => {
   };
 
   useEffect(() => {
-    if (currentConfig) {
-      const validSub = currentConfig.subTabs.some(s => s.id === moduleSubTab)
+    if (currentConfig && visibleSubTabs.length > 0) {
+      const validSub = visibleSubTabs.some(s => s.id === moduleSubTab)
         ? moduleSubTab
-        : currentConfig.subTabs[0].id;
+        : visibleSubTabs[0].id;
       if (validSub !== moduleSubTab) {
         setModuleSubTab(validSub);
       }
@@ -413,7 +447,7 @@ const ModulePage = ({ moduleKey }) => {
         ? moduleChildSubTab
         : validSub;
 
-      if (activeSubToFetch === 'busfill' || (activeSubToFetch === 'adbluebusfill' && isVmsUser)) {
+      if (isVmsUser && (activeSubToFetch === 'busfill' || activeSubToFetch === 'adbluebusfill')) {
         if (!busDataFetched) {
           setModuleLoading(false);
           setModuleData([]);
@@ -426,18 +460,10 @@ const ModulePage = ({ moduleKey }) => {
         : {};
       fetchModuleData(activeSubToFetch, selectedBranch, false, extraParams);
     }
-  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch, busDataFetched, isVmsUser]);
+  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch, busDataFetched]);
 
   const activeSub = moduleSubTab || currentConfig?.subTabs[0]?.id;
   const currentSubConfig = currentConfig?.subTabs?.find(s => s.id === activeSub);
-
-  const displayedSubTabs = useMemo(() => {
-    if (!currentConfig?.subTabs) return [];
-    if (moduleKey === 'Ad-Blue' && !isVmsUser) {
-      return currentConfig.subTabs.filter(s => s.id === 'adbluebusfill');
-    }
-    return currentConfig.subTabs;
-  }, [currentConfig, moduleKey, isVmsUser]);
 
   useEffect(() => {
     if (moduleKey === 'Ad-Blue' && !isVmsUser) {
@@ -453,7 +479,7 @@ const ModulePage = ({ moduleKey }) => {
     } else {
       setNestedSubTab('');
     }
-    if (activeSub === 'busfill' || (activeSub === 'adbluebusfill' && isVmsUser)) {
+    if (activeSub === 'busfill' || activeSub === 'adbluebusfill') {
       setBusDataFetched(false);
       setModuleLoading(false);
       setModuleData([]);
@@ -479,7 +505,7 @@ const ModulePage = ({ moduleKey }) => {
   const filteredModuleData = useMemo(() => {
     let result = Array.isArray(moduleData) ? moduleData : [];
 
-    if (activeSub === 'adbluebusfill' || activeSub === 'busfill') {
+    if (isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill')) {
       if (!busDataFetched) {
         return [];
       }
@@ -604,10 +630,10 @@ const ModulePage = ({ moduleKey }) => {
   }, [filteredModuleData, moduleCurrentPage, moduleEntriesPerPage]);
 
   const activeCols = typeof currentConfig?.columns === 'function'
-    ? currentConfig.columns(activeSub, nestedSubTab)
+    ? currentConfig.columns(activeSub, isVmsUser)
     : (currentConfig?.columns || []);
 
-  const isReportTab = (activeSub === 'adbluebusfill' || activeSub === 'busfill') && nestedSubTab === 'generate_report';
+  const isReportTab = isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill') && nestedSubTab === 'generate_report';
   const hasActionCols = !isReportTab;
 
   const getModuleExportData = (cols) => {
@@ -1134,25 +1160,25 @@ const ModulePage = ({ moduleKey }) => {
         </div>
 
         {/* Subtabs Ribbon using CustomTabs */}
-        {currentConfig && displayedSubTabs.length > 1 && (
+        {currentConfig && currentConfig.subTabs.length > 1 && (
           <div className="flex justify-center mb-4 mt-4 max-w-full overflow-x-auto">
             <CustomTabs
               activeTab={activeSub}
               onChange={(id) => {
-                if (id === 'busfill' || (id === 'adbluebusfill' && isVmsUser)) {
+                if (id === 'busfill' || id === 'adbluebusfill') {
                   setBusDataFetched(false);
                   setModuleLoading(false);
                   setModuleData([]);
                 }
                 setModuleSubTab(id);
               }}
-              tabs={displayedSubTabs}
+              tabs={currentConfig.subTabs}
             />
           </div>
         )}
 
         {/* 2nd Level Nested Subtabs Ribbon (e.g. for Ad_Bus_Fillings / Bus Fillings) */}
-        {currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0 && !(moduleKey === 'Ad-Blue' && !isVmsUser) && (
+        {currentSubConfig?.nestedTabs && currentSubConfig.nestedTabs.length > 0 && (
           <div className="flex justify-center mb-6 mt-1 max-w-full overflow-x-auto">
             <CustomTabs
               activeTab={nestedSubTab}
@@ -1347,7 +1373,7 @@ const ModulePage = ({ moduleKey }) => {
         )}
 
         {/* Ad_Bus_Fillings / Bus Fillings Controls Bar */}
-        {(activeSub === 'adbluebusfill' || activeSub === 'busfill') ? (
+        {(isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill')) ? (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -1655,7 +1681,7 @@ const ModulePage = ({ moduleKey }) => {
               Add New
             </button>
           </div>
-        ) : (currentSubTabObj?.childSubTabs?.length > 0 || currentSubConfig?.nestedTabs?.length > 0) ? null : (
+        ) : (currentSubTabObj?.childSubTabs?.length > 0 || (isVmsUser && currentSubConfig?.nestedTabs?.length > 0)) ? null : (
           /* Action Buttons: View Data / Add New */
           <div className="admin-actions-bar">
             <button
@@ -1679,7 +1705,7 @@ const ModulePage = ({ moduleKey }) => {
               className="admin-action-btn"
               onClick={handleOpenAddModal}
             >
-              Add New Record
+              Add New
             </button>
           </div>
         )}
