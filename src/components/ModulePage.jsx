@@ -465,14 +465,6 @@ const ModulePage = ({ moduleKey }) => {
   const activeSub = moduleSubTab || visibleSubTabs[0]?.id || currentConfig?.subTabs[0]?.id;
   const currentSubConfig = visibleSubTabs.find(s => s.id === activeSub) || currentConfig?.subTabs?.find(s => s.id === activeSub);
 
-  const displayedSubTabs = useMemo(() => {
-    if (!currentConfig?.subTabs) return [];
-    if (moduleKey === 'Ad-Blue' && !isVmsUser) {
-      return currentConfig.subTabs.filter(s => s.id === 'adbluebusfill');
-    }
-    return currentConfig.subTabs;
-  }, [currentConfig, moduleKey, isVmsUser]);
-
   useEffect(() => {
     if (moduleKey === 'Ad-Blue' && !isVmsUser) {
       if (moduleSubTab !== 'adbluebusfill') {

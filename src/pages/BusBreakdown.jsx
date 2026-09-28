@@ -9,6 +9,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
 import {
   getBusBreakdownData,
   createBusBreakdownItem,
+  updateBusBreakdownItem,
   deleteBusBreakdownItem,
   getAdminData
 } from '../services/api';
@@ -212,6 +213,8 @@ export default function BusBreakdown() {
     return isNaN(t) ? '' : String(t);
   };
 
+  const [editingId, setEditingId] = useState(null);
+
   // ---- Save record ----
   const handleSave = async () => {
     setSaving(true);
@@ -224,8 +227,14 @@ export default function BusBreakdown() {
         noofworkers: filledWorkers.length,
         workers: filledWorkers,
       };
-      await createBusBreakdownItem(payload);
-      setSaveMsg('✓ Record saved successfully!');
+      if (editingId) {
+        await updateBusBreakdownItem(editingId, payload);
+        setSaveMsg('✓ Record updated successfully!');
+      } else {
+        await createBusBreakdownItem(payload);
+        setSaveMsg('✓ Record saved successfully!');
+      }
+      setEditingId(null);
       setForm(EMPTY_FORM);
       setWorkers([EMPTY_WORKER, EMPTY_WORKER, EMPTY_WORKER, EMPTY_WORKER]);
       fetchTable();
@@ -236,6 +245,24 @@ export default function BusBreakdown() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditRow = (row) => {
+    const rawId = row._id || row.id;
+    const id = typeof rawId === 'object' ? (rawId?._id || rawId?.$oid || String(rawId)) : (rawId ? String(rawId) : '');
+    setEditingId(id);
+    setActiveTab('breakdown');
+    const newForm = {};
+    Object.keys(EMPTY_FORM).forEach(k => {
+      newForm[k] = row[k] ?? '';
+    });
+    setForm(newForm);
+    if (Array.isArray(row.workers) && row.workers.length > 0) {
+      setWorkers(row.workers.map(w => ({ workername: w.workername || '', workerdesignation: w.workerdesignation || '' })));
+    } else {
+      setWorkers([EMPTY_WORKER, EMPTY_WORKER, EMPTY_WORKER, EMPTY_WORKER]);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ---- Delete ----
@@ -642,8 +669,31 @@ export default function BusBreakdown() {
             {/* Save button */}
             <div className="bb-save-row">
               {saveMsg && <span className="bb-save-msg">{saveMsg}</span>}
+              {editingId && (
+                <button
+                  type="button"
+                  style={{
+                    backgroundColor: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '4px',
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    marginRight: '8px'
+                  }}
+                  onClick={() => {
+                    setEditingId(null);
+                    setForm(EMPTY_FORM);
+                    setWorkers([EMPTY_WORKER, EMPTY_WORKER, EMPTY_WORKER, EMPTY_WORKER]);
+                  }}
+                >
+                  Cancel Edit
+                </button>
+              )}
               <button className="bb-save-btn" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving...' : 'save'}
+                {saving ? 'Saving...' : editingId ? 'Update Record' : 'Save'}
               </button>
             </div>
 
@@ -683,13 +733,14 @@ export default function BusBreakdown() {
                     <tr>
                       <th style={{ width: 50, textAlign: 'center' }}>▴ S.No</th>
                       {ALL_COLUMNS.map(c => <th key={c.key}>{c.label}</th>)}
-                      <th style={{ textAlign: 'center' }}>Delete</th>
-                      <th style={{ textAlign: 'center' }}>Print</th>
+                      <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                      <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                      <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tableLoading ? (
-                      <TableLoader colSpan={ALL_COLUMNS.length + 3} message="Loading Bus Breakdown records, please wait..." />
+                      <TableLoader colSpan={ALL_COLUMNS.length + 4} message="Loading Bus Breakdown records, please wait..." />
                     ) : paginated.length > 0 ? (
                       paginated.map((row, idx) => (
                         <tr key={row._id || row.id || idx}>
@@ -700,23 +751,43 @@ export default function BusBreakdown() {
                           <td style={{ textAlign: 'center' }}>
                             <button
                               type="button"
-                              className="bb-del-btn"
-                              title="Delete"
-                              onClick={() => handlePromptDelete(row)}
-                            >🗑</button>
+                              className="admin-icon-btn edit"
+                              title="Edit"
+                              onClick={() => handleEditRow(row)}
+                            >
+                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <button
                               type="button"
-                              className="bb-print-btn"
-                              title="Print / Download PDF"
+                              className="admin-icon-btn remove"
+                              title="Delete"
+                              onClick={() => handlePromptDelete(row)}
+                            >
+                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              className="admin-icon-btn print"
+                              title="Print PDF"
                               onClick={() => handleGeneratePDFRow(row)}
-                            >Print</button>
+                            >
+                              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H7a2 2 0 00-2 2v4h10z" />
+                              </svg>
+                            </button>
                           </td>
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan={ALL_COLUMNS.length + 3} className="empty-cell">No data available in table</td></tr>
+                      <tr><td colSpan={ALL_COLUMNS.length + 4} className="empty-cell">No data available in table</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -786,11 +857,14 @@ export default function BusBreakdown() {
                   <tr>
                     <th style={{ width: 50, textAlign: 'center' }}>▴ .No</th>
                     {ALL_COLUMNS.map(c => <th key={c.key}>{c.label}</th>)}
+                    <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reportLoading ? (
-                    <TableLoader colSpan={ALL_COLUMNS.length + 1} message="Loading Bus Breakdown report, please wait..." />
+                    <TableLoader colSpan={ALL_COLUMNS.length + 4} message="Loading Bus Breakdown report, please wait..." />
                   ) : paginatedReport.length > 0 ? (
                     paginatedReport.map((row, idx) => (
                       <tr key={row._id || row.id || idx}>
@@ -798,10 +872,46 @@ export default function BusBreakdown() {
                         {ALL_COLUMNS.map(c => (
                           <td key={c.key}>{row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '-'}</td>
                         ))}
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className="admin-icon-btn edit"
+                            title="Edit"
+                            onClick={() => handleEditRow(row)}
+                          >
+                            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className="admin-icon-btn remove"
+                            title="Delete"
+                            onClick={() => handlePromptDelete(row)}
+                          >
+                            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className="admin-icon-btn print"
+                            title="Print PDF"
+                            onClick={() => handleGeneratePDFRow(row)}
+                          >
+                            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H7a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
-                    <tr><td colSpan={ALL_COLUMNS.length + 1} className="empty-cell">No data available in table</td></tr>
+                    <tr><td colSpan={ALL_COLUMNS.length + 4} className="empty-cell">No data available in table</td></tr>
                   )}
                 </tbody>
               </table>

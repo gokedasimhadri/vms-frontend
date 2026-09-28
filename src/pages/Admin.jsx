@@ -849,9 +849,9 @@ const Admin = () => {
                   <tr>
                     <th className="sortable">▴ S.No</th>
                     <th>Society Name</th>
-                    <th>Edit</th>
-                    <th>Remove</th>
-                    <th>Print</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Branches' && (
@@ -859,9 +859,9 @@ const Admin = () => {
                     <th className="sortable">▴ S.No</th>
                     <th>Society Name</th>
                     <th>Branch Name</th>
-                    <th>Edit</th>
-                    <th>Remove</th>
-                    <th>Print</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Route_Details' && (
@@ -874,9 +874,9 @@ const Admin = () => {
                     <th>Start Point</th>
                     <th>Start Time</th>
                     <th>Distance(in kms)</th>
-                    <th>Edit</th>
-                    <th>Remove</th>
-                    <th>Print</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Handovers' && (
@@ -888,9 +888,9 @@ const Admin = () => {
                     <th>Handover Date</th>
                     <th>Staff / Driver</th>
                     <th>Status</th>
-                    <th>Edit</th>
-                    <th>Remove</th>
-                    <th>Print</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Issues' && (
@@ -902,9 +902,9 @@ const Admin = () => {
                     <th>Issue Date</th>
                     <th>Issue Description</th>
                     <th>Status</th>
-                    <th>Edit</th>
-                    <th>Remove</th>
-                    <th>Print</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                   </tr>
                 )}
                 {adminSubTab === 'Transfers' && (
@@ -919,9 +919,9 @@ const Admin = () => {
                     <th>Service No</th>
                     <th>Transfered To</th>
                     <th>Date of transfer</th>
-                    <th>Edit</th>
-                    <th>Remove</th>
-                    <th>Print</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Edit</th>
+                    <th style={{ width: '70px', textAlign: 'center' }}>Delete</th>
+                    <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                   </tr>
                 )}
               </thead>
@@ -993,7 +993,7 @@ const Admin = () => {
                           <td>{row.transferdate || '-'}</td>
                         </>
                       )}
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
                           className="admin-icon-btn edit"
@@ -1005,7 +1005,7 @@ const Admin = () => {
                           </svg>
                         </button>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
                           className="admin-icon-btn remove"
@@ -1017,7 +1017,7 @@ const Admin = () => {
                           </svg>
                         </button>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
                           className="admin-icon-btn print"
