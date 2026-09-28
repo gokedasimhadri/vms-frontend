@@ -443,9 +443,6 @@ export const SIDEBAR_MODULE_CONFIG = {
   'Ad-Blue': {
     title: 'Ad-Blue Management',
     subTabs: [
-      { id: 'adblue', label: 'Ad_Suppliers' },
-      { id: 'adbluebunk', label: 'Ad_Bunk' },
-      { id: 'adbluefuelfill', label: 'Ad_Bunk_Fillings' },
       {
         id: 'adbluebusfill',
         label: 'Ad_Bus_Fillings',
@@ -458,50 +455,21 @@ export const SIDEBAR_MODULE_CONFIG = {
     ],
     apiFn: (subTab, branch, search, extra) => getAdBlueData(subTab, branch, search, extra),
     columns: (subTab) => {
-      if (subTab === 'Ad_Suppliers' || subTab === 'adblue') {
-        return [
-          { key: 'name', label: 'Company Name' },
-        ];
-      }
-      if (subTab === 'Ad_Bunk' || subTab === 'adbluebunk') {
-        return [
-          { key: 'branch', label: 'Branch Name' },
-          { key: 'capacity', label: 'Bunk Capacity' },
-        ];
-      }
-      if (subTab === 'Ad_Bunk_Fillings' || subTab === 'adbluefuelfill') {
-        return [
-          { key: 'bunkname', label: 'Bunk' },
-          { key: 'bunksupplier', label: 'Fuel Supplier' },
-          { key: 'billno', label: 'Bill No.' },
-          { key: 'billdate', label: 'Bill Date' },
-          { key: 'filldate', label: 'Filling Date' },
-          { key: 'tankerno', label: 'Tanker Register No' },
-          { key: 'quantity', label: 'Quantity' },
-          { key: 'rate', label: 'Rate Per Liter' },
-          { key: 'trate', label: 'Total Rate' },
-        ];
-      }
-      if (subTab === 'Ad_Bus_Fillings' || subTab === 'adbluebusfill') {
-        return [
-          { key: 'regno', label: 'Register No.' },
-          { key: 'society', label: 'Society' },
-          { key: 'branch', label: 'Branch' },
-          { key: 'model', label: 'Model' },
-          { key: 'drivername', label: 'Driver Name' },
-          { key: 'fuelsupplier', label: 'Ad-Blue Supplier' },
-          { key: 'capacity', label: 'Tank capacity' },
-          { key: 'date', label: 'Date' },
-          { key: 'token_no', label: 'Token No.' },
-          { key: 'token_issued_by', label: 'Token Issued By' },
-          { key: 'omr', label: 'OMR' },
-          { key: 'cmr', label: 'CMR' },
-          { key: 'kms', label: 'KMS' },
-          { key: 'filled_Qty', label: 'Filled Qty' },
-        ];
-      }
       return [
-        { key: 'name', label: 'Name' },
+        { key: 'regno', label: 'Register No.' },
+        { key: 'society', label: 'Society' },
+        { key: 'branch', label: 'Branch' },
+        { key: 'model', label: 'Model' },
+        { key: 'drivername', label: 'Driver Name' },
+        { key: 'fuelsupplier', label: 'Ad-Blue Supplier' },
+        { key: 'capacity', label: 'Tank capacity' },
+        { key: 'date', label: 'Date' },
+        { key: 'token_no', label: 'Token No.' },
+        { key: 'token_issued_by', label: 'Token Issued By' },
+        { key: 'omr', label: 'OMR' },
+        { key: 'cmr', label: 'CMR' },
+        { key: 'kms', label: 'KMS' },
+        { key: 'filled_Qty', label: 'Filled Qty' },
       ];
     }
   },
@@ -703,7 +671,7 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'tracktyre', label: 'Track Tyre' },
     ],
     apiFn: (subTab, branch, search, extra) => getVehicleTyresData(subTab, branch, search, extra),
-    columns: (subTab) => {
+    columns: (subTab, isVmsUser) => {
       if (subTab === 'tracktyre') {
         return [
           { key: 'tyreno', label: 'Tyre Number' },
@@ -722,6 +690,23 @@ export const SIDEBAR_MODULE_CONFIG = {
         ];
       }
       if (subTab === 'rebutton') {
+        if (!isVmsUser) {
+          return [
+            { key: 'society', label: 'Society' },
+            { key: 'branch', label: 'Branch' },
+            { key: 'vehicleregno', label: 'Vehicle Registration No.' },
+            { key: 'serviceno', label: 'Service No.' },
+            { key: 'position', label: 'Position' },
+            { key: 'tyreno', label: 'tyre No.' },
+            { key: 'sizeoftyre', label: 'Size of tyre' },
+            { key: 'omr', label: 'OMR' },
+            { key: 'cmr', label: 'CMR' },
+            { key: 'dateofremoving', label: 'Date of Removing', type: 'date' },
+            { key: 'dateofreplacement', label: 'Date of Replacement', type: 'date' },
+            { key: 'reason', label: 'Reason' },
+            { key: 'remarks', label: 'Remarks' },
+          ];
+        }
         return [
           { key: 'society', label: 'Society' },
           { key: 'branch', label: 'Branch' },
@@ -734,7 +719,8 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'cmr', label: 'CMR' },
           { key: 'totalkms', label: 'Total Kms' },
           { key: 'status', label: 'Status' },
-          { key: 'dateofreplacement', label: 'Date of Replacement' },
+          { key: 'dateofremoving', label: 'Date of Removing', type: 'date' },
+          { key: 'dateofreplacement', label: 'Date of Replacement', type: 'date' },
           { key: 'reason', label: 'Reason' },
           { key: 'remarks', label: 'Remarks' },
         ];
@@ -751,6 +737,19 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'status', label: 'Status' },
           { key: 'condemndistance', label: 'Condemn Distance' },
           { key: 'remarks', label: 'Remarks' },
+        ];
+      }
+      if (!isVmsUser) {
+        return [
+          { key: 'society', label: 'Society' },
+          { key: 'branch', label: 'Branch' },
+          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
+          { key: 'serviceno', label: 'Service No.' },
+          { key: 'tyremake', label: 'Make' },
+          { key: 'position', label: 'Position' },
+          { key: 'tyreno', label: 'tyre No.' },
+          { key: 'sizeoftyre', label: 'Size of tyre' },
+          { key: 'date', label: 'Date' },
         ];
       }
       return [
