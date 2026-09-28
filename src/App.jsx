@@ -19,7 +19,9 @@ import Reports from './pages/Reports';
 import './App.css';
 
 function ProtectedRoute({ children }) {
-  const token = localStorage.getItem('token');
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  const token = sessionStorage.getItem('token');
   if (!token) {
     return <Navigate to="/" replace />;
   }
@@ -27,7 +29,9 @@ function ProtectedRoute({ children }) {
 }
 
 function HomeRoute() {
-  const token = localStorage.getItem('token');
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  const token = sessionStorage.getItem('token');
   if (token) {
     return <Navigate to="/dashboard" replace />;
   }

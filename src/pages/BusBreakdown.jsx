@@ -146,9 +146,9 @@ export default function BusBreakdown() {
   }, [user, isVmsUser, branchesList]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) { navigate('/'); return; }
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     if (userStr) {
       try {
         const parsed = JSON.parse(userStr);
@@ -172,6 +172,8 @@ export default function BusBreakdown() {
   }, [navigate]);
 
   const handleLogout = () => {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/');

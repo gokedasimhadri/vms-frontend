@@ -53,7 +53,7 @@ const UserManagement = () => {
   const [availableBranches, setAvailableBranches] = useState([]);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     if (userStr) {
       try {
         const parsed = JSON.parse(userStr);
@@ -76,6 +76,8 @@ const UserManagement = () => {
   }, [navigate]);
 
   const handleLogout = () => {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/';

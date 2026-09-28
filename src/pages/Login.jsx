@@ -23,9 +23,11 @@ const Login = () => {
         username: formData.username.trim(),
         password: formData.password,
       });
-      localStorage.setItem('token', data.token);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.setItem('token', data.token);
       if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+        sessionStorage.setItem('user', JSON.stringify(data.user));
       }
       navigate('/dashboard');
     } catch (err) {

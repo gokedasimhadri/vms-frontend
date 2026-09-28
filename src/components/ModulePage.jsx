@@ -339,12 +339,12 @@ const ModulePage = ({ moduleKey }) => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
       navigate('/');
       return;
     }
-    const userStr = localStorage.getItem('user');
+    const userStr = sessionStorage.getItem('user');
     if (userStr) {
       try {
         const parsed = JSON.parse(userStr);
@@ -366,6 +366,8 @@ const ModulePage = ({ moduleKey }) => {
   }, [navigate]);
 
   const handleLogout = () => {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/');

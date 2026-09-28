@@ -36,7 +36,7 @@ const Sidebar = ({
 
   const loggedUser = user || (() => {
     try {
-      const u = localStorage.getItem('user');
+      const u = sessionStorage.getItem('user');
       return u ? JSON.parse(u) : null;
     } catch (e) {
       return null;
