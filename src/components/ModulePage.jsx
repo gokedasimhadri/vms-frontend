@@ -457,12 +457,12 @@ const ModulePage = ({ moduleKey }) => {
         }
       }
 
-      const extraParams = (activeSubToFetch === 'generatereport' || activeSubToFetch === 'generate_report' || activeSubToFetch === 'entrydata' || activeSubToFetch === 'vehicletrip' || activeSubToFetch === 'trips')
+      const extraParams = (activeSubToFetch === 'generatereport' || activeSubToFetch === 'generate_report' || activeSubToFetch === 'entrydata' || activeSubToFetch === 'vehicletrip' || activeSubToFetch === 'trips' || activeSubToFetch === 'busfill' || activeSubToFetch === 'busfillings' || nestedSubTab === 'generate_report' || nestedSubTab === 'generatereport')
         ? { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() }
         : {};
       fetchModuleData(activeSubToFetch, selectedBranch, false, extraParams);
     }
-  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch, busDataFetched, visibleSubTabs]);
+  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch, busDataFetched, visibleSubTabs, nestedSubTab, reportFromDate, reportToDate]);
 
   const activeSub = moduleSubTab || visibleSubTabs[0]?.id || currentConfig?.subTabs[0]?.id;
   const currentSubConfig = visibleSubTabs.find(s => s.id === activeSub) || currentConfig?.subTabs?.find(s => s.id === activeSub);
@@ -501,7 +501,10 @@ const ModulePage = ({ moduleKey }) => {
       else setBusSearchRegNo(regNoOverride);
     }
     setBusDataFetched(true);
-    fetchModuleData(activeSub, selectedBranch, true, {}, targetReg);
+    const extraParams = (nestedSubTab === 'generate_report' || nestedSubTab === 'generatereport')
+      ? { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() }
+      : {};
+    fetchModuleData(activeSub, selectedBranch, true, extraParams, targetReg);
   };
 
   const filteredModuleData = useMemo(() => {
