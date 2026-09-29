@@ -148,12 +148,51 @@ const ADMIN_SUBTABS = [
 
 const Admin = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [selectedBranch, setSelectedBranch] = useState('ALL');
+  const [user, setUser] = useState(() => {
+    try {
+      const userStr = sessionStorage.getItem('user') || localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [selectedBranch, setSelectedBranch] = useState(() => {
+    try {
+      const userStr = sessionStorage.getItem('user') || localStorage.getItem('user');
+      if (userStr) {
+        const parsed = JSON.parse(userStr);
+        const usernameLower = (parsed.username || '').toLowerCase();
+        const roleUpper = (parsed.role || '').toUpperCase();
+        const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
+                      ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+                      parsed.branch === 'VMS' || parsed.branch === 'ALL';
+        if (!isVms && parsed.branch && parsed.branch !== 'College' && (!parsed.branches || parsed.branches.length === 0)) {
+          return parsed.branch;
+        }
+      }
+    } catch {}
+    return 'ALL';
+  });
+
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
 
   // Subtabs & Data
-  const [adminSubTab, setAdminSubTab] = useState('Societies');
+  const [adminSubTab, setAdminSubTab] = useState(() => {
+    try {
+      const userStr = sessionStorage.getItem('user') || localStorage.getItem('user');
+      if (userStr) {
+        const parsed = JSON.parse(userStr);
+        const usernameLower = (parsed.username || '').toLowerCase();
+        const roleUpper = (parsed.role || '').toUpperCase();
+        const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
+                      ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+                      parsed.branch === 'VMS' || parsed.branch === 'ALL';
+        if (!isVms) return 'Route_Details';
+      }
+    } catch {}
+    return 'Societies';
+  });
   const [adminData, setAdminData] = useState([]);
   const [adminLoading, setAdminLoading] = useState(true);
   const [adminSearchQuery, setAdminSearchQuery] = useState('');
@@ -208,10 +247,21 @@ const Admin = () => {
   }, []);
 
   const isVmsUser = useMemo(() => {
-    if (!user) return true;
-    const uL = (user.username || '').toLowerCase();
-    const rU = (user.role || '').toUpperCase();
-    const b = user.branch || '';
+    const u = user || (() => {
+      try {
+        const uStr = sessionStorage.getItem('user') || localStorage.getItem('user');
+        return uStr ? JSON.parse(uStr) : null;
+      } catch (e) { return null; }
+    })();
+    if (!u) return false;
+    const uL = (u.username || '').toLowerCase();
+    const rU = (u.role || '').toUpperCase();
+    const b = u.branch || '';
+
+    if (rU === 'BRANCH_ADMIN' || rU === 'BRANCH_USER' || uL.includes('adchr') || uL.includes('adcpdp')) {
+      return false;
+    }
+
     return ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) ||
            ['ADMIN', 'SUPER_ADMIN'].includes(rU) ||
            b === 'VMS' || b === 'ALL';
@@ -389,6 +439,7 @@ const Admin = () => {
 
     setAdminLoading(true);
     setAdminFetchError('');
+    setAdminData([]);
     try {
       const typeKey = activeSub.toLowerCase();
       const res = await getAdminData(typeKey, effectiveBranch, user?.username);

@@ -457,7 +457,7 @@ const ModulePage = ({ moduleKey }) => {
         }
       }
 
-      const extraParams = (activeSubToFetch === 'generatereport' || activeSubToFetch === 'generate_report' || activeSubToFetch === 'entrydata' || activeSubToFetch === 'vehicletrip' || activeSubToFetch === 'trips' || activeSubToFetch === 'busfill' || activeSubToFetch === 'busfillings' || nestedSubTab === 'generate_report' || nestedSubTab === 'generatereport')
+      const extraParams = (activeSubToFetch === 'generatereport' || activeSubToFetch === 'generate_report' || activeSubToFetch === 'entrydata' || activeSubToFetch === 'vehicletrip' || activeSubToFetch === 'trips' || nestedSubTab === 'generate_report' || nestedSubTab === 'generatereport')
         ? { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() }
         : {};
       fetchModuleData(activeSubToFetch, selectedBranch, false, extraParams);
