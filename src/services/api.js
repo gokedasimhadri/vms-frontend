@@ -264,8 +264,8 @@ export const getFuelsData = async (type = 'busfill', branch, search = '', extra)
   if (branch && branch !== 'ALL') params.branch = branch;
   if (search) params.search = search;
   if (extra && typeof extra === 'object') {
-    if (extra.fromDate) params.fromDate = extra.fromDate;
-    if (extra.toDate) params.toDate = extra.toDate;
+    if (extra.fromDate || extra.fromdate) params.fromDate = extra.fromDate || extra.fromdate;
+    if (extra.toDate || extra.todate) params.toDate = extra.toDate || extra.todate;
   }
   const response = await api.get('/fuels', { params });
   return response.data;
@@ -287,10 +287,14 @@ export const deleteFuelItem = async (type, id) => {
 };
 
 // ================= AD-BLUE =================
-export const getAdBlueData = async (type = 'adbluebusfill', branch, search = '') => {
+export const getAdBlueData = async (type = 'adbluebusfill', branch, search = '', extra) => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
   if (search) params.search = search;
+  if (extra && typeof extra === 'object') {
+    if (extra.fromDate || extra.fromdate) params.fromDate = extra.fromDate || extra.fromdate;
+    if (extra.toDate || extra.todate) params.toDate = extra.toDate || extra.todate;
+  }
   const response = await api.get('/adblue', { params });
   return response.data;
 };
