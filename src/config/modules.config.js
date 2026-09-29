@@ -399,24 +399,6 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'totalrate', label: 'Total Rate' },
         ];
       }
-      if (subTab === 'busfill' && isVmsUser) {
-        return [
-          { key: 'regno', label: 'Register No.' },
-          { key: 'society', label: 'Society' },
-          { key: 'branch', label: 'Branch' },
-          { key: 'model', label: 'Model' },
-          { key: 'drivername', label: 'Driver Name' },
-          { key: 'fuelsupplier', label: 'Fuel Supplier' },
-          { key: 'capacity', label: 'Tank capacity' },
-          { key: 'date', label: 'Date' },
-          { key: 'token_no', label: 'Token No.' },
-          { key: 'token_issued_by', label: 'Token Issued By' },
-          { key: 'omr', label: 'OMR' },
-          { key: 'cmr', label: 'CMR' },
-          { key: 'kms', label: 'KMS' },
-          { key: 'filled_Qty', label: 'Filled Qty' },
-        ];
-      }
       return [
         { key: 'type', label: 'Type' },
         { key: 'model', label: 'Model' },

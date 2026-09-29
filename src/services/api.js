@@ -259,10 +259,14 @@ export const updateRoadtaxStatus = async (date) => {
 };
 
 // ================= FUELS =================
-export const getFuelsData = async (type = 'busfill', branch, search = '') => {
+export const getFuelsData = async (type = 'busfill', branch, search = '', extra) => {
   const params = { type };
   if (branch && branch !== 'ALL') params.branch = branch;
   if (search) params.search = search;
+  if (extra && typeof extra === 'object') {
+    if (extra.fromDate) params.fromDate = extra.fromDate;
+    if (extra.toDate) params.toDate = extra.toDate;
+  }
   const response = await api.get('/fuels', { params });
   return response.data;
 };

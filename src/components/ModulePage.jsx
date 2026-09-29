@@ -519,32 +519,35 @@ const ModulePage = ({ moduleKey }) => {
         });
       }
       if (nestedSubTab === 'generate_report') {
+        const parseIsoFrontend = (val) => {
+          if (!val) return null;
+          const str = String(val).trim();
+          if (!str || ['null', 'undefined', 'invalid date'].includes(str.toLowerCase())) return null;
+          const ddmmyyyy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+          if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2].padStart(2, '0')}-${ddmmyyyy[1].padStart(2, '0')}`;
+          const yyyymmdd = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+          if (yyyymmdd) return `${yyyymmdd[1]}-${yyyymmdd[2].padStart(2, '0')}-${yyyymmdd[3].padStart(2, '0')}`;
+          const dt = new Date(str);
+          if (!isNaN(dt.getTime())) {
+            return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+          }
+          return null;
+        };
+
         if (reportFromDate) {
+          const fromIso = parseIsoFrontend(reportFromDate);
           result = result.filter(item => {
-            const d = item?.date || item?.filldate;
-            if (!d) return true;
-            let itemDate = String(d);
-            if (itemDate.includes('-')) {
-              const parts = itemDate.split('-');
-              if (parts[0]?.length === 2 && parts[2]?.length === 4) {
-                itemDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-              }
-            }
-            return itemDate >= reportFromDate;
+            const itemIso = parseIsoFrontend(item?.date || item?.filldate || item?.date_dt || item?.createdAt);
+            if (!itemIso) return true;
+            return itemIso >= fromIso;
           });
         }
         if (reportToDate) {
+          const toIso = parseIsoFrontend(reportToDate);
           result = result.filter(item => {
-            const d = item?.date || item?.filldate;
-            if (!d) return true;
-            let itemDate = String(d);
-            if (itemDate.includes('-')) {
-              const parts = itemDate.split('-');
-              if (parts[0]?.length === 2 && parts[2]?.length === 4) {
-                itemDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-              }
-            }
-            return itemDate <= reportToDate;
+            const itemIso = parseIsoFrontend(item?.date || item?.filldate || item?.date_dt || item?.createdAt);
+            if (!itemIso) return true;
+            return itemIso <= toIso;
           });
         }
       }
