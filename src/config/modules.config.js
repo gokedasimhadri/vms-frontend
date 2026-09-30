@@ -672,36 +672,16 @@ export const SIDEBAR_MODULE_CONFIG = {
         ];
       }
       if (subTab === 'rebutton') {
-        if (!isVmsUser) {
-          return [
-            { key: 'society', label: 'Society' },
-            { key: 'branch', label: 'Branch' },
-            { key: 'vehicleregno', label: 'Vehicle Registration No.' },
-            { key: 'serviceno', label: 'Service No.' },
-            { key: 'position', label: 'Position' },
-            { key: 'tyreno', label: 'tyre No.' },
-            { key: 'sizeoftyre', label: 'Size of tyre' },
-            { key: 'omr', label: 'OMR' },
-            { key: 'cmr', label: 'CMR' },
-            { key: 'dateofremoving', label: 'Date of Removing', type: 'date' },
-            { key: 'dateofreplacement', label: 'Date of Replacement', type: 'date' },
-            { key: 'reason', label: 'Reason' },
-            { key: 'remarks', label: 'Remarks' },
-          ];
-        }
         return [
-          { key: 'society', label: 'Society' },
-          { key: 'branch', label: 'Branch' },
-          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
+          { key: 'society', label: 'Society', type: 'society-select' },
+          { key: 'branch', label: 'Branch', type: 'branch-select' },
+          { key: 'vehicleregno', label: 'Vehicle Registration No.', type: 'vehicle-autocomplete' },
           { key: 'serviceno', label: 'Service No.' },
           { key: 'position', label: 'Position' },
           { key: 'tyreno', label: 'tyre No.' },
           { key: 'sizeoftyre', label: 'Size of tyre' },
           { key: 'omr', label: 'OMR' },
           { key: 'cmr', label: 'CMR' },
-          { key: 'totalkms', label: 'Total Kms' },
-          { key: 'status', label: 'Status' },
-          { key: 'dateofremoving', label: 'Date of Removing', type: 'date' },
           { key: 'dateofreplacement', label: 'Date of Replacement', type: 'date' },
           { key: 'reason', label: 'Reason' },
           { key: 'remarks', label: 'Remarks' },
