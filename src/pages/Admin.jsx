@@ -165,13 +165,13 @@ const Admin = () => {
         const usernameLower = (parsed.username || '').toLowerCase();
         const roleUpper = (parsed.role || '').toUpperCase();
         const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
-                      ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
-                      parsed.branch === 'VMS' || parsed.branch === 'ALL';
+          ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+          parsed.branch === 'VMS' || parsed.branch === 'ALL';
         if (!isVms && parsed.branch && parsed.branch !== 'College' && (!parsed.branches || parsed.branches.length === 0)) {
           return parsed.branch;
         }
       }
-    } catch {}
+    } catch { }
     return 'ALL';
   });
 
@@ -186,11 +186,11 @@ const Admin = () => {
         const usernameLower = (parsed.username || '').toLowerCase();
         const roleUpper = (parsed.role || '').toUpperCase();
         const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
-                      ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
-                      parsed.branch === 'VMS' || parsed.branch === 'ALL';
+          ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+          parsed.branch === 'VMS' || parsed.branch === 'ALL';
         if (!isVms) return 'Route_Details';
       }
-    } catch {}
+    } catch { }
     return 'Societies';
   });
   const [adminData, setAdminData] = useState([]);
@@ -307,8 +307,8 @@ const Admin = () => {
     }
 
     return ['vms', 'vmskkd', 'vc', 'admin'].includes(uL) ||
-           ['ADMIN', 'SUPER_ADMIN'].includes(rU) ||
-           b === 'VMS' || b === 'ALL';
+      ['ADMIN', 'SUPER_ADMIN'].includes(rU) ||
+      b === 'VMS' || b === 'ALL';
   }, [user]);
 
   const selectableBranches = useMemo(() => {
@@ -449,8 +449,8 @@ const Admin = () => {
         const usernameLower = (parsed.username || '').toLowerCase();
         const roleUpper = (parsed.role || '').toUpperCase();
         const isVms = ['vms', 'vmskkd', 'vc', 'admin'].includes(usernameLower) ||
-                      ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
-                      parsed.branch === 'VMS' || parsed.branch === 'ALL';
+          ['ADMIN', 'SUPER_ADMIN'].includes(roleUpper) ||
+          parsed.branch === 'VMS' || parsed.branch === 'ALL';
         if (!isVms && parsed.branch && parsed.branch !== 'College' && (!parsed.branches || parsed.branches.length === 0)) {
           setSelectedBranch(parsed.branch);
         } else {
@@ -1254,216 +1254,216 @@ const Admin = () => {
                         <label>
                           {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
                         </label>
-                      {field.type === 'society-select' ? (
-                        <select
-                          value={formData[field.key] ?? ''}
-                          onChange={e => {
-                            const newSoc = e.target.value;
-                            setFormData(prev => ({
-                              ...prev,
-                              [field.key]: newSoc,
-                              branch: prev.branch && branchesList.some(b => b.name === prev.branch && b.society.toLowerCase() === newSoc.toLowerCase())
-                                ? prev.branch
-                                : ''
-                            }));
-                          }}
-                          required={field.required}
-                        >
-                          <option value="">-- Select Society --</option>
-                          {activeAdminSocieties.map(soc => (
-                            <option key={soc} value={soc}>{soc}</option>
-                          ))}
-                        </select>
-                      ) : field.type === 'branch-select' ? (
-                        <select
-                          value={formData[field.key] ?? ''}
-                          onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
-                          required={field.required}
-                        >
-                          <option value="">-- Select Branch --</option>
-                          {activeAdminBranches.map(bName => (
-                            <option key={bName} value={bName}>{bName}</option>
-                          ))}
-                        </select>
-                      ) : field.type === 'make-select' ? (
-                        <select
-                          value={formData[field.key] ?? ''}
-                          onChange={e => {
-                            const selectedMake = e.target.value;
-                            setFormData(prev => ({
-                              ...prev,
-                              [field.key]: selectedMake
-                            }));
-                          }}
-                          required={field.required}
-                        >
-                          <option value="">-- Select Make --</option>
-                          {(transferFormOptions.makes || []).map(m => (
-                            <option key={m} value={m}>{m}</option>
-                          ))}
-                          {formData[field.key] && !(transferFormOptions.makes || []).includes(formData[field.key]) && (
-                            <option value={formData[field.key]}>{formData[field.key]}</option>
-                          )}
-                        </select>
-                      ) : field.type === 'model-select' ? (
-                        <select
-                          value={formData[field.key] ?? ''}
-                          onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          required={field.required}
-                        >
-                          <option value="">-- Select Model --</option>
-                          {availableTransferModels.map(mod => (
-                            <option key={mod} value={mod}>{mod}</option>
-                          ))}
-                          {formData[field.key] && !availableTransferModels.includes(formData[field.key]) && (
-                            <option value={formData[field.key]}>{formData[field.key]}</option>
-                          )}
-                        </select>
-                      ) : field.type === 'route-select' ? (
-                        <select
-                          value={formData[field.key] ?? ''}
-                          onChange={e => {
-                            const selectedRoute = e.target.value;
-                            const matched = (routeFormOptions.routesWithDetails || []).find(r => r.routename === selectedRoute);
-                            setFormData(prev => ({
-                              ...prev,
-                              [field.key]: selectedRoute,
-                              ...(matched && matched.distance !== undefined && matched.distance !== null ? { distance: matched.distance } : {})
-                            }));
-                          }}
-                          required={field.required}
-                        >
-                          <option value="">-- Select Route Name --</option>
-                          {(routeFormOptions.routes || []).map(rName => (
-                            <option key={rName} value={rName}>{rName}</option>
-                          ))}
-                          {formData[field.key] && !(routeFormOptions.routes || []).includes(formData[field.key]) && (
-                            <option value={formData[field.key]}>{formData[field.key]}</option>
-                          )}
-                        </select>
-                      ) : field.type === 'startpoint-select' ? (
-                        <select
-                          value={formData[field.key] ?? ''}
-                          onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          required={field.required}
-                        >
-                          <option value="">-- Select Start Point --</option>
-                          {(routeFormOptions.stages || []).map(st => (
-                            <option key={st} value={st}>{st}</option>
-                          ))}
-                          {formData[field.key] && !(routeFormOptions.stages || []).includes(formData[field.key]) && (
-                            <option value={formData[field.key]}>{formData[field.key]}</option>
-                          )}
-                        </select>
-                      ) : field.type === 'vehicle-autocomplete' ? (
-                        <VehicleAutocomplete
-                          value={formData[field.key] ?? ''}
-                          onChange={val => handleRegNoChange(val)}
-                          onSelectVehicle={veh => handleRegNoChange(veh)}
-                          placeholder={`Enter ${field.label}...`}
-                          required={field.required}
-                        />
-                      ) : field.type === 'society-multiselect' ? (
-                        <SocietyMultiSelect
-                          societies={societiesList}
-                          selected={formData.societies || []}
-                          onChange={(selected) => {
-                            setFormData(prev => ({
-                              ...prev,
-                              societies: selected,
-                              society: selected.join(', ')
-                            }));
-                          }}
-                          placeholder="Select societies..."
-                        />
-                      ) : field.type === 'select' ? (
-                        <select
-                          value={formData[field.key] ?? ''}
-                          onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
-                          required={field.required}
-                        >
-                          {field.options.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      ) : field.type === 'time-ampm' ? (
-                        <div className="time-ampm-input-group">
-                          <input
-                            type="time"
-                            value={(() => {
-                              const parsed = parseTimeParts(formData[field.key]);
-                              return parsed.time;
-                            })()}
+                        {field.type === 'society-select' ? (
+                          <select
+                            value={formData[field.key] ?? ''}
                             onChange={e => {
-                              const newTime = e.target.value;
-                              const currentParsed = parseTimeParts(formData[field.key]);
-                              let period = currentParsed.period || 'AM';
-                              if (newTime) {
-                                const h = parseInt(newTime.split(':')[0], 10);
-                                if (h >= 12) {
-                                  period = 'PM';
-                                }
-                              }
+                              const newSoc = e.target.value;
                               setFormData(prev => ({
                                 ...prev,
-                                [field.key]: formatToDbTime(newTime, period)
+                                [field.key]: newSoc,
+                                branch: prev.branch && branchesList.some(b => b.name === prev.branch && b.society.toLowerCase() === newSoc.toLowerCase())
+                                  ? prev.branch
+                                  : ''
                               }));
                             }}
                             required={field.required}
-                          />
+                          >
+                            <option value="">-- Select Society --</option>
+                            {activeAdminSocieties.map(soc => (
+                              <option key={soc} value={soc}>{soc}</option>
+                            ))}
+                          </select>
+                        ) : field.type === 'branch-select' ? (
                           <select
-                            className="time-period-select"
-                            value={(() => {
-                              const parsed = parseTimeParts(formData[field.key]);
-                              return parsed.period || 'AM';
-                            })()}
+                            value={formData[field.key] ?? ''}
+                            onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
+                            required={field.required}
+                          >
+                            <option value="">-- Select Branch --</option>
+                            {activeAdminBranches.map(bName => (
+                              <option key={bName} value={bName}>{bName}</option>
+                            ))}
+                          </select>
+                        ) : field.type === 'make-select' ? (
+                          <select
+                            value={formData[field.key] ?? ''}
                             onChange={e => {
-                              const newPeriod = e.target.value;
-                              const currentParsed = parseTimeParts(formData[field.key]);
+                              const selectedMake = e.target.value;
                               setFormData(prev => ({
                                 ...prev,
-                                [field.key]: formatToDbTime(currentParsed.time || '07:00', newPeriod)
+                                [field.key]: selectedMake
                               }));
                             }}
+                            required={field.required}
                           >
-                            <option value="AM">AM</option>
-                            <option value="PM">PM</option>
+                            <option value="">-- Select Make --</option>
+                            {(transferFormOptions.makes || []).map(m => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                            {formData[field.key] && !(transferFormOptions.makes || []).includes(formData[field.key]) && (
+                              <option value={formData[field.key]}>{formData[field.key]}</option>
+                            )}
                           </select>
-                        </div>
-                      ) : field.type === 'textarea' ? (
-                        <textarea
-                          rows={3}
-                          value={formData[field.key] ?? ''}
-                          onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
-                          required={field.required}
-                          placeholder={`Enter ${field.label}...`}
-                        />
-                      ) : field.type === 'date' ? (
-                        <input
-                          type="date"
-                          className={isInvalid ? 'is-invalid' : ''}
-                          value={formatDateForInput(formData[field.key])}
-                          onChange={e => {
-                            setFormData({ ...formData, [field.key]: e.target.value });
-                            clearFieldError();
-                          }}
-                        />
-                      ) : (
-                        <input
-                          type={field.type || 'text'}
-                          className={isInvalid ? 'is-invalid' : ''}
-                          value={formData[field.key] ?? ''}
-                          onChange={e => {
-                            setFormData({ ...formData, [field.key]: e.target.value });
-                            clearFieldError();
-                          }}
-                          placeholder={`Enter ${field.label}...`}
-                        />
-                      )}
-                      {isInvalid && <div className="invalid-feedback">{formErrors[field.key]}</div>}
-                    </div>
-                  );
-                })}
+                        ) : field.type === 'model-select' ? (
+                          <select
+                            value={formData[field.key] ?? ''}
+                            onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                            required={field.required}
+                          >
+                            <option value="">-- Select Model --</option>
+                            {availableTransferModels.map(mod => (
+                              <option key={mod} value={mod}>{mod}</option>
+                            ))}
+                            {formData[field.key] && !availableTransferModels.includes(formData[field.key]) && (
+                              <option value={formData[field.key]}>{formData[field.key]}</option>
+                            )}
+                          </select>
+                        ) : field.type === 'route-select' ? (
+                          <select
+                            value={formData[field.key] ?? ''}
+                            onChange={e => {
+                              const selectedRoute = e.target.value;
+                              const matched = (routeFormOptions.routesWithDetails || []).find(r => r.routename === selectedRoute);
+                              setFormData(prev => ({
+                                ...prev,
+                                [field.key]: selectedRoute,
+                                ...(matched && matched.distance !== undefined && matched.distance !== null ? { distance: matched.distance } : {})
+                              }));
+                            }}
+                            required={field.required}
+                          >
+                            <option value="">-- Select Route Name --</option>
+                            {(routeFormOptions.routes || []).map(rName => (
+                              <option key={rName} value={rName}>{rName}</option>
+                            ))}
+                            {formData[field.key] && !(routeFormOptions.routes || []).includes(formData[field.key]) && (
+                              <option value={formData[field.key]}>{formData[field.key]}</option>
+                            )}
+                          </select>
+                        ) : field.type === 'startpoint-select' ? (
+                          <select
+                            value={formData[field.key] ?? ''}
+                            onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                            required={field.required}
+                          >
+                            <option value="">-- Select Start Point --</option>
+                            {(routeFormOptions.stages || []).map(st => (
+                              <option key={st} value={st}>{st}</option>
+                            ))}
+                            {formData[field.key] && !(routeFormOptions.stages || []).includes(formData[field.key]) && (
+                              <option value={formData[field.key]}>{formData[field.key]}</option>
+                            )}
+                          </select>
+                        ) : field.type === 'vehicle-autocomplete' ? (
+                          <VehicleAutocomplete
+                            value={formData[field.key] ?? ''}
+                            onChange={val => handleRegNoChange(val)}
+                            onSelectVehicle={veh => handleRegNoChange(veh)}
+                            placeholder={`Enter ${field.label}...`}
+                            required={field.required}
+                          />
+                        ) : field.type === 'society-multiselect' ? (
+                          <SocietyMultiSelect
+                            societies={societiesList}
+                            selected={formData.societies || []}
+                            onChange={(selected) => {
+                              setFormData(prev => ({
+                                ...prev,
+                                societies: selected,
+                                society: selected.join(', ')
+                              }));
+                            }}
+                            placeholder="Select societies..."
+                          />
+                        ) : field.type === 'select' ? (
+                          <select
+                            value={formData[field.key] ?? ''}
+                            onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
+                            required={field.required}
+                          >
+                            {field.options.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : field.type === 'time-ampm' ? (
+                          <div className="time-ampm-input-group">
+                            <input
+                              type="time"
+                              value={(() => {
+                                const parsed = parseTimeParts(formData[field.key]);
+                                return parsed.time;
+                              })()}
+                              onChange={e => {
+                                const newTime = e.target.value;
+                                const currentParsed = parseTimeParts(formData[field.key]);
+                                let period = currentParsed.period || 'AM';
+                                if (newTime) {
+                                  const h = parseInt(newTime.split(':')[0], 10);
+                                  if (h >= 12) {
+                                    period = 'PM';
+                                  }
+                                }
+                                setFormData(prev => ({
+                                  ...prev,
+                                  [field.key]: formatToDbTime(newTime, period)
+                                }));
+                              }}
+                              required={field.required}
+                            />
+                            <select
+                              className="time-period-select"
+                              value={(() => {
+                                const parsed = parseTimeParts(formData[field.key]);
+                                return parsed.period || 'AM';
+                              })()}
+                              onChange={e => {
+                                const newPeriod = e.target.value;
+                                const currentParsed = parseTimeParts(formData[field.key]);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  [field.key]: formatToDbTime(currentParsed.time || '07:00', newPeriod)
+                                }));
+                              }}
+                            >
+                              <option value="AM">AM</option>
+                              <option value="PM">PM</option>
+                            </select>
+                          </div>
+                        ) : field.type === 'textarea' ? (
+                          <textarea
+                            rows={3}
+                            value={formData[field.key] ?? ''}
+                            onChange={e => setFormData({ ...formData, [field.key]: e.target.value })}
+                            required={field.required}
+                            placeholder={`Enter ${field.label}...`}
+                          />
+                        ) : field.type === 'date' ? (
+                          <input
+                            type="date"
+                            className={isInvalid ? 'is-invalid' : ''}
+                            value={formatDateForInput(formData[field.key])}
+                            onChange={e => {
+                              setFormData({ ...formData, [field.key]: e.target.value });
+                              clearFieldError();
+                            }}
+                          />
+                        ) : (
+                          <input
+                            type={field.type || 'text'}
+                            className={isInvalid ? 'is-invalid' : ''}
+                            value={formData[field.key] ?? ''}
+                            onChange={e => {
+                              setFormData({ ...formData, [field.key]: e.target.value });
+                              clearFieldError();
+                            }}
+                            placeholder={`Enter ${field.label}...`}
+                          />
+                        )}
+                        {isInvalid && <div className="invalid-feedback">{formErrors[field.key]}</div>}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="admin-modal-footer">
@@ -1486,6 +1486,7 @@ const Admin = () => {
             </div>
           </div>
         )}
+
 
         {/* Custom Confirmation Modal for Delete */}
         <ConfirmModal
