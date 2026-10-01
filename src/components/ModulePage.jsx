@@ -467,6 +467,143 @@ const ModulePage = ({ moduleKey }) => {
   const activeSub = moduleSubTab || visibleSubTabs[0]?.id || currentConfig?.subTabs[0]?.id;
   const currentSubConfig = visibleSubTabs.find(s => s.id === activeSub) || currentConfig?.subTabs?.find(s => s.id === activeSub);
 
+  const activeCols = useMemo(() => {
+    if (typeof currentConfig?.columns === 'function') {
+      return currentConfig.columns(activeSub, isVmsUser);
+    }
+    return currentConfig?.columns || [];
+  }, [currentConfig, activeSub, isVmsUser]);
+
+  const [showOptingVehicleDropdown, setShowOptingVehicleDropdown] = useState(false);
+
+  const isVehicleFirstTab = useMemo(() => {
+    const excludedSubtabs = [
+      'makes', 'info', 'lightmotor', 'heavymotor', 'branch',
+      'suppliers', 'bunk', 'servicing', 'fuelfill',
+      'Designations', 'Office_Staff', 'BusStaff_Information', 'BusCleaner_Information', 'Staff_Meeting_Register', 'Staff_Remarks',
+      'trackbattery', 'tracktyre'
+    ];
+    if (excludedSubtabs.includes(activeSub)) return false;
+
+    const vehicleKeys = ['vehicleno', 'vehicleregno', 'regno', 'busnumber', 'busno'];
+    const hasVehicleCol = activeCols.some(c => vehicleKeys.includes(c.key) || c.type === 'vehicle-select' || c.type === 'vehicle-autocomplete');
+    const hasSocietyOrBranchCol = activeCols.some(c => c.key === 'society' || c.key === 'branch' || c.type === 'society-select' || c.type === 'branch-select');
+
+    return hasVehicleCol && hasSocietyOrBranchCol;
+  }, [activeSub, activeCols]);
+
+  const currentVehNoVal = useMemo(() => {
+    return String(formData.busnumber || formData.vehicleregno || formData.vehicleno || formData.regno || '').trim();
+  }, [formData.busnumber, formData.vehicleregno, formData.vehicleno, formData.regno]);
+
+  const optingVehicleOptions = useMemo(() => {
+    if (!isVehicleFirstTab) return [];
+    const set = new Set();
+    vehiclesList.forEach(v => {
+      const reg = (v.vehicleregno || v.regno || v.vehicleno || v.busnumber || v.vno || '').trim();
+      if (reg) set.add(reg);
+    });
+    return Array.from(set).sort();
+  }, [vehiclesList, isVehicleFirstTab]);
+
+  const optingVehicleMatches = useMemo(() => {
+    if (!isVehicleFirstTab || !currentVehNoVal) return [];
+    const query = currentVehNoVal.toLowerCase();
+    return vehiclesList.filter(v => {
+      const reg = String(v.vehicleregno || v.regno || v.vehicleno || v.busnumber || v.vno || '').trim().toLowerCase();
+      return reg === query || reg.includes(query);
+    });
+  }, [vehiclesList, currentVehNoVal, isVehicleFirstTab]);
+
+  const optingSocietiesList = useMemo(() => {
+    if (!isVehicleFirstTab) return societiesList;
+    if (!currentVehNoVal) return [];
+    const set = new Set();
+    optingVehicleMatches.forEach(v => {
+      const s = (v.society || v.societyname || '').trim();
+      if (s) set.add(s);
+    });
+    const result = Array.from(set).sort();
+    if (formData.society && !result.includes(formData.society)) {
+      result.push(formData.society);
+    }
+    return result;
+  }, [isVehicleFirstTab, currentVehNoVal, formData.society, optingVehicleMatches, societiesList]);
+
+  const optingBranchesList = useMemo(() => {
+    if (!isVehicleFirstTab) return availableBranches;
+    if (!currentVehNoVal) return [];
+    const set = new Set();
+    optingVehicleMatches.forEach(v => {
+      const b = (v.branch || v.branchname || '').trim();
+      if (b) set.add(b);
+    });
+    const result = Array.from(set).sort();
+    if (formData.branch && !result.includes(formData.branch)) {
+      result.push(formData.branch);
+    }
+    return result;
+  }, [isVehicleFirstTab, currentVehNoVal, formData.branch, optingVehicleMatches, availableBranches]);
+
+  const filteredOptingVehicles = useMemo(() => {
+    if (!isVehicleFirstTab) return [];
+    const query = currentVehNoVal.toLowerCase();
+    if (!query) return optingVehicleOptions.slice(0, 50);
+    return optingVehicleOptions.filter(v => v.toLowerCase().includes(query));
+  }, [isVehicleFirstTab, currentVehNoVal, optingVehicleOptions]);
+
+  const handleOptingVehicleSelect = (selectedVehNo, colKey) => {
+    const vehStr = (selectedVehNo || '').trim();
+    const targetKey = colKey || activeCols.find(c => ['vehicleno', 'vehicleregno', 'regno', 'busnumber', 'busno'].includes(c.key) || c.type === 'vehicle-select')?.key || 'vehicleregno';
+    if (!vehStr) {
+      setFormData(prev => ({
+        ...prev,
+        [targetKey]: '',
+        society: '',
+        branch: ''
+      }));
+      setFormErrors(prev => ({
+        ...prev,
+        ...(prev[targetKey] ? { [targetKey]: null } : {})
+      }));
+      return;
+    }
+
+    const matches = vehiclesList.filter(v => {
+      const reg = String(v.vehicleregno || v.regno || v.vehicleno || v.busnumber || v.vno || '').trim().toLowerCase();
+      return reg === vehStr.toLowerCase();
+    });
+
+    const matchedSoc = matches.length > 0 ? (matches[0].society || matches[0].societyname || '') : '';
+    const matchedBranch = matches.length > 0 ? (matches[0].branch || matches[0].branchname || '') : '';
+    const matchedRoute = matches.length > 0 ? (matches[0].route || matches[0].routename || '') : '';
+    const matchedCapacity = matches.length > 0 ? (matches[0].capacity || matches[0].fixedstrength || '') : '';
+    const matchedStaff = matches.length > 0 ? (matches[0].staffname || matches[0].drivername || '') : '';
+    const matchedModel = matches.length > 0 ? (matches[0].model || matches[0].vehiclemodel || '') : '';
+    const matchedType = matches.length > 0 ? (matches[0].type || matches[0].vehicletype || '') : '';
+
+    setFormData(prev => ({
+      ...prev,
+      [targetKey]: vehStr,
+      society: matchedSoc || prev.society || '',
+      branch: matchedBranch || prev.branch || '',
+      ...(prev.model !== undefined ? { model: matchedModel || prev.model || '' } : {}),
+      ...(prev.type !== undefined ? { type: matchedType || prev.type || '' } : {}),
+      ...(prev.route !== undefined ? { route: matchedRoute || prev.route || '' } : {}),
+      ...(prev.presentroute !== undefined ? { presentroute: matchedRoute || prev.presentroute || '' } : {}),
+      ...(prev.capacity !== undefined ? { capacity: matchedCapacity || prev.capacity || '' } : {}),
+      ...(prev.staffname !== undefined ? { staffname: matchedStaff || prev.staffname || '' } : {}),
+      ...(prev.drivername !== undefined ? { drivername: matchedStaff || prev.drivername || '' } : {})
+    }));
+
+    setFormErrors(prev => ({
+      ...prev,
+      ...(prev[targetKey] ? { [targetKey]: null } : {}),
+      ...(prev.society ? { society: null } : {}),
+      ...(prev.branch ? { branch: null } : {})
+    }));
+  };
+
   useEffect(() => {
     if (moduleKey === 'Ad-Blue' && !isVmsUser) {
       if (moduleSubTab !== 'adbluebusfill') {
@@ -636,10 +773,6 @@ const ModulePage = ({ moduleKey }) => {
     const start = (moduleCurrentPage - 1) * moduleEntriesPerPage;
     return filteredModuleData.slice(start, start + moduleEntriesPerPage);
   }, [filteredModuleData, moduleCurrentPage, moduleEntriesPerPage]);
-
-  const activeCols = typeof currentConfig?.columns === 'function'
-    ? currentConfig.columns(activeSub, isVmsUser)
-    : (currentConfig?.columns || []);
 
   const isReportTab = isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill') && nestedSubTab === 'generate_report';
   const hasActionCols = !isReportTab;
@@ -2344,7 +2477,7 @@ const ModulePage = ({ moduleKey }) => {
                                     }}
                                   >
                                     <option value="">-- Select Society --</option>
-                                    {societiesList.map((soc, idx) => (
+                                    {(isVehicleFirstTab ? optingSocietiesList : societiesList).map((soc, idx) => (
                                       <option key={idx} value={soc}>{soc}</option>
                                     ))}
                                   </select>
@@ -2366,10 +2499,82 @@ const ModulePage = ({ moduleKey }) => {
                                     }}
                                   >
                                     <option value="">-- Select Branch --</option>
-                                    {availableBranches.map((b, idx) => (
+                                    {(isVehicleFirstTab ? optingBranchesList : availableBranches).map((b, idx) => (
                                       <option key={idx} value={b}>{b}</option>
                                     ))}
                                   </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : col.type === 'vehicle-select' || col.key === 'vehicleno' || col.key === 'regno' || col.key === 'vehicleregno' || col.key === 'busnumber' || col.key === 'busno' ? (
+                                <div style={{ position: 'relative' }}>
+                                  <input
+                                    type="text"
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    placeholder={`Enter ${(col.label || col.key).toLowerCase()}...`}
+                                    value={formData[col.key] ?? ''}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      if (isVehicleFirstTab) {
+                                        handleOptingVehicleSelect(val, col.key);
+                                      } else {
+                                        handleFieldChange(val);
+                                      }
+                                    }}
+                                    onFocus={() => {
+                                      if (isVehicleFirstTab) {
+                                        setShowOptingVehicleDropdown(true);
+                                      }
+                                    }}
+                                    onBlur={() => {
+                                      setTimeout(() => setShowOptingVehicleDropdown(false), 200);
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#ffffff'
+                                    }}
+                                  />
+                                  {isVehicleFirstTab && showOptingVehicleDropdown && filteredOptingVehicles.length > 0 && (
+                                    <ul
+                                      style={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        left: 0,
+                                        right: 0,
+                                        maxHeight: '180px',
+                                        overflowY: 'auto',
+                                        backgroundColor: '#ffffff',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '4px',
+                                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                                        zIndex: 1000,
+                                        margin: '4px 0 0 0',
+                                        padding: 0,
+                                        listStyle: 'none'
+                                      }}
+                                    >
+                                      {filteredOptingVehicles.map((vNo, idx) => (
+                                        <li
+                                          key={idx}
+                                          style={{
+                                            padding: '8px 12px',
+                                            fontSize: '13px',
+                                            cursor: 'pointer',
+                                            borderBottom: '1px solid #f1f5f9'
+                                          }}
+                                          onMouseDown={() => {
+                                            handleOptingVehicleSelect(vNo, col.key);
+                                            setShowOptingVehicleDropdown(false);
+                                          }}
+                                        >
+                                          {vNo}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
                                   {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
                                 </div>
                               ) : col.type === 'designation-select' || col.key === 'designation' ? (
