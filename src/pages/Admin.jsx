@@ -5,7 +5,7 @@ import CustomTabs from '../components/CustomTabs';
 import MainLayout from '../components/MainLayout';
 import ExportButtons from '../components/ExportButtons';
 import { TableLoader } from '../components/Loader';
-import { getAdminData, createAdminItem, updateAdminItem, deleteAdminItem, getRouteFormOptions, getTransferFormOptions } from '../services/api';
+import { getAdminData, createAdminItem, updateAdminItem, deleteAdminItem, getRouteFormOptions, getTransferFormOptions, getVehiclesData } from '../services/api';
 import { exportToCSV, exportToExcel, exportToPDF } from '../utils/exportUtils';
 import ConfirmModal from '../components/ConfirmModal';
 import SocietyMultiSelect from '../components/SocietyMultiSelect';
@@ -20,37 +20,37 @@ const TAB_FIELDS = {
     { key: 'name', label: 'Branch Name', type: 'text', required: true }
   ],
   Route_Details: [
+    { key: 'regno', label: 'Vehicle Reg.No', type: 'vehicle-autocomplete', required: true },
     { key: 'society', label: 'Society', type: 'society-select' },
     { key: 'branch', label: 'Branch', type: 'branch-select' },
     { key: 'routename', label: 'Route Name', type: 'route-select', required: true },
     { key: 'startpoint', label: 'Start Point', type: 'startpoint-select' },
     { key: 'starttime', label: 'Start Time', type: 'time-ampm' },
-    { key: 'distance', label: 'Distance', type: 'number' },
-    { key: 'regno', label: 'Vehicle Reg.No', type: 'vehicle-autocomplete', required: true }
+    { key: 'distance', label: 'Distance', type: 'number' }
   ],
   Handovers: [
+    { key: 'regno', label: 'Vehicle Reg.No', type: 'vehicle-autocomplete', required: true },
     { key: 'society', label: 'Society', type: 'society-select' },
     { key: 'branch', label: 'Branch', type: 'branch-select' },
-    { key: 'regno', label: 'Vehicle Reg.No', type: 'vehicle-autocomplete', required: true },
     { key: 'date', label: 'Handover Date', type: 'date' },
     { key: 'driver', label: 'Staff / Driver', type: 'text' },
     { key: 'status', label: 'Status', type: 'select', options: ['Completed', 'Pending'] }
   ],
   Issues: [
+    { key: 'regno', label: 'Vehicle Reg.No', type: 'vehicle-autocomplete', required: true },
     { key: 'society', label: 'Society', type: 'society-select' },
     { key: 'branch', label: 'Branch', type: 'branch-select' },
-    { key: 'regno', label: 'Vehicle Reg.No', type: 'vehicle-autocomplete', required: true },
     { key: 'date', label: 'Issue Date', type: 'date' },
     { key: 'description', label: 'Issue Description', type: 'textarea', required: true },
     { key: 'status', label: 'Status', type: 'select', options: ['Pending', 'In Progress', 'Resolved'] }
   ],
   Transfers: [
+    { key: 'regno', label: 'Vehicle Reg.No', type: 'vehicle-autocomplete', required: true },
     { key: 'society', label: 'Society', type: 'society-select' },
     { key: 'branch', label: 'Present Branch', type: 'branch-select' },
     { key: 'cmr', label: 'CMR', type: 'text' },
     { key: 'make', label: 'Make', type: 'make-select' },
     { key: 'model', label: 'Model', type: 'model-select' },
-    { key: 'regno', label: 'Vehicle Reg.No', type: 'vehicle-autocomplete', required: true },
     { key: 'service', label: 'Service No', type: 'text' },
     { key: 'transferbranch', label: 'Transfered To', type: 'branch-select', required: true },
     { key: 'transferdate', label: 'Date of transfer', type: 'date' }
@@ -209,6 +209,7 @@ const Admin = () => {
   const [formErrors, setFormErrors] = useState({});
   const [societiesList, setSocietiesList] = useState([]);
   const [branchesList, setBranchesList] = useState([]);
+  const [vehiclesList, setVehiclesList] = useState([]);
 
   // Custom Delete Confirm Modal State
   const [deleteConfirmModal, setDeleteConfirmModal] = useState({
@@ -225,18 +226,22 @@ const Admin = () => {
   // Fetch available societies and branches from database collections
   const fetchFormMetadata = async () => {
     try {
-      const socRes = await getAdminData('societies', 'ALL');
+      const socRes = await getAdminData('societies', 'ALL').catch(() => null);
       const socData = Array.isArray(socRes) ? socRes : (Array.isArray(socRes?.data) ? socRes.data : []);
       const socNames = socData.map(item => item.name || item.societyname || item.society).filter(Boolean);
       setSocietiesList([...new Set(socNames)].sort());
 
-      const branchRes = await getAdminData('branches', 'ALL');
+      const branchRes = await getAdminData('branches', 'ALL').catch(() => null);
       const branchData = Array.isArray(branchRes) ? branchRes : (Array.isArray(branchRes?.data) ? branchRes.data : []);
       const branches = branchData.map(b => ({
         name: (b.name || b.branchname || '').trim(),
         society: (b.test || b.society || '').trim()
       })).filter(b => b.name);
       setBranchesList(branches);
+
+      const vehicleRes = await getVehiclesData('branch', 'ALL').catch(() => null);
+      const vehicleData = Array.isArray(vehicleRes?.data) ? vehicleRes.data : (Array.isArray(vehicleRes) ? vehicleRes : []);
+      setVehiclesList(vehicleData);
     } catch (e) {
       console.error('Failed to load form metadata:', e);
     }
@@ -245,6 +250,45 @@ const Admin = () => {
   useEffect(() => {
     fetchFormMetadata();
   }, []);
+
+  const handleRegNoChange = (selectedVeh) => {
+    const val = typeof selectedVeh === 'string' ? selectedVeh : (selectedVeh?.regno || selectedVeh?.vehicleregno || '');
+    const regStr = (val || '').trim();
+
+    if (!regStr) {
+      setFormData(prev => ({
+        ...prev,
+        regno: '',
+        society: '',
+        branch: ''
+      }));
+      return;
+    }
+
+    let match = (typeof selectedVeh === 'object' && selectedVeh) ? selectedVeh : null;
+    if (!match || (!match.society && !match.branch)) {
+      match = vehiclesList.find(v => {
+        const r = String(v.vehicleregno || v.regno || v.busno || v.vehicleno || '').trim().toLowerCase();
+        return r === regStr.toLowerCase();
+      }) || match;
+    }
+
+    const matchedSoc = match ? (match.society || match.Society || match.societyname || match.test || '') : '';
+    const matchedBranch = match ? (match.branch || match.Branch || match.branchname || '') : '';
+    const matchedRoute = match ? (match.route || match.routename || '') : '';
+    const matchedModel = match ? (match.model || match.Model || match.type || '') : '';
+    const matchedMake = match ? (match.make || match.Make || '') : '';
+
+    setFormData(prev => ({
+      ...prev,
+      regno: val,
+      society: matchedSoc || prev.society || '',
+      branch: matchedBranch || prev.branch || '',
+      ...(prev.routename !== undefined ? { routename: matchedRoute || prev.routename || '' } : {}),
+      ...(prev.model !== undefined ? { model: matchedModel || prev.model || '' } : {}),
+      ...(prev.make !== undefined ? { make: matchedMake || prev.make || '' } : {})
+    }));
+  };
 
   const isVmsUser = useMemo(() => {
     const u = user || (() => {
@@ -281,7 +325,6 @@ const Admin = () => {
     return [];
   }, [user, isVmsUser, branchesList]);
 
-  // Filtered branches for single-select dropdown based on selected society
   const availableBranches = useMemo(() => {
     let list = branchesList.map(b => b.name).filter(Boolean);
     if (formData.society) {
@@ -295,6 +338,30 @@ const Admin = () => {
     }
     return Array.from(new Set(list)).sort();
   }, [branchesList, formData.society, isVmsUser, selectableBranches]);
+
+  const activeAdminSocieties = useMemo(() => {
+    if (['Route_Details', 'Handovers', 'Issues', 'Transfers'].includes(adminSubTab)) {
+      if (!formData.regno) {
+        return formData.society ? [formData.society] : [];
+      }
+      if (formData.society && !societiesList.includes(formData.society)) {
+        return [formData.society, ...societiesList].sort();
+      }
+    }
+    return societiesList;
+  }, [adminSubTab, formData.regno, formData.society, societiesList]);
+
+  const activeAdminBranches = useMemo(() => {
+    if (['Route_Details', 'Handovers', 'Issues', 'Transfers'].includes(adminSubTab)) {
+      if (!formData.regno) {
+        return formData.branch ? [formData.branch] : [];
+      }
+      if (formData.branch && !availableBranches.includes(formData.branch)) {
+        return [formData.branch, ...availableBranches].sort();
+      }
+    }
+    return availableBranches;
+  }, [adminSubTab, formData.regno, formData.branch, availableBranches]);
 
   // Route Details options (Route Name and Start Point dropdowns)
   const [routeFormOptions, setRouteFormOptions] = useState({
@@ -1203,7 +1270,7 @@ const Admin = () => {
                           required={field.required}
                         >
                           <option value="">-- Select Society --</option>
-                          {societiesList.map(soc => (
+                          {activeAdminSocieties.map(soc => (
                             <option key={soc} value={soc}>{soc}</option>
                           ))}
                         </select>
@@ -1214,7 +1281,7 @@ const Admin = () => {
                           required={field.required}
                         >
                           <option value="">-- Select Branch --</option>
-                          {availableBranches.map(bName => (
+                          {activeAdminBranches.map(bName => (
                             <option key={bName} value={bName}>{bName}</option>
                           ))}
                         </select>
@@ -1291,15 +1358,8 @@ const Admin = () => {
                       ) : field.type === 'vehicle-autocomplete' ? (
                         <VehicleAutocomplete
                           value={formData[field.key] ?? ''}
-                          onChange={val => setFormData(prev => ({ ...prev, [field.key]: val }))}
-                          onSelectVehicle={veh => {
-                            setFormData(prev => {
-                              const next = { ...prev, [field.key]: veh.regno || veh };
-                              if (veh.make) next.make = veh.make;
-                              if (veh.model) next.model = veh.model;
-                              return next;
-                            });
-                          }}
+                          onChange={val => handleRegNoChange(val)}
+                          onSelectVehicle={veh => handleRegNoChange(veh)}
                           placeholder={`Enter ${field.label}...`}
                           required={field.required}
                         />
