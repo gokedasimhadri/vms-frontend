@@ -17,6 +17,7 @@ const ConfirmModal = ({
   onConfirm,
   onCancel,
 }) => {
+
   // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;

@@ -969,7 +969,21 @@ const ModulePage = ({ moduleKey }) => {
     setFormErrors({});
     const initial = {};
     activeCols.forEach(col => {
-      initial[col.key] = row[col.key] ?? '';
+      let val = row[col.key];
+      if (val === undefined || val === null || val === '') {
+        if (col.key === 'settlementmode') val = row.settlement || row.settlementmode;
+        else if (col.key === 'accidentplace') val = row.place || row.accidentplace;
+        else if (col.key === 'actiontaken') val = row.action || row.actiontaken;
+        else if (col.key === 'claimamount') val = row.amount || row.claimamount;
+        else if (col.key === 'claimedfrom') val = row.from || row.claimedfrom;
+        else if (col.key === 'accidentdescription') val = row.description || row.accidentdescription;
+        else if (col.key === 'driverremarks') val = row.remarks || row.driverremarks;
+        else if (col.key === 'staffname') val = row.staffname || row.drivername || row.driver;
+        else if (col.key === 'vehicleregno') val = row.vehicleregno || row.regno || row.vehicleno || row.busnumber || row.busno;
+        else if (col.key === 'busnumber') val = row.busnumber || row.vehicleregno || row.regno || row.vehicleno || row.busno;
+        else if (col.key === 'busno') val = row.busno || row.vehicleregno || row.regno || row.vehicleno;
+      }
+      initial[col.key] = val ?? '';
     });
     if (initial.omr !== undefined && initial.cmr !== undefined) {
       const omrVal = String(initial.omr).trim();
@@ -1159,7 +1173,20 @@ const ModulePage = ({ moduleKey }) => {
   };
 
   const renderTableCell = (row, col) => {
-    const rawVal = row[col.key];
+    let rawVal = row[col.key];
+    if (rawVal === undefined || rawVal === null || rawVal === '' || rawVal === 'null' || rawVal === 'undefined') {
+      if (col.key === 'settlementmode') rawVal = row.settlement || row.settlementmode;
+      else if (col.key === 'accidentplace') rawVal = row.place || row.accidentplace;
+      else if (col.key === 'actiontaken') rawVal = row.action || row.actiontaken;
+      else if (col.key === 'claimamount') rawVal = row.amount || row.claimamount;
+      else if (col.key === 'claimedfrom') rawVal = row.from || row.claimedfrom;
+      else if (col.key === 'accidentdescription') rawVal = row.description || row.accidentdescription;
+      else if (col.key === 'driverremarks') rawVal = row.remarks || row.driverremarks;
+      else if (col.key === 'staffname') rawVal = row.staffname || row.drivername || row.driver;
+      else if (col.key === 'vehicleregno') rawVal = row.vehicleregno || row.regno || row.vehicleno || row.busnumber || row.busno;
+      else if (col.key === 'busnumber') rawVal = row.busnumber || row.vehicleregno || row.regno || row.vehicleno || row.busno;
+      else if (col.key === 'busno') rawVal = row.busno || row.vehicleregno || row.regno || row.vehicleno;
+    }
     if (rawVal === undefined || rawVal === null || rawVal === '' || rawVal === 'null' || rawVal === 'undefined') {
       return '-';
     }

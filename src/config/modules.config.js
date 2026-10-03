@@ -534,10 +534,10 @@ export const SIDEBAR_MODULE_CONFIG = {
     columns: (subTab) => {
       if (subTab === 'generatereport') {
         return [
-          { key: 'busnumber', label: 'Vehicle Registration Number', type: 'vehicle-select' },
           { key: 'society', label: 'Society', type: 'society-select' },
           { key: 'branch', label: 'Branch', type: 'branch-select' },
           { key: 'model', label: 'Model' },
+          { key: 'busnumber', label: 'Vehicle Registration No.', type: 'vehicle-select' },
           { key: 'repairdate', label: 'Date', type: 'date' },
           { key: 'repairtype', label: 'Type Of Repair' },
           { key: 'description', label: 'Repair Description' },
@@ -549,10 +549,10 @@ export const SIDEBAR_MODULE_CONFIG = {
         ];
       }
       return [
-        { key: 'busnumber', label: 'Vehicle Registration Number', type: 'vehicle-select' },
         { key: 'society', label: 'Society', type: 'society-select' },
         { key: 'branch', label: 'Branch', type: 'branch-select' },
         { key: 'model', label: 'Model' },
+        { key: 'busnumber', label: 'Vehicle Registration No.', type: 'vehicle-select' },
         { key: 'repairdate', label: 'Date', type: 'date' },
         { key: 'repairtype', label: 'Type Of Repair' },
         { key: 'description', label: 'Repair Description' },
@@ -571,9 +571,9 @@ export const SIDEBAR_MODULE_CONFIG = {
     ],
     apiFn: (subTab, branch, search, extra) => getBusBreakdownData(branch, search),
     columns: () => [
-      { key: 'busno', label: 'Vehicle No.', type: 'vehicle-select' },
       { key: 'society', label: 'Society', type: 'society-select' },
       { key: 'branch', label: 'Branch', type: 'branch-select' },
+      { key: 'busno', label: 'Vehicle Registration No.', type: 'vehicle-select' },
       { key: 'drivername', label: 'Name of the Driver' },
       { key: 'driverphoneno', label: 'Driver Phone NO' },
       { key: 'breakedownplace', label: 'Break Down Place' },
@@ -605,8 +605,8 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'battery_number', label: 'Battery Number' },
           { key: 'battery_make', label: 'Battery Make' },
           { key: 'battery_capacity', label: 'Battery Capacity' },
-          { key: 'frombusno', label: 'From Bus No.' },
-          { key: 'tobusno', label: 'To Bus No.' },
+          { key: 'frombusno', label: 'From Vehicle Registration No.' },
+          { key: 'tobusno', label: 'To Vehicle Registration No.' },
           { key: 'shift_count', label: 'Total Shifts' },
           { key: 'initialfitmentdate', label: 'Initial Fitment Date' },
           { key: 'presentfitmentdate', label: 'Present Fitment Date' },
@@ -622,17 +622,17 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'battery_make', label: 'Battery Make' },
           { key: 'battery_capacity', label: 'Battery Capacity' },
           { key: 'battery_number', label: 'Battery Number' },
-          { key: 'frombusno', label: 'From Bus No.' },
-          { key: 'tobusno', label: 'To Bus No.' },
+          { key: 'frombusno', label: 'From Vehicle Registration No.' },
+          { key: 'tobusno', label: 'To Vehicle Registration No.' },
           { key: 'initialfitmentdate', label: 'Initial Fitment Date' },
           { key: 'presentfitmentdate', label: 'Present Fitment Date' },
           { key: 'remarks', label: 'Remarks' },
         ];
       }
       return [
-        { key: 'vehicleregno', label: 'Vehicle No.', type: 'vehicle-select' },
         { key: 'society', label: 'Society', type: 'society-select' },
         { key: 'branch', label: 'Branch', type: 'branch-select' },
+        { key: 'vehicleregno', label: 'Vehicle Registration No.', type: 'vehicle-select' },
         { key: 'battery_make', label: 'Battery Make' },
         { key: 'battery_capacity', label: 'Battery Capacity' },
         { key: 'battery_number', label: 'Battery Number' },
@@ -659,8 +659,8 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'tyreno', label: 'Tyre Number' },
           { key: 'tyremake', label: 'Tyre Make' },
           { key: 'sizeoftyre', label: 'Tyre Size' },
-          { key: 'frombusno', label: 'From Bus No.' },
-          { key: 'tobusno', label: 'To Bus No.' },
+          { key: 'frombusno', label: 'From Vehicle Registration No.' },
+          { key: 'tobusno', label: 'To Vehicle Registration No.' },
           { key: 'shift_count', label: 'Total Shifts' },
           { key: 'position', label: 'Position' },
           { key: 'dateofreplacement', label: 'Replacement/Fitment Date' },
