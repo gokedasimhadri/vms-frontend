@@ -114,8 +114,17 @@ const ModulePage = ({ moduleKey }) => {
     return `${year}-${month}-${day}`;
   };
 
-  const [fromDate, setFromDate] = useState(getTodayIsoString);
-  const [toDate, setToDate] = useState(getTodayIsoString);
+  const getThirtyDaysAgoIsoString = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   useEffect(() => {
     if (currentSubTabObj?.childSubTabs?.length > 0) {
@@ -139,8 +148,8 @@ const ModulePage = ({ moduleKey }) => {
 
   // Second-level nested tab state (e.g. for Ad_Bus_Fillings)
   const [nestedSubTab, setNestedSubTab] = useState('');
-  const [reportFromDate, setReportFromDate] = useState(getTodayIsoString);
-  const [reportToDate, setReportToDate] = useState(getTodayIsoString);
+  const [reportFromDate, setReportFromDate] = useState('');
+  const [reportToDate, setReportToDate] = useState('');
   const [busSearchRegNo, setBusSearchRegNo] = useState('');
   const [busRegisterNoFilter, setBusRegisterNoFilter] = useState('');
   const [busDataFetched, setBusDataFetched] = useState(false);
@@ -457,12 +466,12 @@ const ModulePage = ({ moduleKey }) => {
         }
       }
 
-      const extraParams = (activeSubToFetch === 'generatereport' || activeSubToFetch === 'generate_report' || activeSubToFetch === 'entrydata' || activeSubToFetch === 'vehicletrip' || activeSubToFetch === 'trips' || nestedSubTab === 'generate_report' || nestedSubTab === 'generatereport')
-        ? { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() }
+      const extraParams = (activeSubToFetch === 'generatereport' || activeSubToFetch === 'generate_report' || nestedSubTab === 'generate_report' || nestedSubTab === 'generatereport')
+        ? { fromDate: reportFromDate || '', toDate: reportToDate || '' }
         : {};
       fetchModuleData(activeSubToFetch, selectedBranch, false, extraParams);
     }
-  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch, busDataFetched, visibleSubTabs, nestedSubTab, reportFromDate, reportToDate]);
+  }, [moduleKey, moduleSubTab, moduleChildSubTab, selectedBranch, busDataFetched, visibleSubTabs, nestedSubTab]);
 
   const activeSub = moduleSubTab || visibleSubTabs[0]?.id || currentConfig?.subTabs[0]?.id;
   const currentSubConfig = visibleSubTabs.find(s => s.id === activeSub) || currentConfig?.subTabs?.find(s => s.id === activeSub);
@@ -639,7 +648,7 @@ const ModulePage = ({ moduleKey }) => {
     }
     setBusDataFetched(true);
     const extraParams = (nestedSubTab === 'generate_report' || nestedSubTab === 'generatereport')
-      ? { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() }
+      ? { fromDate: reportFromDate || '', toDate: reportToDate || '' }
       : {};
     fetchModuleData(activeSub, selectedBranch, true, extraParams, targetReg);
   };
@@ -658,39 +667,6 @@ const ModulePage = ({ moduleKey }) => {
           return String(reg).toLowerCase().includes(bq);
         });
       }
-      if (nestedSubTab === 'generate_report') {
-        const parseIsoFrontend = (val) => {
-          if (!val) return null;
-          const str = String(val).trim();
-          if (!str || ['null', 'undefined', 'invalid date'].includes(str.toLowerCase())) return null;
-          const ddmmyyyy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
-          if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2].padStart(2, '0')}-${ddmmyyyy[1].padStart(2, '0')}`;
-          const yyyymmdd = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-          if (yyyymmdd) return `${yyyymmdd[1]}-${yyyymmdd[2].padStart(2, '0')}-${yyyymmdd[3].padStart(2, '0')}`;
-          const dt = new Date(str);
-          if (!isNaN(dt.getTime())) {
-            return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-          }
-          return null;
-        };
-
-        if (reportFromDate) {
-          const fromIso = parseIsoFrontend(reportFromDate);
-          result = result.filter(item => {
-            const itemIso = parseIsoFrontend(item?.date || item?.filldate || item?.date_dt || item?.createdAt);
-            if (!itemIso) return true;
-            return itemIso >= fromIso;
-          });
-        }
-        if (reportToDate) {
-          const toIso = parseIsoFrontend(reportToDate);
-          result = result.filter(item => {
-            const itemIso = parseIsoFrontend(item?.date || item?.filldate || item?.date_dt || item?.createdAt);
-            if (!itemIso) return true;
-            return itemIso <= toIso;
-          });
-        }
-      }
       if (nestedSubTab === 'search_bus_report' && busSearchRegNo.trim()) {
         const sq = busSearchRegNo.trim().toLowerCase();
         result = result.filter(item => {
@@ -708,57 +684,6 @@ const ModulePage = ({ moduleKey }) => {
       });
     }
 
-    const toIsoDateStr = (dStr) => {
-      if (!dStr) return '';
-      const str = String(dStr).trim();
-      if (str.includes('-')) {
-        const parts = str.split('-');
-        if (parts[0]?.length === 2 && parts[2]?.length === 4) {
-          return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-        if (parts[0]?.length === 4) {
-          return str.slice(0, 10);
-        }
-      }
-      if (str.includes('/')) {
-        const parts = str.split('/');
-        if (parts[0]?.length === 2 && parts[2]?.length === 4) {
-          return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-        if (parts[0]?.length === 4) {
-          return `${parts[0]}-${parts[1]}-${parts[2]}`;
-        }
-      }
-      return str.slice(0, 10);
-    };
-
-    const isVehicleReport = moduleKey === 'Vehicles' && (activeSub === 'generatereport' || nestedSubTab === 'generatereport' || moduleChildSubTab === 'generatereport');
-    const isRepairReport = moduleKey === 'Repair Bills' && activeSub === 'generatereport';
-
-    if (isVehicleReport || isRepairReport) {
-      const fDate = isVehicleReport ? reportFromDate : fromDate;
-      const tDate = isVehicleReport ? reportToDate : toDate;
-      const fromIso = toIsoDateStr(fDate);
-      const toIso = toIsoDateStr(tDate);
-
-      if (fromIso) {
-        result = result.filter(item => {
-          const d = item.repairdate || item.date || item.uploaddate || item.createdAt;
-          if (!d) return true;
-          const itemIso = toIsoDateStr(d);
-          return itemIso >= fromIso;
-        });
-      }
-      if (toIso) {
-        result = result.filter(item => {
-          const d = item.repairdate || item.date || item.uploaddate || item.createdAt;
-          if (!d) return true;
-          const itemIso = toIsoDateStr(d);
-          return itemIso <= toIso;
-        });
-      }
-    }
-
     if (!moduleSearchQuery.trim()) return result;
     const q = moduleSearchQuery.toLowerCase();
     return result.filter(item =>
@@ -766,7 +691,7 @@ const ModulePage = ({ moduleKey }) => {
         k !== '_id' && k !== 'id' && val && String(val).toLowerCase().includes(q)
       )
     );
-  }, [moduleData, moduleSearchQuery, nestedSubTab, activeSub, busDataFetched, busRegisterNoFilter, reportFromDate, reportToDate, busSearchRegNo, appliedServiceRegNo, fromDate, toDate, moduleKey, moduleChildSubTab]);
+  }, [moduleData, moduleSearchQuery, nestedSubTab, activeSub, busDataFetched, busRegisterNoFilter, busSearchRegNo, appliedServiceRegNo, moduleKey, moduleChildSubTab]);
 
   const totalModulePages = Math.ceil(filteredModuleData.length / moduleEntriesPerPage) || 1;
   const paginatedModuleData = useMemo(() => {
@@ -1534,10 +1459,31 @@ const ModulePage = ({ moduleKey }) => {
                       }}
                     />
                   </div>
+                  <button
+                    type="button"
+                    disabled={moduleLoading}
+                    onClick={() => fetchModuleData('generatereport', selectedBranch, true, { fromDate, toDate })}
+                    style={{
+                      padding: '6px 16px',
+                      borderRadius: '6px',
+                      backgroundColor: '#38bdf8',
+                      border: 'none',
+                      color: '#0f172a',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {moduleLoading ? 'Loading...' : 'Get Data'}
+                  </button>
                   {(fromDate || toDate) && (
                     <button
                       type="button"
-                      onClick={() => { setFromDate(''); setToDate(''); }}
+                      onClick={() => {
+                        setFromDate('');
+                        setToDate('');
+                        fetchModuleData('generatereport', selectedBranch, true, { fromDate: '', toDate: '' });
+                      }}
                       style={{
                         padding: '6px 12px',
                         borderRadius: '6px',
@@ -1651,6 +1597,28 @@ const ModulePage = ({ moduleKey }) => {
                 >
                   getdata
                 </button>
+                {(reportFromDate || reportToDate) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportFromDate('');
+                      setReportToDate('');
+                      fetchModuleData(activeSub, selectedBranch, true, { fromDate: '', toDate: '' });
+                    }}
+                    style={{
+                      backgroundColor: '#ef4444',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '7px 16px',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Clear Filter
+                  </button>
+                )}
               </>
             ) : (
               <>
@@ -1942,8 +1910,8 @@ const ModulePage = ({ moduleKey }) => {
               activeTab={moduleChildSubTab || currentSubTabObj.childSubTabs[0].id}
               onChange={(id) => {
                 setModuleChildSubTab(id);
-                const extraParams = (id === 'generatereport' || id === 'generate_report' || id === 'entrydata' || id === 'vehicletrip' || id === 'trips')
-                  ? { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() }
+                const extraParams = (id === 'generatereport' || id === 'generate_report')
+                  ? { fromDate: reportFromDate || '', toDate: reportToDate || '' }
                   : {};
                 fetchModuleData(id, selectedBranch, false, extraParams);
               }}
@@ -2019,6 +1987,30 @@ const ModulePage = ({ moduleKey }) => {
             >
               {moduleLoading ? 'Loading...' : 'Get Data'}
             </button>
+            {(reportFromDate || reportToDate) && (
+              <button
+                type="button"
+                disabled={moduleLoading}
+                onClick={() => {
+                  setReportFromDate('');
+                  setReportToDate('');
+                  fetchModuleData('generatereport', selectedBranch, true, { fromDate: '', toDate: '' });
+                }}
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '7px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}
+              >
+                Clear Filter
+              </button>
+            )}
           </div>
         ) : moduleKey === 'Vehicles' && (activeSub === 'trips' || activeSub === 'entrydata' || moduleChildSubTab === 'entrydata') && (
           <div
@@ -2037,7 +2029,7 @@ const ModulePage = ({ moduleKey }) => {
           >
             <button
               type="button"
-              onClick={() => fetchModuleData(moduleChildSubTab || activeSub, selectedBranch, true, { fromDate: reportFromDate || getTodayIsoString(), toDate: reportToDate || getTodayIsoString() })}
+              onClick={() => fetchModuleData(moduleChildSubTab || activeSub, selectedBranch, true, {})}
               style={{
                 backgroundColor: '#54d4f3',
                 color: '#ffffff',
