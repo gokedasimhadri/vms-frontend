@@ -46,13 +46,10 @@ const REPORT_SECTIONS = [
     icon: Building2,
     apiFn: () => getVehiclesData('branch', 'ALL'),
     columns: [
+      { key: 'vehicleregno', label: 'Vehicle Registration No.' },
       { key: 'society', label: 'Society' },
       { key: 'branch', label: 'Branch' },
-      { key: 'staffname', label: 'Staff Name' },
-      { key: 'vehicleregno', label: 'Vehicle Registration No.' },
-      { key: 'model', label: 'Model Name' },
-      { key: 'purchasedate', label: 'Purchase Date' },
-      { key: 'servicedate', label: 'Service Date' }
+      { key: 'model', label: 'Model Name' }
     ]
   },
   {
@@ -63,6 +60,7 @@ const REPORT_SECTIONS = [
     apiFn: () => getStaffData('BusStaff_Information', 'ALL'),
     columns: [
       { key: 'profilepic', label: 'Profile Pic' },
+      { key: 'employeeid', label: 'Employee ID' },
       { key: 'society', label: 'Society' },
       { key: 'branch', label: 'Branch' },
       { key: 'staffname', label: 'Name' },
@@ -201,11 +199,10 @@ const REPORT_SECTIONS = [
         label: 'RTA',
         apiFn: () => getCertificatesData('rta', 'ALL'),
         columns: [
+          { key: 'vehicleregno', label: 'Vehicle No.' },
           { key: 'society', label: 'Society' },
           { key: 'branch', label: 'Branch' },
           { key: 'model', label: 'Model' },
-          { key: 'vehicleregno', label: 'Vehicle No.' },
-          { key: 'serviceno', label: 'Service No.' },
           { key: 'dateofregistration', label: 'Date of Registration' },
           { key: 'expireddate', label: 'Expired Date' },
           { key: 'chasisno', label: 'Chasis No.' },
@@ -508,10 +505,9 @@ const REPORT_SECTIONS = [
         label: 'New_Vehicle_Tyres',
         apiFn: () => getVehicleTyresData('tyres', 'ALL'),
         columns: [
+          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
           { key: 'society', label: 'Society' },
           { key: 'branch', label: 'Branch' },
-          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
-          { key: 'serviceno', label: 'Service No.' },
           { key: 'tyremake', label: 'Tyre Make' },
           { key: 'position', label: 'Position' },
           { key: 'tyreno', label: 'tyre No.' },
@@ -524,10 +520,9 @@ const REPORT_SECTIONS = [
         label: 'Replaced_Vehicle_Tyres',
         apiFn: () => getVehicleTyresData('rebutton', 'ALL'),
         columns: [
+          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
           { key: 'society', label: 'Society' },
           { key: 'branch', label: 'Branch' },
-          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
-          { key: 'serviceno', label: 'Service No.' },
           { key: 'position', label: 'Position' },
           { key: 'tyreno', label: 'tyre No.' },
           { key: 'sizeoftyre', label: 'Size of tyre' },
