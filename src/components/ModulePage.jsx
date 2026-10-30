@@ -24,7 +24,7 @@ import {
   createBatteryItem, updateBatteryItem, deleteBatteryItem,
   createVehicleTyreItem, updateVehicleTyreItem, deleteVehicleTyreItem,
   createAdminItem, updateAdminItem, deleteAdminItem,
-  getAdminData, getStaffData, getVehiclesData
+  getAdminData, getStaffData, getVehiclesData, getVehicleMasterList, getLastFuelReading
 } from '../services/api';
 
 const MODULE_ICONS = {
@@ -228,12 +228,11 @@ const ModulePage = ({ moduleKey }) => {
         const defaultDes = ['DRIVER', 'BUS SUPERVISOR', 'CLEANER', 'MECHANIC', 'HELPER', 'ATTENDER', 'JUNIOR ASSISTANT', 'OFFICE SUBORDINATE'];
         setDesignationsList(Array.from(new Set([...desNames, ...defaultDes])).sort());
 
-        const vehicleRes = await getVehiclesData('branch', 'ALL').catch(() => null);
-        const vehicleData = Array.isArray(vehicleRes?.data) ? vehicleRes.data : (Array.isArray(vehicleRes) ? vehicleRes : []);
-        setVehiclesList(vehicleData);
+        // Use the master endpoint: merges branchvehicle + vehicleinfo per registration number
+        const masterRes = await getVehicleMasterList().catch(() => null);
+        const combinedVehicles = Array.isArray(masterRes?.data) ? masterRes.data : (Array.isArray(masterRes) ? masterRes : []);
+        setVehiclesList(combinedVehicles);
 
-        const infoRes = await getVehiclesData('info', 'ALL').catch(() => null);
-        const infoData = Array.isArray(infoRes?.data) ? infoRes.data : (Array.isArray(infoRes) ? infoRes : []);
         const makesRes = await getVehiclesData('makes', 'ALL').catch(() => null);
         const makesData = Array.isArray(makesRes?.data) ? makesRes.data : (Array.isArray(makesRes) ? makesRes : []);
 
@@ -475,31 +474,34 @@ const ModulePage = ({ moduleKey }) => {
 
   const activeSub = moduleSubTab || visibleSubTabs[0]?.id || currentConfig?.subTabs[0]?.id;
   const currentSubConfig = visibleSubTabs.find(s => s.id === activeSub) || currentConfig?.subTabs?.find(s => s.id === activeSub);
+  const effectiveSubTab = (currentSubConfig?.childSubTabs?.length > 0 && moduleChildSubTab)
+    ? moduleChildSubTab
+    : activeSub;
 
   const activeCols = useMemo(() => {
     if (typeof currentConfig?.columns === 'function') {
-      return currentConfig.columns(activeSub, isVmsUser);
+      return currentConfig.columns(effectiveSubTab, isVmsUser);
     }
     return currentConfig?.columns || [];
-  }, [currentConfig, activeSub, isVmsUser]);
+  }, [currentConfig, effectiveSubTab, isVmsUser]);
 
   const [showOptingVehicleDropdown, setShowOptingVehicleDropdown] = useState(false);
 
   const isVehicleFirstTab = useMemo(() => {
     const excludedSubtabs = [
-      'makes', 'info', 'lightmotor', 'heavymotor', 'branch',
+      'makes', 'info', 'lightmotor', 'heavymotor',
       'suppliers', 'bunk', 'servicing', 'fuelfill',
       'Designations', 'Office_Staff', 'BusStaff_Information', 'BusCleaner_Information', 'Staff_Meeting_Register', 'Staff_Remarks',
       'trackbattery', 'tracktyre'
     ];
-    if (excludedSubtabs.includes(activeSub)) return false;
+    if (excludedSubtabs.includes(effectiveSubTab) || excludedSubtabs.includes(activeSub)) return false;
 
     const vehicleKeys = ['vehicleno', 'vehicleregno', 'regno', 'busnumber', 'busno'];
     const hasVehicleCol = activeCols.some(c => vehicleKeys.includes(c.key) || c.type === 'vehicle-select' || c.type === 'vehicle-autocomplete');
     const hasSocietyOrBranchCol = activeCols.some(c => c.key === 'society' || c.key === 'branch' || c.type === 'society-select' || c.type === 'branch-select');
 
     return hasVehicleCol && hasSocietyOrBranchCol;
-  }, [activeSub, activeCols]);
+  }, [effectiveSubTab, activeSub, activeCols]);
 
   const currentVehNoVal = useMemo(() => {
     return String(formData.busnumber || formData.vehicleregno || formData.vehicleno || formData.regno || '').trim();
@@ -578,40 +580,100 @@ const ModulePage = ({ moduleKey }) => {
       return;
     }
 
-    const matches = vehiclesList.filter(v => {
+    // vehiclesList is now one merged record per reg (from /vehicles/master)
+    const match = vehiclesList.find(v => {
       const reg = String(v.vehicleregno || v.regno || v.vehicleno || v.busnumber || v.vno || '').trim().toLowerCase();
       return reg === vehStr.toLowerCase();
     });
 
-    const matchedSoc = matches.length > 0 ? (matches[0].society || matches[0].societyname || '') : '';
-    const matchedBranch = matches.length > 0 ? (matches[0].branch || matches[0].branchname || '') : '';
-    const matchedRoute = matches.length > 0 ? (matches[0].route || matches[0].routename || '') : '';
-    const matchedCapacity = matches.length > 0 ? (matches[0].capacity || matches[0].fixedstrength || '') : '';
-    const matchedStaff = matches.length > 0 ? (matches[0].staffname || matches[0].drivername || '') : '';
-    const matchedModel = matches.length > 0 ? (matches[0].model || matches[0].vehiclemodel || '') : '';
-    const matchedType = matches.length > 0 ? (matches[0].type || matches[0].vehicletype || '') : '';
+    const matchedSoc = match ? (match.society || match.societyname || '') : '';
+    const matchedBranch = match ? (match.branch || match.branchname || '') : '';
+    const matchedRoute = match ? (match.route || match.routename || '') : '';
+    const matchedCapacity = match ? (match.capacity || match.fixedstrength || '') : '';
+    const matchedStaff = match ? (match.staffname || match.drivername || '') : '';
+    const matchedModel = match ? (match.model || match.vehiclemodel || '') : '';
+    const matchedMake = match ? (match.make || match.vehiclemake || '') : '';
+    const matchedType = match ? (match.type || match.vehicletype || '') : '';
+    const matchedPurchaseDate = match ? (match.purchasedate || '') : '';
+    const matchedExpireDate = match ? (match.expiredate || '') : '';
+    const matchedFuel = match ? (match.fuel || '') : '';
 
     setFormData(prev => ({
       ...prev,
       [targetKey]: vehStr,
-      society: matchedSoc || prev.society || '',
-      branch: matchedBranch || prev.branch || '',
+      ...(matchedSoc ? { society: matchedSoc } : (prev.society !== undefined ? { society: prev.society || '' } : {})),
+      ...(matchedBranch ? { branch: matchedBranch } : (prev.branch !== undefined ? { branch: prev.branch || '' } : {})),
       ...(prev.model !== undefined ? { model: matchedModel || prev.model || '' } : {}),
-      ...(prev.type !== undefined ? { type: matchedType || prev.type || '' } : {}),
+      ...(prev.make !== undefined ? { make: matchedMake || prev.make || '' } : {}),
+      ...(prev.vehiclemake !== undefined ? { vehiclemake: matchedMake || prev.vehiclemake || '' } : {}),
+      ...(prev.type !== undefined ? { type: matchedType || prev.type || (activeSub === 'busfill' ? 'Own Vehicle' : '') } : {}),
+      ...(prev.vehicletype !== undefined ? { vehicletype: matchedType || prev.vehicletype || (activeSub === 'busfill' ? 'Own Vehicle' : '') } : {}),
+      ...(prev.fuelsupplier !== undefined && !prev.fuelsupplier && activeSub === 'busfill' ? { fuelsupplier: 'Indian Oil Corporation Limited' } : {}),
+      ...(prev.purchasedate !== undefined ? { purchasedate: matchedPurchaseDate || prev.purchasedate || '' } : {}),
+      ...(prev.expiredate !== undefined ? { expiredate: matchedExpireDate || prev.expiredate || '' } : {}),
+      ...(prev.fuel !== undefined ? { fuel: matchedFuel || prev.fuel || '' } : {}),
       ...(prev.route !== undefined ? { route: matchedRoute || prev.route || '' } : {}),
+      ...(prev.routename !== undefined ? { routename: matchedRoute || prev.routename || '' } : {}),
       ...(prev.presentroute !== undefined ? { presentroute: matchedRoute || prev.presentroute || '' } : {}),
       ...(prev.capacity !== undefined ? { capacity: matchedCapacity || prev.capacity || '' } : {}),
+      ...(prev.fixedstrength !== undefined ? { fixedstrength: matchedCapacity || prev.fixedstrength || '' } : {}),
       ...(prev.staffname !== undefined ? { staffname: matchedStaff || prev.staffname || '' } : {}),
       ...(prev.drivername !== undefined ? { drivername: matchedStaff || prev.drivername || '' } : {})
     }));
 
+    // If in Fuels (busfill) or AdBlue (adbluebusfill), auto-fill previous reading into OMR
+    if (activeSub === 'busfill' || moduleKey === 'Fuels' || activeSub === 'adbluebusfill') {
+      const localRecent = (moduleData || []).find(r => {
+        const reg = String(r.vehicleregno || r.regno || '').trim().toLowerCase();
+        return reg === vehStr.toLowerCase() && (r.cmr !== undefined && r.cmr !== null && String(r.cmr).trim() !== '');
+      });
+      if (localRecent && localRecent.cmr) {
+        const prevCmr = String(localRecent.cmr).trim();
+        setFormData(prev => {
+          const upd = { ...prev, omr: prevCmr };
+          if (upd.cmr && !isNaN(Number(upd.cmr)) && !isNaN(Number(prevCmr))) {
+            const kms = Math.max(0, Number(upd.cmr) - Number(prevCmr));
+            upd.kms = kms;
+            upd.totalkms = kms;
+            if (upd.quantity && !isNaN(Number(upd.quantity)) && Number(upd.quantity) > 0) {
+              const kmpl = (kms / Number(upd.quantity)).toFixed(2);
+              upd.kmpl = kmpl;
+              upd.avgkmpl = kmpl;
+            }
+          }
+          return upd;
+        });
+      }
+
+      getLastFuelReading(vehStr, activeSub).then(res => {
+        if (res && res.success && res.lastCmr) {
+          const prevCmr = String(res.lastCmr).trim();
+          setFormData(prev => {
+            const upd = { ...prev, omr: prevCmr };
+            if (upd.cmr && !isNaN(Number(upd.cmr)) && !isNaN(Number(prevCmr))) {
+              const kms = Math.max(0, Number(upd.cmr) - Number(prevCmr));
+              upd.kms = kms;
+              upd.totalkms = kms;
+              if (upd.quantity && !isNaN(Number(upd.quantity)) && Number(upd.quantity) > 0) {
+                const kmpl = (kms / Number(upd.quantity)).toFixed(2);
+                upd.kmpl = kmpl;
+                upd.avgkmpl = kmpl;
+              }
+            }
+            return upd;
+          });
+        }
+      }).catch(err => console.error('Failed to get last fuel reading:', err));
+    }
+
     setFormErrors(prev => ({
       ...prev,
       ...(prev[targetKey] ? { [targetKey]: null } : {}),
-      ...(prev.society ? { society: null } : {}),
-      ...(prev.branch ? { branch: null } : {})
+      ...(matchedSoc && prev.society ? { society: null } : {}),
+      ...(matchedBranch && prev.branch ? { branch: null } : {})
     }));
   };
+
 
   useEffect(() => {
     if (moduleKey === 'Ad-Blue' && !isVmsUser) {
@@ -728,11 +790,11 @@ const ModulePage = ({ moduleKey }) => {
   const handleDownloadSampleExcel = () => {
     const sampleData = [
       {
-        society: 'SAROJINI EDUCATIONAL SOCIETY',
-        branch: 'MARIKAVALASA-SES',
         regno: 'AP39YB8591',
+        branch: 'MARIKAVALASA-SES',
         routename: 'MRK-RAVINDRA NAGAR',
         date: '22-09-2026',
+        time: '08:30',
         capacity: 51,
         students: 31,
         strength: 26,
@@ -743,11 +805,11 @@ const ModulePage = ({ moduleKey }) => {
         remarks: ''
       },
       {
-        society: 'ADITYA ACADEMY',
-        branch: 'MARIKAVALASA-AA',
         regno: 'AP39V4654',
+        branch: 'MARIKAVALASA-AA',
         routename: 'MRK-CHINNAMUSIRIWADA',
         date: '22-09-2026',
+        time: '08:45',
         capacity: 50,
         students: 14,
         strength: 23,
@@ -759,7 +821,7 @@ const ModulePage = ({ moduleKey }) => {
       }
     ];
     const ws = XLSX.utils.json_to_sheet(sampleData, {
-      header: ['society', 'branch', 'regno', 'routename', 'date', 'capacity', 'students', 'strength', 'omr', 'cmr', 'kms', 'distance', 'remarks']
+      header: ['regno', 'branch', 'routename', 'date', 'time', 'capacity', 'students', 'strength', 'omr', 'cmr', 'kms', 'distance', 'remarks']
     });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'format');
@@ -792,7 +854,7 @@ const ModulePage = ({ moduleKey }) => {
           const val = row[k];
           if (keyClean === 'society') obj.society = String(val).trim();
           else if (keyClean === 'branch') obj.branch = String(val).trim();
-          else if (keyClean === 'regno' || keyClean === 'vehicleregno' || keyClean === 'vno' || keyClean === 'busnumber') {
+          else if (keyClean === 'regno' || keyClean === 'vehicleregno' || keyClean === 'vno' || keyClean === 'busnumber' || keyClean === 'vehiclenumber') {
             obj.regno = String(val).trim();
             obj.vehicleregno = String(val).trim();
           }
@@ -803,6 +865,9 @@ const ModulePage = ({ moduleKey }) => {
           else if (keyClean === 'date' || keyClean === 'uploaddate') {
             obj.date = String(val).trim();
             obj.uploaddate = String(val).trim();
+          }
+          else if (keyClean === 'time' || keyClean === 'triptime') {
+            obj.time = String(val).trim();
           }
           else if (keyClean === 'capacity') obj.capacity = val;
           else if (keyClean === 'students' || keyClean === 'studentsstrength') {
@@ -876,8 +941,12 @@ const ModulePage = ({ moduleKey }) => {
     setFormErrors({});
     const initial = {};
     activeCols.forEach(col => {
-      initial[col.key] = '';
+      initial[col.key] = col.defaultValue !== undefined ? col.defaultValue : '';
     });
+    if (activeSub === 'busfill' || moduleKey === 'Fuels') {
+      if (!initial.type) initial.type = 'Own Vehicle';
+      if (!initial.fuelsupplier) initial.fuelsupplier = 'Indian Oil Corporation Limited';
+    }
     if (selectedBranch && selectedBranch !== 'ALL' && selectedBranch !== 'College') {
       initial.branch = selectedBranch;
     } else if (!isVmsUser && selectableBranches.length === 1) {
@@ -905,8 +974,13 @@ const ModulePage = ({ moduleKey }) => {
         else if (col.key === 'driverremarks') val = row.remarks || row.driverremarks;
         else if (col.key === 'staffname') val = row.staffname || row.drivername || row.driver;
         else if (col.key === 'vehicleregno') val = row.vehicleregno || row.regno || row.vehicleno || row.busnumber || row.busno;
+        else if (col.key === 'regno') val = row.regno || row.vehicleregno || row.vehicleno || row.busnumber || row.busno;
         else if (col.key === 'busnumber') val = row.busnumber || row.vehicleregno || row.regno || row.vehicleno || row.busno;
         else if (col.key === 'busno') val = row.busno || row.vehicleregno || row.regno || row.vehicleno;
+        else if (col.key === 'profilepic' || col.key === 'photo') val = row.profilepic || row.pic || row.photo;
+        else if (col.key === 'employeeid') val = row.employeeid || row.empid || row.employee_id;
+        else if (col.key === 'expiredate') val = row.expiredate || row.servicedate || row.expirydate;
+        else if (col.key === 'time') val = row.time || row.triptime || '';
       }
       initial[col.key] = val ?? '';
     });
@@ -967,6 +1041,7 @@ const ModulePage = ({ moduleKey }) => {
   };
 
   const isColumnRequired = (col, isEditing = false) => {
+    if (col.autoCalc) return false;
     const k = (col.key || '').toLowerCase();
     const optionalKeys = [
       'remarks', 'description', 'points', 'file', 'upload', 'profilepic', 'image', 'pic',
@@ -975,10 +1050,10 @@ const ModulePage = ({ moduleKey }) => {
       'waterservicing', 'engineoil', 'chasis', 'springs', 'centerjoints', 'allubolts',
       'airfilling', 'greesing', 'batterymaintenance', 'lights', 'glasses', 'bodypaint',
       'seats', 'gearoil', 'difoil', 'brakeoil', 'atfoil', 'radiatorwater', 'meterreading',
-      'warranty', 'status'
+      'warranty', 'status', 'time', 'kms', 'totalkms', 'kmpl', 'avgkmpl', 'total', 'totalrate'
     ];
     if (optionalKeys.includes(k)) return false;
-    if ((col.type === 'image' || col.type === 'file') && isEditing) return false;
+    if ((col.type === 'image' || col.type === 'file' || k === 'employeeid' || k === 'empid' || k === 'purchasedate' || k === 'expiredate') && isEditing) return false;
     return true;
   };
 
@@ -1020,12 +1095,16 @@ const ModulePage = ({ moduleKey }) => {
       return;
     }
 
+    const effectiveSub = (currentSubConfig?.childSubTabs?.length > 0 && moduleChildSubTab)
+      ? moduleChildSubTab
+      : activeSub;
+
     setSubmitting(true);
     try {
       if (editingId) {
         // UPDATE
-        if (moduleKey === 'Staff') await updateStaffItem(activeSub, editingId, payload);
-        else if (moduleKey === 'Vehicles') await updateVehicleItem(activeSub, editingId, payload);
+        if (moduleKey === 'Staff') await updateStaffItem(effectiveSub, editingId, payload);
+        else if (moduleKey === 'Vehicles') await updateVehicleItem(effectiveSub, editingId, payload);
         else if (moduleKey === 'Certificates') await updateCertificateItem(activeSub, editingId, payload);
         else if (moduleKey === 'Fuels') await updateFuelItem(activeSub, editingId, payload);
         else if (moduleKey === 'Ad-Blue') await updateAdBlueItem(activeSub, editingId, payload);
@@ -1038,8 +1117,8 @@ const ModulePage = ({ moduleKey }) => {
         setSuccessToast('Record updated successfully!');
       } else {
         // CREATE
-        if (moduleKey === 'Staff') await createStaffItem(activeSub, payload);
-        else if (moduleKey === 'Vehicles') await createVehicleItem(activeSub, payload);
+        if (moduleKey === 'Staff') await createStaffItem(effectiveSub, payload);
+        else if (moduleKey === 'Vehicles') await createVehicleItem(effectiveSub, payload);
         else if (moduleKey === 'Certificates') await createCertificateItem(activeSub, payload);
         else if (moduleKey === 'Fuels') await createFuelItem(activeSub, payload);
         else if (moduleKey === 'Ad-Blue') await createAdBlueItem(activeSub, payload);
@@ -1055,7 +1134,7 @@ const ModulePage = ({ moduleKey }) => {
       setShowModal(false);
       setTimeout(() => setSuccessToast(''), 3000);
       cacheRef.current = {};
-      fetchModuleData(activeSub, selectedBranch, true);
+      fetchModuleData(effectiveSub, selectedBranch, true);
     } catch (err) {
       console.error('Failed to save record:', err);
       alert('Error saving record: ' + (err.response?.data?.message || err.message));
@@ -1109,8 +1188,13 @@ const ModulePage = ({ moduleKey }) => {
       else if (col.key === 'driverremarks') rawVal = row.remarks || row.driverremarks;
       else if (col.key === 'staffname') rawVal = row.staffname || row.drivername || row.driver;
       else if (col.key === 'vehicleregno') rawVal = row.vehicleregno || row.regno || row.vehicleno || row.busnumber || row.busno;
+      else if (col.key === 'regno') rawVal = row.regno || row.vehicleregno || row.vehicleno || row.busnumber || row.busno;
       else if (col.key === 'busnumber') rawVal = row.busnumber || row.vehicleregno || row.regno || row.vehicleno || row.busno;
       else if (col.key === 'busno') rawVal = row.busno || row.vehicleregno || row.regno || row.vehicleno;
+      else if (col.key === 'profilepic' || col.key === 'photo') rawVal = row.profilepic || row.pic || row.photo;
+      else if (col.key === 'employeeid') rawVal = row.employeeid || row.empid || row.employee_id;
+      else if (col.key === 'expiredate') rawVal = row.expiredate || row.servicedate || row.expirydate;
+      else if (col.key === 'time') rawVal = row.time || row.triptime || '';
     }
     if (rawVal === undefined || rawVal === null || rawVal === '' || rawVal === 'null' || rawVal === 'undefined') {
       return '-';
@@ -2362,7 +2446,76 @@ const ModulePage = ({ moduleKey }) => {
                           const isInvalid = wasValidated && !!formErrors[col.key];
 
                           const handleFieldChange = (val) => {
-                            setFormData(prev => ({ ...prev, [col.key]: val }));
+                            setFormData(prev => {
+                              const updated = { ...prev, [col.key]: val };
+
+                              // Auto-calculate KMS / Total Kms when OMR or CMR changes
+                              if (col.key === 'omr' || col.key === 'cmr') {
+                                const omrVal = updated.omr !== undefined && updated.omr !== null ? String(updated.omr).trim() : '';
+                                const cmrVal = updated.cmr !== undefined && updated.cmr !== null ? String(updated.cmr).trim() : '';
+                                if (omrVal !== '' && cmrVal !== '' && !isNaN(Number(omrVal)) && !isNaN(Number(cmrVal))) {
+                                  const kmsCalc = Math.max(0, Number(cmrVal) - Number(omrVal));
+                                  if (updated.kms !== undefined) updated.kms = kmsCalc;
+                                  if (updated.totalkms !== undefined) updated.totalkms = kmsCalc;
+
+                                  // Trips result
+                                  const distVal = updated.distance !== undefined && updated.distance !== null ? String(updated.distance).trim() : '';
+                                  if (distVal !== '' && !isNaN(Number(distVal))) {
+                                    const distNum = Number(distVal);
+                                    if (kmsCalc > distNum) {
+                                      updated.result = `exceed${kmsCalc - distNum}`;
+                                    } else {
+                                      updated.result = '';
+                                    }
+                                  }
+
+                                  // KMPL calculation
+                                  const qtyVal = updated.quantity || updated.fquantity || '';
+                                  if (qtyVal !== '' && !isNaN(Number(qtyVal)) && Number(qtyVal) > 0) {
+                                    const kmpl = (kmsCalc / Number(qtyVal)).toFixed(2);
+                                    if (updated.kmpl !== undefined) updated.kmpl = kmpl;
+                                    if (updated.avgkmpl !== undefined) updated.avgkmpl = kmpl;
+                                  }
+                                } else if (omrVal === '' || cmrVal === '') {
+                                  if (updated.kms !== undefined) updated.kms = '';
+                                  if (updated.totalkms !== undefined) updated.totalkms = '';
+                                  if (updated.kmpl !== undefined) updated.kmpl = '';
+                                  if (updated.avgkmpl !== undefined) updated.avgkmpl = '';
+                                }
+                              }
+
+                              // Auto-calculate KMPL and Total Rate when Quantity changes
+                              if (col.key === 'quantity' || col.key === 'fquantity') {
+                                const qtyVal = val !== undefined && val !== null ? String(val).trim() : '';
+                                const kmsVal = updated.kms !== undefined ? updated.kms : (updated.totalkms !== undefined ? updated.totalkms : '');
+                                if (qtyVal !== '' && !isNaN(Number(qtyVal)) && Number(qtyVal) > 0 && kmsVal !== '' && !isNaN(Number(kmsVal))) {
+                                  const kmpl = (Number(kmsVal) / Number(qtyVal)).toFixed(2);
+                                  if (updated.kmpl !== undefined) updated.kmpl = kmpl;
+                                  if (updated.avgkmpl !== undefined) updated.avgkmpl = kmpl;
+                                }
+
+                                const rateVal = updated.rate || updated.frate || '';
+                                if (qtyVal !== '' && !isNaN(Number(qtyVal)) && rateVal !== '' && !isNaN(Number(rateVal))) {
+                                  const tot = (Number(rateVal) * Number(qtyVal)).toFixed(2);
+                                  if (updated.total !== undefined) updated.total = tot;
+                                  if (updated.totalrate !== undefined) updated.totalrate = tot;
+                                }
+                              }
+
+                              // Auto-calculate Total Rate when Rate changes
+                              if (col.key === 'rate' || col.key === 'frate') {
+                                const rateVal = val !== undefined && val !== null ? String(val).trim() : '';
+                                const qtyVal = updated.quantity || updated.fquantity || '';
+                                if (rateVal !== '' && !isNaN(Number(rateVal)) && qtyVal !== '' && !isNaN(Number(qtyVal))) {
+                                  const tot = (Number(rateVal) * Number(qtyVal)).toFixed(2);
+                                  if (updated.total !== undefined) updated.total = tot;
+                                  if (updated.totalrate !== undefined) updated.totalrate = tot;
+                                }
+                              }
+
+                              return updated;
+                            });
+
                             if (formErrors[col.key]) {
                               setFormErrors(prev => ({ ...prev, [col.key]: null }));
                             }
@@ -2618,7 +2771,7 @@ const ModulePage = ({ moduleKey }) => {
                                   </select>
                                   {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
                                 </div>
-                              ) : col.type === 'date' || col.key === 'dateofjoin' || col.key === 'rdate' || col.key === 'valid' ? (
+                              ) : col.type === 'date' || col.key === 'dateofjoin' || col.key === 'rdate' || col.key === 'valid' || col.key === 'purchasedate' || col.key === 'expiredate' ? (
                                 <div>
                                   <input
                                     type="date"
@@ -2631,6 +2784,93 @@ const ModulePage = ({ moduleKey }) => {
                                       border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
                                       borderRadius: '4px',
                                       fontSize: '13px'
+                                    }}
+                                  />
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : col.type === 'time' || col.key === 'time' ? (
+                                <div>
+                                  <input
+                                    type="time"
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    value={formData[col.key] ?? ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px'
+                                    }}
+                                  />
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : (col.type === 'fuel-type-select' || ((activeSub === 'busfill' || moduleKey === 'Fuels') && (col.key === 'type' || col.key === 'vehicletype'))) ? (
+                                <div>
+                                  <select
+                                    value={formData[col.key] || 'Own Vehicle'}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#ffffff'
+                                    }}
+                                  >
+                                    {['Own Vehicle', 'Hired', 'Private', 'Others', 'Power House', 'Stores'].map((opt, idx) => (
+                                      <option key={idx} value={opt}>{opt}</option>
+                                    ))}
+                                    {formData[col.key] && !['Own Vehicle', 'Hired', 'Private', 'Others', 'Power House', 'Stores'].includes(formData[col.key]) && (
+                                      <option value={formData[col.key]}>{formData[col.key]}</option>
+                                    )}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : (col.type === 'fuel-supplier-select' || ((activeSub === 'busfill' || moduleKey === 'Fuels') && col.key === 'fuelsupplier')) ? (
+                                <div>
+                                  <select
+                                    value={formData[col.key] || 'Indian Oil Corporation Limited'}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#ffffff'
+                                    }}
+                                  >
+                                    {['Indian Oil Corporation Limited', 'BHARAT PETROLEUM L.T.D', 'HPC Ltd.,', 'INDIAN OIL', 'OTHER'].map((opt, idx) => (
+                                      <option key={idx} value={opt}>{opt}</option>
+                                    ))}
+                                    {formData[col.key] && !['Indian Oil Corporation Limited', 'BHARAT PETROLEUM L.T.D', 'HPC Ltd.,', 'INDIAN OIL', 'OTHER'].includes(formData[col.key]) && (
+                                      <option value={formData[col.key]}>{formData[col.key]}</option>
+                                    )}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : (col.autoCalc || ['kms', 'totalkms', 'kmpl', 'avgkmpl'].includes(col.key)) ? (
+                                <div>
+                                  <input
+                                    type="text"
+                                    readOnly
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    placeholder="Auto-calculated"
+                                    value={formData[col.key] ?? ''}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 10px',
+                                      border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#f1f5f9',
+                                      color: '#1e293b',
+                                      cursor: 'default',
+                                      fontWeight: 600
                                     }}
                                   />
                                   {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}

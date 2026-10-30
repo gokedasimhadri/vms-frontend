@@ -211,6 +211,11 @@ export const deleteVehicleItem = async (type, id) => {
   return response.data;
 };
 
+export const getVehicleMasterList = async () => {
+  const response = await api.get('/vehicles/master');
+  return response.data;
+};
+
 // ================= CERTIFICATES =================
 export const getCertificatesData = async (type = 'pollution', branch, search = '') => {
   const params = { type };
@@ -256,6 +261,25 @@ export const getCertificateAlertsSummary = async (date) => {
 export const updateRoadtaxStatus = async (date) => {
   const response = await api.post('/certificates/update-roadtax-status', date ? { date } : {});
   return response.data;
+};
+
+export const getLastFuelReading = async (regno, subtab = 'busfill') => {
+  try {
+    if (subtab === 'adblue' || subtab === 'adbluebusfill') {
+      const res = await getAdBlueData('adbluebusfill', 'ALL', regno);
+      const docs = res?.data || [];
+      const match = docs.find(d => d.cmr && String(d.cmr).trim() !== '');
+      if (match) return { success: true, lastCmr: String(match.cmr).trim() };
+    } else {
+      const res = await getFuelsData('busfill', 'ALL', regno);
+      const docs = res?.data || [];
+      const match = docs.find(d => d.cmr && String(d.cmr).trim() !== '');
+      if (match) return { success: true, lastCmr: String(match.cmr).trim() };
+    }
+  } catch (err) {
+    console.error('Error fetching last reading via search:', err);
+  }
+  return { success: true, lastCmr: null };
 };
 
 // ================= FUELS =================
