@@ -186,20 +186,22 @@ export const SIDEBAR_MODULE_CONFIG = {
             { key: 'model', label: 'Model Name', type: 'model-select' },
           ];
         }
-        return [
+                return [
+          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
           { key: 'society', label: 'Society', type: 'society-select' },
           { key: 'branch', label: 'Branch', type: 'branch-select' },
           { key: 'staffname', label: 'Staff Name', type: 'staff-select' },
-          { key: 'vehicleregno', label: 'Vehicle Registration No.' },
           { key: 'model', label: 'Model Name', type: 'model-select' },
           { key: 'purchasedate', label: 'Purchase Date', type: 'date' },
           { key: 'servicedate', label: 'Service Date', type: 'date' },
         ];
       }
-      if (subTab === 'trips' || subTab === 'entrydata' || subTab === 'generatereport') {
+            if (subTab === 'trips' || subTab === 'entrydata' || subTab === 'generatereport') {
         if (isVmsUser) {
           return [
             { key: 'regno', label: 'Vehicle Number', type: 'vehicle-select' },
+            { key: 'drivername', label: 'Driver Name' },
+            { key: 'phone', label: 'Phone Number' },
             { key: 'branch', label: 'Branch', type: 'branch-select' },
             { key: 'route', label: 'Route' },
             { key: 'date', label: 'Date', type: 'date' },
@@ -215,8 +217,10 @@ export const SIDEBAR_MODULE_CONFIG = {
             { key: 'remarks', label: 'remarks' },
           ];
         }
-        return [
+                return [
           { key: 'regno', label: 'Reg.No', type: 'vehicle-select' },
+          { key: 'drivername', label: 'Driver Name' },
+          { key: 'phone', label: 'Phone Number' },
           { key: 'society', label: 'Society', type: 'society-select' },
           { key: 'branch', label: 'Branch', type: 'branch-select' },
           { key: 'route', label: 'Route' },
@@ -425,13 +429,21 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'bunk', label: 'Fuel Bunk' },
       { id: 'servicing', label: 'Bunk Servicing' },
       { id: 'fuelfill', label: 'Bunk Fillings' },
-      {
+            {
         id: 'busfill',
         label: 'Bus_Fillings',
         nestedTabs: [
           { id: 'entry_data', label: 'Entry Data' },
           { id: 'generate_report', label: 'Generate Report' },
           { id: 'search_bus_report', label: 'Search Bus Report' },
+        ]
+      },
+      {
+        id: 'otherfillings',
+        label: 'Other_Fillings',
+        nestedTabs: [
+          { id: 'entry_data', label: 'Entry Data' },
+          { id: 'generate_report', label: 'Generate Report' },
         ]
       },
     ],
@@ -471,11 +483,20 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'totalrate', label: 'Total Rate' },
         ];
       }
+                  if (subTab === 'otherfillings') {
+        return [
+          { key: 'vehicletype', label: 'Vehicle Type', type: 'fuel-type-select', defaultValue: 'Private' },
+          { key: 'vehicleregno', label: 'Vehicle Registration No.', type: 'vehicle-select' },
+          { key: 'description', label: 'Description', type: 'textarea' },
+          { key: 'date', label: 'Date', type: 'date' },
+          { key: 'rate', label: 'Rate per Ltr' },
+          { key: 'quantity', label: 'Qty' },
+        ];
+      }
       return [
         { key: 'vehicleregno', label: 'Register No.', type: 'vehicle-select' },
         { key: 'society', label: 'Society', type: 'society-select' },
         { key: 'branch', label: 'Branch', type: 'branch-select' },
-        { key: 'type', label: 'Type', type: 'fuel-type-select', defaultValue: 'Own Vehicle' },
         { key: 'model', label: 'Model' },
         { key: 'drivername', label: 'Driver Name' },
         { key: 'fuelsupplier', label: 'Fuel Supplier', type: 'fuel-supplier-select', defaultValue: 'Indian Oil Corporation Limited' },
@@ -604,12 +625,12 @@ export const SIDEBAR_MODULE_CONFIG = {
     ],
     apiFn: (subTab, branch, search, extra) => getRepairBillsData(subTab, branch, search, extra?.fromDate, extra?.toDate),
     columns: (subTab) => {
-      if (subTab === 'generatereport') {
+            if (subTab === 'generatereport') {
         return [
+          { key: 'busnumber', label: 'Vehicle Registration No.', type: 'vehicle-select' },
           { key: 'society', label: 'Society', type: 'society-select' },
           { key: 'branch', label: 'Branch', type: 'branch-select' },
           { key: 'model', label: 'Model' },
-          { key: 'busnumber', label: 'Vehicle Registration No.', type: 'vehicle-select' },
           { key: 'repairdate', label: 'Date', type: 'date' },
           { key: 'repairtype', label: 'Type Of Repair' },
           { key: 'description', label: 'Repair Description' },
@@ -620,11 +641,11 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'remarks', label: 'Remarks' },
         ];
       }
-      return [
+            return [
+        { key: 'busnumber', label: 'Vehicle Registration No.', type: 'vehicle-select' },
         { key: 'society', label: 'Society', type: 'society-select' },
         { key: 'branch', label: 'Branch', type: 'branch-select' },
         { key: 'model', label: 'Model' },
-        { key: 'busnumber', label: 'Vehicle Registration No.', type: 'vehicle-select' },
         { key: 'repairdate', label: 'Date', type: 'date' },
         { key: 'repairtype', label: 'Type Of Repair' },
         { key: 'description', label: 'Repair Description' },
@@ -642,10 +663,10 @@ export const SIDEBAR_MODULE_CONFIG = {
       { id: 'breakdown', label: 'Breakdown Logs' }
     ],
     apiFn: (subTab, branch, search, extra) => getBusBreakdownData(branch, search),
-    columns: () => [
+        columns: () => [
+      { key: 'busno', label: 'Vehicle Registration No.', type: 'vehicle-select' },
       { key: 'society', label: 'Society', type: 'society-select' },
       { key: 'branch', label: 'Branch', type: 'branch-select' },
-      { key: 'busno', label: 'Vehicle Registration No.', type: 'vehicle-select' },
       { key: 'drivername', label: 'Name of the Driver' },
       { key: 'driverphoneno', label: 'Driver Phone NO' },
       { key: 'breakedownplace', label: 'Break Down Place' },
@@ -701,10 +722,10 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'remarks', label: 'Remarks' },
         ];
       }
-      return [
+            return [
+        { key: 'vehicleregno', label: 'Vehicle Registration No.', type: 'vehicle-select' },
         { key: 'society', label: 'Society', type: 'society-select' },
         { key: 'branch', label: 'Branch', type: 'branch-select' },
-        { key: 'vehicleregno', label: 'Vehicle Registration No.', type: 'vehicle-select' },
         { key: 'battery_make', label: 'Battery Make' },
         { key: 'battery_capacity', label: 'Battery Capacity' },
         { key: 'battery_number', label: 'Battery Number' },
