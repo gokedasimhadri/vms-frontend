@@ -357,28 +357,7 @@ const Dashboard = () => {
             <div className="pill-text-box">Dashboard</div>
           </div>
 
-          {selectableBranches.length > 0 && (
-            <div style={{ position: 'absolute', right: 0, top: 0 }}>
-              {selectableBranches.length === 1 && !isVmsUser ? (
-                <div className="bg-slate-100 border border-slate-300 text-slate-700 py-1 px-2.5 rounded text-xs font-semibold">
-                  Branch: {selectableBranches[0]}
-                </div>
-              ) : (
-                <select
-                  value={selectedBranch}
-                  onChange={(e) => setSelectedBranch(e.target.value)}
-                  className="bg-white border border-slate-300 text-slate-700 py-1 px-2.5 rounded text-xs outline-none cursor-pointer hover:bg-slate-50"
-                >
-                  <option value="ALL">
-                    {isVmsUser ? `All Branches (${selectableBranches.length})` : `All Assigned Branches (${selectableBranches.length})`}
-                  </option>
-                  {selectableBranches.map((b, i) => (
-                    <option key={i} value={b}>{b}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
+          {/* Branch selector removed */}
         </div>
 
         {/* Dashboard Main Content Cards */}

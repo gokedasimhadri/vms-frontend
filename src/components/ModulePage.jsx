@@ -585,7 +585,7 @@ const ModulePage = ({ moduleKey }) => {
     const hasVehicleCol = activeCols.some(c => vehicleKeys.includes(c.key) || c.type === 'vehicle-select' || c.type === 'vehicle-autocomplete');
     const hasSocietyOrBranchCol = activeCols.some(c => c.key === 'society' || c.key === 'branch' || c.type === 'society-select' || c.type === 'branch-select');
 
-    return hasVehicleCol && hasSocietyOrBranchCol;
+    return (hasVehicleCol && hasSocietyOrBranchCol) || activeSub === 'otherfillings';
   }, [effectiveSubTab, activeSub, activeCols]);
 
   const currentVehNoVal = useMemo(() => {
@@ -692,7 +692,7 @@ const ModulePage = ({ moduleKey }) => {
       ...(prev.make !== undefined ? { make: matchedMake || prev.make || '' } : {}),
       ...(prev.vehiclemake !== undefined ? { vehiclemake: matchedMake || prev.vehiclemake || '' } : {}),
       ...(prev.type !== undefined ? { type: matchedType || prev.type || (activeSub === 'busfill' ? 'Own Vehicle' : '') } : {}),
-      ...(prev.vehicletype !== undefined ? { vehicletype: matchedType || prev.vehicletype || (activeSub === 'busfill' ? 'Own Vehicle' : '') } : {}),
+      ...(prev.vehicletype !== undefined ? { vehicletype: activeSub === 'otherfillings' ? prev.vehicletype : (matchedType || prev.vehicletype || (activeSub === 'busfill' ? 'Own Vehicle' : '')) } : {}),
       ...(prev.fuelsupplier !== undefined && !prev.fuelsupplier && activeSub === 'busfill' ? { fuelsupplier: 'Indian Oil Corporation Limited' } : {}),
       ...(prev.purchasedate !== undefined ? { purchasedate: matchedPurchaseDate || prev.purchasedate || '' } : {}),
       ...(prev.expiredate !== undefined ? { expiredate: matchedExpireDate || prev.expiredate || '' } : {}),
@@ -707,7 +707,7 @@ const ModulePage = ({ moduleKey }) => {
     }));
 
     // If in Fuels (busfill) or AdBlue (adbluebusfill), auto-fill previous reading into OMR
-    if (activeSub === 'busfill' || moduleKey === 'Fuels' || activeSub === 'adbluebusfill') {
+    if (activeSub !== 'otherfillings' && (activeSub === 'busfill' || moduleKey === 'Fuels' || activeSub === 'adbluebusfill')) {
       const localRecent = (moduleData || []).find(r => {
         const reg = String(r.vehicleregno || r.regno || '').trim().toLowerCase();
         return reg === vehStr.toLowerCase() && (r.cmr !== undefined && r.cmr !== null && String(r.cmr).trim() !== '');
@@ -913,7 +913,7 @@ const ModulePage = ({ moduleKey }) => {
     } else {
       setNestedSubTab('');
     }
-    if (isVmsUser && (activeSub === 'busfill' || activeSub === 'adbluebusfill')) {
+        if (isVmsUser && (activeSub === 'busfill' || activeSub === 'adbluebusfill' || activeSub === 'otherfillings')) {
       setBusDataFetched(false);
       setModuleLoading(false);
       setModuleData([]);
@@ -942,7 +942,7 @@ const ModulePage = ({ moduleKey }) => {
   const filteredModuleData = useMemo(() => {
     let result = Array.isArray(moduleData) ? moduleData : [];
 
-    if (isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill')) {
+        if (isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill' || activeSub === 'otherfillings')) {
       if (!busDataFetched) {
         return [];
       }
@@ -985,7 +985,7 @@ const ModulePage = ({ moduleKey }) => {
     return filteredModuleData.slice(start, start + moduleEntriesPerPage);
   }, [filteredModuleData, moduleCurrentPage, moduleEntriesPerPage]);
 
-  const isReportTab = isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill') && nestedSubTab === 'generate_report';
+  const isReportTab = isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill' || activeSub === 'otherfillings') && nestedSubTab === 'generate_report';
   const hasActionCols = !isReportTab;
 
   const getModuleExportData = (cols) => {
@@ -1018,9 +1018,11 @@ const ModulePage = ({ moduleKey }) => {
   const [uploadingExcel, setUploadingExcel] = useState(false);
 
   const handleDownloadSampleExcel = () => {
-    const sampleData = [
+        const sampleData = [
       {
         regno: 'AP39YB8591',
+        drivername: 'Ramesh Kumar',
+        phone: '9876543210',
         branch: 'MARIKAVALASA-SES',
         routename: 'MRK-RAVINDRA NAGAR',
         date: '22-09-2026',
@@ -1036,6 +1038,8 @@ const ModulePage = ({ moduleKey }) => {
       },
       {
         regno: 'AP39V4654',
+        drivername: 'Suresh Babu',
+        phone: '9123456780',
         branch: 'MARIKAVALASA-AA',
         routename: 'MRK-CHINNAMUSIRIWADA',
         date: '22-09-2026',
@@ -1051,7 +1055,7 @@ const ModulePage = ({ moduleKey }) => {
       }
     ];
     const ws = XLSX.utils.json_to_sheet(sampleData, {
-      header: ['regno', 'branch', 'routename', 'date', 'time', 'capacity', 'students', 'strength', 'omr', 'cmr', 'kms', 'distance', 'remarks']
+      header: ['regno', 'drivername', 'phone', 'branch', 'routename', 'date', 'time', 'capacity', 'students', 'strength', 'omr', 'cmr', 'kms', 'distance', 'remarks']
     });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'format');
@@ -1087,6 +1091,12 @@ const ModulePage = ({ moduleKey }) => {
           else if (keyClean === 'regno' || keyClean === 'vehicleregno' || keyClean === 'vno' || keyClean === 'busnumber' || keyClean === 'vehiclenumber') {
             obj.regno = String(val).trim();
             obj.vehicleregno = String(val).trim();
+          }
+                    else if (keyClean === 'drivername' || keyClean === 'driver') {
+            obj.drivername = String(val).trim();
+          }
+          else if (keyClean === 'phone' || keyClean === 'phonenumber' || keyClean === 'driverphone' || keyClean === 'contact') {
+            obj.phone = String(val).trim();
           }
           else if (keyClean === 'routename' || keyClean === 'route') {
             obj.route = String(val).trim();
@@ -1178,9 +1188,12 @@ const ModulePage = ({ moduleKey }) => {
     activeCols.forEach(col => {
       initial[col.key] = col.defaultValue !== undefined ? col.defaultValue : '';
     });
-    if (activeSub === 'busfill' || moduleKey === 'Fuels') {
-      if (!initial.type) initial.type = 'Own Vehicle';
-      if (!initial.fuelsupplier) initial.fuelsupplier = 'Indian Oil Corporation Limited';
+        if (activeSub === 'busfill' || moduleKey === 'Fuels') {
+      if (activeSub === 'otherfillings') {
+        if (!initial.vehicletype) initial.vehicletype = 'Private';
+      } else {
+        if (!initial.fuelsupplier) initial.fuelsupplier = 'Indian Oil Corporation Limited';
+      }
     }
     if (selectedBranch && selectedBranch !== 'ALL' && selectedBranch !== 'College') {
       initial.branch = selectedBranch;
@@ -1215,7 +1228,12 @@ const ModulePage = ({ moduleKey }) => {
         else if (col.key === 'claimedfrom') val = row.from || row.claimedfrom;
         else if (col.key === 'accidentdescription') val = row.description || row.accidentdescription;
         else if (col.key === 'driverremarks') val = row.remarks || row.driverremarks;
-        else if (col.key === 'staffname') val = row.staffname || row.drivername || row.driver;
+                else if (col.key === 'staffname') val = row.staffname || row.drivername || row.driver;
+        else if (col.key === 'drivername') val = row.drivername || row.driver || row.staffname || '';
+        else if (col.key === 'phone') val = row.phone || row.phonenumber || row.driverphone || '';
+        else if (col.key === 'vehicletype') val = row.vehicletype || row.type || 'Private';
+        else if (col.key === 'rate') val = row.rate || row.frate || '';
+        else if (col.key === 'quantity') val = row.quantity || row.fquantity || row.filled_Qty || '';
         else if (col.key === 'vehicleregno') val = row.vehicleregno || row.regno || row.vehicleno || row.busnumber || row.busno;
         else if (col.key === 'regno') val = row.regno || row.vehicleregno || row.vehicleno || row.busnumber || row.busno;
         else if (col.key === 'busnumber') val = row.busnumber || row.vehicleregno || row.regno || row.vehicleno || row.busno;
@@ -1604,41 +1622,7 @@ const ModulePage = ({ moduleKey }) => {
             <div className="module-top-badge-label">{moduleKey}</div>
           </div>
 
-          {selectableBranches.length > 0 && (
-            <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
-              {selectableBranches.length === 1 && !isVmsUser ? (
-                <div style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>
-                  Branch: {selectableBranches[0]}
-                </div>
-              ) : (
-                <select
-                  value={selectedBranch}
-                  onChange={(e) => {
-                    setSelectedBranch(e.target.value);
-                    fetchModuleData(activeSub, e.target.value, true);
-                  }}
-                  style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#1e293b',
-                    padding: '5px 12px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="ALL">
-                    {isVmsUser ? `All Branches (${selectableBranches.length})` : `All Assigned Branches (${selectableBranches.length})`}
-                  </option>
-                  {selectableBranches.map((b, i) => (
-                    <option key={i} value={b}>{b}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
+          {/* Branch selector removed */}
         </div>
 
         {/* Subtabs Ribbon using CustomTabs */}
@@ -1646,8 +1630,8 @@ const ModulePage = ({ moduleKey }) => {
           <div className="flex justify-center mb-4 mt-4 max-w-full overflow-x-auto">
             <CustomTabs
               activeTab={activeSub}
-              onChange={(id) => {
-                if (isVmsUser && (id === 'busfill' || id === 'adbluebusfill')) {
+                            onChange={(id) => {
+                if (isVmsUser && (id === 'busfill' || id === 'adbluebusfill' || id === 'otherfillings')) {
                   setBusDataFetched(false);
                   setModuleLoading(false);
                   setModuleData([]);
@@ -1876,7 +1860,7 @@ const ModulePage = ({ moduleKey }) => {
         )}
 
         {/* Ad_Bus_Fillings / Bus Fillings Controls Bar */}
-        {(isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill')) ? (
+        {(isVmsUser && (activeSub === 'adbluebusfill' || activeSub === 'busfill' || activeSub === 'otherfillings')) ? (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -2677,7 +2661,7 @@ const ModulePage = ({ moduleKey }) => {
                         ? 'Branch Vehicle Information'
                         : isVehicleInfo
                           ? 'Vehicle Information'
-                          : `${editingId ? 'Edit' : 'Add New'} Record - ${moduleKey} (${activeSub})`}
+                          : (activeSub === 'otherfillings' ? `${editingId ? 'Edit' : 'Add New'} Record - Other Fillings` : `${editingId ? 'Edit' : 'Add New'} Record - ${moduleKey} (${activeSub})`)}
                     </h3>
                     <button
                       type="button"
@@ -3343,10 +3327,10 @@ const ModulePage = ({ moduleKey }) => {
                                   />
                                   {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
                                 </div>
-                              ) : (col.type === 'fuel-type-select' || ((activeSub === 'busfill' || moduleKey === 'Fuels') && (col.key === 'type' || col.key === 'vehicletype'))) ? (
+                              ) : (col.type === 'fuel-type-select' || ((activeSub === 'busfill' || activeSub === 'otherfillings' || moduleKey === 'Fuels') && (col.key === 'type' || col.key === 'vehicletype'))) ? (
                                 <div>
-                                  <select
-                                    value={formData[col.key] || 'Own Vehicle'}
+                                                                    <select
+                                    value={formData[col.key] || (activeSub === 'otherfillings' ? 'Private' : 'Own Vehicle')}
                                     className={isInvalid ? 'is-invalid' : ''}
                                     onChange={e => handleFieldChange(e.target.value)}
                                     style={{
@@ -3358,10 +3342,16 @@ const ModulePage = ({ moduleKey }) => {
                                       backgroundColor: '#ffffff'
                                     }}
                                   >
-                                    {['Own Vehicle', 'Hired', 'Private', 'Others', 'Power House', 'Stores'].map((opt, idx) => (
-                                      <option key={idx} value={opt}>{opt}</option>
+                                    {(activeSub === 'otherfillings'
+                                      ? ['Private', 'Stores', 'Power House']
+                                      : ['Own Vehicle', 'Hired', 'Private', 'Others', 'Power House', 'Stores']
+                                    ).map((opt, idx) => (
+                                      <option key={idx} value={opt}>{opt === 'Private' && activeSub === 'otherfillings' ? 'Private Vehicle' : opt}</option>
                                     ))}
-                                    {formData[col.key] && !['Own Vehicle', 'Hired', 'Private', 'Others', 'Power House', 'Stores'].includes(formData[col.key]) && (
+                                    {formData[col.key] && !(activeSub === 'otherfillings'
+                                      ? ['Private', 'Stores', 'Power House']
+                                      : ['Own Vehicle', 'Hired', 'Private', 'Others', 'Power House', 'Stores']
+                                    ).includes(formData[col.key]) && (
                                       <option value={formData[col.key]}>{formData[col.key]}</option>
                                     )}
                                   </select>
@@ -3391,7 +3381,26 @@ const ModulePage = ({ moduleKey }) => {
                                   </select>
                                   {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
                                 </div>
-                              ) : (col.autoCalc || ['kms', 'totalkms', 'kmpl', 'avgkmpl'].includes(col.key)) ? (
+                                                             ) : col.type === 'textarea' ? (
+                                 <div>
+                                   <textarea
+                                     className={isInvalid ? 'is-invalid' : ''}
+                                     placeholder={`Enter ${col.label.toLowerCase()}...`}
+                                     value={formData[col.key] ?? ''}
+                                     onChange={e => handleFieldChange(e.target.value)}
+                                     rows={3}
+                                     style={{
+                                       width: '100%',
+                                       padding: '8px 10px',
+                                       border: isInvalid ? '1px solid #dc3545' : '1px solid #cbd5e1',
+                                       borderRadius: '4px',
+                                       fontSize: '13px',
+                                       resize: 'vertical'
+                                     }}
+                                   />
+                                   {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                 </div>
+                               ) : (col.autoCalc || ['kms', 'totalkms', 'kmpl', 'avgkmpl'].includes(col.key)) ? (
                                 <div>
                                   <input
                                     type="text"

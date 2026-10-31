@@ -133,7 +133,7 @@ export default function BusBreakdown() {
            b === 'VMS' || b === 'ALL';
   }, [user]);
 
-  const selectableBranches = useMemo(() => {
+  const _selectableBranches = useMemo(() => {
     if (isVmsUser) {
       return branchesList;
     }
@@ -495,41 +495,7 @@ export default function BusBreakdown() {
             <div className="module-top-badge-label">Bus Break Down</div>
           </div>
 
-          {selectableBranches.length > 0 && (
-            <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
-              {selectableBranches.length === 1 && !isVmsUser ? (
-                <div style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>
-                  Branch: {selectableBranches[0]}
-                </div>
-              ) : (
-                <select
-                  value={selectedBranch}
-                  onChange={(e) => {
-                    setSelectedBranch(e.target.value);
-                    fetchTable(e.target.value);
-                  }}
-                  style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    color: '#1e293b',
-                    padding: '5px 12px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="ALL">
-                    {isVmsUser ? `All Branches (${selectableBranches.length})` : `All Assigned Branches (${selectableBranches.length})`}
-                  </option>
-                  {selectableBranches.map((b, i) => (
-                    <option key={i} value={b}>{b}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
+          {/* Branch selector removed */}
         </div>
 
         {/* ── Tab ribbon (pill style) ── */}
