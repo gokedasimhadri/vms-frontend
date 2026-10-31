@@ -40,6 +40,81 @@ const MODULE_ICONS = {
   'Vehicle Tyres': Disc,
 };
 
+const VEHICLE_TYPES_LIST = [
+  'AUTO', 'BENZE', 'BIKE', 'BUS', 'CAR', 'DOSTU (HYDRALIC)', 'FORCE', 'TATA AC', 'TRACTOR', 'TRUCK', 'VAN'
+];
+
+const VEHICLE_FUELS_LIST = ['Diesel', 'Petrol', 'Others', 'CNG', 'Electric'];
+
+const VEHICLE_STATUSES_LIST = ['Active', 'In Active', 'SOLD', 'SOLD OUT'];
+
+const VEHICLE_INFO_FORM_FIELDS = [
+  { key: 'vehicleregno', label: 'Vehicle Reg.No', modalLabel: 'Vehicle Reg.No :', type: 'text' },
+  { key: 'make', label: 'Vehicle Make', modalLabel: 'Vehicle Make :', type: 'make-select' },
+  { key: 'type', label: 'Vehicle Type', modalLabel: 'Vehicle Type :', type: 'vehicle-type-select' },
+  { key: 'fuel', label: 'Fuel', modalLabel: 'Fuel :', type: 'fuel-select' },
+  { key: 'model', label: 'Vehicle Model', modalLabel: 'Vehicle Model :', type: 'model-select' },
+  { key: 'status', label: 'Vehicle Status', modalLabel: 'Vehicle Status :', type: 'status-select' },
+  { key: 'fueltank', label: 'Fuel tank Capacity', modalLabel: 'Fuel tank Capacity :', type: 'text' },
+  { key: 'capacity', label: 'Sitting Capacity', modalLabel: 'Sitting Capacity :', type: 'text' },
+  { key: 'ekmpl', label: 'E.KMPL', modalLabel: 'E.KMPL :', type: 'text' },
+  { key: 'serviceperiod', label: 'Service Period', modalLabel: 'Service Period :', type: 'text' },
+  { key: 'servicemilaege', label: 'Service Milaege', modalLabel: 'Service Milaege :', type: 'text' },
+  { key: 'tyres', label: 'Tyres', modalLabel: 'Tyres :', type: 'text' },
+];
+
+const formatTimeStr = (val, timestamp) => {
+  if (val !== undefined && val !== null && val !== '') {
+    if (val instanceof Date) {
+      const h = String(val.getHours()).padStart(2, '0');
+      const m = String(val.getMinutes()).padStart(2, '0');
+      return `${h}:${m}`;
+    }
+    if (typeof val === 'number') {
+      if (val >= 0 && val < 1) {
+        const totalSeconds = Math.round(val * 86400);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      }
+      if (val > 1000000000) {
+        const d = new Date(val);
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      }
+    }
+    const str = String(val).trim();
+    if (str && str !== '-') {
+      const num = Number(str);
+      if (!isNaN(num) && num >= 0 && num < 1 && str.includes('.')) {
+        const totalSeconds = Math.round(num * 86400);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      }
+      const timeMatch = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?$/i);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1], 10);
+        const minutes = timeMatch[2];
+        const meridiem = timeMatch[4];
+        if (meridiem) {
+          if (meridiem.toUpperCase() === 'PM' && hours < 12) hours += 12;
+          if (meridiem.toUpperCase() === 'AM' && hours === 12) hours = 0;
+        }
+        return `${String(hours).padStart(2, '0')}:${minutes}`;
+      }
+      return str;
+    }
+  }
+  if (timestamp) {
+    const tsNum = Number(timestamp);
+    if (!isNaN(tsNum) && tsNum > 0) {
+      const d = new Date(tsNum);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+  }
+  return '';
+};
+
 const ModulePage = ({ moduleKey }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -239,7 +314,7 @@ const ModulePage = ({ moduleKey }) => {
         const fetchedMakes = new Set();
         const fetchedModels = new Set();
 
-        infoData.forEach(item => {
+        combinedVehicles.forEach(item => {
           if (item.make || item.vehiclemake || item.name) fetchedMakes.add(String(item.make || item.vehiclemake || item.name).trim());
           if (item.model) fetchedModels.add(String(item.model).trim());
         });
@@ -486,6 +561,16 @@ const ModulePage = ({ moduleKey }) => {
   }, [currentConfig, effectiveSubTab, isVmsUser]);
 
   const [showOptingVehicleDropdown, setShowOptingVehicleDropdown] = useState(false);
+  const [showVehicleInfoDropdown, setShowVehicleInfoDropdown] = useState(false);
+  const [autoPopulatedFromVehicle, setAutoPopulatedFromVehicle] = useState(false);
+
+  const isVehicleInfo = useMemo(() => {
+    return (
+      moduleKey === 'Vehicles' &&
+      (activeSub === 'info' || activeSub === 'lightmotor' || activeSub === 'heavymotor' ||
+       effectiveSubTab === 'info' || effectiveSubTab === 'lightmotor' || effectiveSubTab === 'heavymotor')
+    );
+  }, [moduleKey, activeSub, effectiveSubTab]);
 
   const isVehicleFirstTab = useMemo(() => {
     const excludedSubtabs = [
@@ -674,6 +759,145 @@ const ModulePage = ({ moduleKey }) => {
     }));
   };
 
+  const allAvailableVehicles = useMemo(() => {
+    const map = new Map();
+    (vehiclesList || []).forEach(v => {
+      const reg = String(v.vehicleregno || v.regno || v.vehicleno || v.busnumber || '').trim().toUpperCase();
+      if (reg) map.set(reg, v);
+    });
+    (moduleData || []).forEach(v => {
+      const reg = String(v.vehicleregno || v.regno || v.vehicleno || v.busnumber || '').trim().toUpperCase();
+      if (reg) {
+        if (!map.has(reg)) {
+          map.set(reg, v);
+        } else {
+          map.set(reg, { ...v, ...map.get(reg) });
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [vehiclesList, moduleData]);
+
+  const vehicleInfoSuggestions = useMemo(() => {
+    if (!isVehicleInfo) return [];
+    const query = String(formData.vehicleregno || formData.regno || '').trim().toLowerCase();
+    const cleanQuery = query.replace(/[\s-]/g, '');
+    if (!query) {
+      return allAvailableVehicles.slice(0, 50);
+    }
+    return allAvailableVehicles.filter(v => {
+      const reg = String(v.vehicleregno || v.regno || v.vehicleno || v.busnumber || '').trim().toLowerCase();
+      const cleanReg = reg.replace(/[\s-]/g, '');
+      const make = String(v.make || v.vehiclemake || '').toLowerCase();
+      const model = String(v.model || v.vehiclemodel || '').toLowerCase();
+      return reg.includes(query) || cleanReg.includes(cleanQuery) || make.includes(query) || model.includes(query);
+    }).slice(0, 50);
+  }, [isVehicleInfo, formData.vehicleregno, formData.regno, allAvailableVehicles]);
+
+  const handleVehicleInfoSelect = (vehicleItem) => {
+    if (!vehicleItem) return;
+    const selectedReg = (vehicleItem.vehicleregno || vehicleItem.regno || vehicleItem.vehicleno || '').trim().toUpperCase();
+
+    // Normalize fuel to match VEHICLE_FUELS_LIST casing
+    let matchedFuel = vehicleItem.fuel || '';
+    if (matchedFuel) {
+      const foundFuel = VEHICLE_FUELS_LIST.find(f => f.toLowerCase() === matchedFuel.toLowerCase());
+      if (foundFuel) matchedFuel = foundFuel;
+    }
+
+    // Normalize type to match VEHICLE_TYPES_LIST casing
+    let matchedType = vehicleItem.type || vehicleItem.vehicletype || '';
+    if (matchedType) {
+      const foundType = VEHICLE_TYPES_LIST.find(t => t.toLowerCase() === matchedType.toLowerCase());
+      if (foundType) matchedType = foundType;
+    }
+
+    // Normalize status to match VEHICLE_STATUSES_LIST casing
+    let matchedStatus = vehicleItem.status || 'Active';
+    if (matchedStatus) {
+      const foundStatus = VEHICLE_STATUSES_LIST.find(s => s.toLowerCase() === matchedStatus.toLowerCase());
+      if (foundStatus) matchedStatus = foundStatus;
+    }
+
+    // Normalize make to match makesList casing
+    let matchedMake = vehicleItem.make || vehicleItem.vehiclemake || '';
+    if (matchedMake) {
+      const foundMake = makesList.find(m => m.toLowerCase() === matchedMake.toLowerCase());
+      if (foundMake) matchedMake = foundMake;
+    }
+
+    // Normalize model to match modelsList casing
+    let matchedModel = vehicleItem.model || vehicleItem.vehiclemodel || '';
+    if (matchedModel) {
+      const foundModel = modelsList.find(m => m.toLowerCase() === matchedModel.toLowerCase());
+      if (foundModel) matchedModel = foundModel;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      vehicleregno: selectedReg,
+      regno: selectedReg,
+      make: matchedMake || prev.make || '',
+      type: matchedType || prev.type || '',
+      fuel: matchedFuel || prev.fuel || '',
+      model: matchedModel || prev.model || '',
+      status: matchedStatus || prev.status || 'Active',
+      fueltank: vehicleItem.fueltank !== undefined && vehicleItem.fueltank !== null ? String(vehicleItem.fueltank) : (prev.fueltank || ''),
+      capacity: vehicleItem.capacity !== undefined && vehicleItem.capacity !== null ? String(vehicleItem.capacity) : (prev.capacity || ''),
+      ekmpl: vehicleItem.ekmpl !== undefined && vehicleItem.ekmpl !== null ? String(vehicleItem.ekmpl) : (prev.ekmpl || ''),
+      serviceperiod: vehicleItem.serviceperiod !== undefined && vehicleItem.serviceperiod !== null ? String(vehicleItem.serviceperiod) : (prev.serviceperiod || ''),
+      servicemilaege: vehicleItem.servicemilaege !== undefined && vehicleItem.servicemilaege !== null ? String(vehicleItem.servicemilaege) : (prev.servicemilaege || ''),
+      tyres: vehicleItem.tyres !== undefined && vehicleItem.tyres !== null ? String(vehicleItem.tyres) : (prev.tyres || ''),
+      society: vehicleItem.society || prev.society || '',
+      branch: vehicleItem.branch || prev.branch || '',
+    }));
+
+    setFormErrors(prev => {
+      const updated = { ...prev };
+      [
+        'vehicleregno', 'regno', 'make', 'type', 'fuel', 'model', 'status',
+        'fueltank', 'capacity', 'ekmpl', 'serviceperiod', 'servicemilaege', 'tyres'
+      ].forEach(k => {
+        delete updated[k];
+      });
+      return updated;
+    });
+
+    setAutoPopulatedFromVehicle(true);
+    setShowVehicleInfoDropdown(false);
+  };
+
+  const handleVehicleRegInputChange = (val) => {
+    const upperVal = val.toUpperCase();
+    setFormData(prev => ({
+      ...prev,
+      vehicleregno: upperVal,
+      regno: upperVal
+    }));
+
+    if (formErrors.vehicleregno || formErrors.regno) {
+      setFormErrors(prev => ({ ...prev, vehicleregno: null, regno: null }));
+    }
+
+    const cleanVal = upperVal.replace(/[\s-]/g, '');
+    if (!cleanVal) {
+      setAutoPopulatedFromVehicle(false);
+      return;
+    }
+
+    // Check if there is an exact match in allAvailableVehicles
+    const exactMatch = allAvailableVehicles.find(v => {
+      const r = String(v.vehicleregno || v.regno || v.vehicleno || v.busnumber || '').trim().toUpperCase();
+      return r === upperVal.trim() || r.replace(/[\s-]/g, '') === cleanVal;
+    });
+
+    if (exactMatch) {
+      handleVehicleInfoSelect(exactMatch);
+    } else {
+      setAutoPopulatedFromVehicle(false);
+    }
+  };
+
 
   useEffect(() => {
     if (moduleKey === 'Ad-Blue' && !isVmsUser) {
@@ -770,7 +994,13 @@ const ModulePage = ({ moduleKey }) => {
       return null;
     }
     const headers = cols.map(c => c.label);
-    const rows = filteredModuleData.map(row => cols.map(c => row[c.key] ?? ''));
+    const rows = filteredModuleData.map(row => cols.map(c => {
+      let val = row[c.key];
+      if (c.key === 'time' || c.type === 'time') {
+        val = formatTimeStr(val || row.triptime, row.Timestamp || row.timestamp);
+      }
+      return val ?? '';
+    }));
     return { headers, rows };
   };
 
@@ -836,10 +1066,10 @@ const ModulePage = ({ moduleKey }) => {
     try {
       setUploadingExcel(true);
       const data = await selectedExcelFile.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
+      const workbook = XLSX.read(data, { type: 'array', cellDates: false });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+      const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: '', raw: false });
 
       if (!jsonRows || jsonRows.length === 0) {
         alert('The selected Excel file is empty.');
@@ -866,8 +1096,10 @@ const ModulePage = ({ moduleKey }) => {
             obj.date = String(val).trim();
             obj.uploaddate = String(val).trim();
           }
-          else if (keyClean === 'time' || keyClean === 'triptime') {
-            obj.time = String(val).trim();
+          else if (keyClean === 'time' || keyClean === 'triptime' || keyClean === 'timing' || keyClean.includes('time')) {
+            const timeVal = formatTimeStr(val);
+            obj.time = timeVal;
+            obj.triptime = timeVal;
           }
           else if (keyClean === 'capacity') obj.capacity = val;
           else if (keyClean === 'students' || keyClean === 'studentsstrength') {
@@ -891,7 +1123,8 @@ const ModulePage = ({ moduleKey }) => {
       const res = await bulkCreateVehicleItems('trips', mappedRecords);
       alert(res.message || `Successfully uploaded ${mappedRecords.length} vehicle trip records.`);
       setSelectedExcelFile(null);
-      fetchModuleData(activeSub, selectedBranch, true);
+      cacheRef.current = {};
+      fetchModuleData(effectiveSubTab, selectedBranch, true);
     } catch (err) {
       console.error('Error parsing/uploading Excel file:', err);
       alert('Failed to upload Excel file: ' + (err.response?.data?.message || err.message));
@@ -939,6 +1172,8 @@ const ModulePage = ({ moduleKey }) => {
     setEditingId(null);
     setWasValidated(false);
     setFormErrors({});
+    setShowVehicleInfoDropdown(false);
+    setAutoPopulatedFromVehicle(false);
     const initial = {};
     activeCols.forEach(col => {
       initial[col.key] = col.defaultValue !== undefined ? col.defaultValue : '';
@@ -952,6 +1187,12 @@ const ModulePage = ({ moduleKey }) => {
     } else if (!isVmsUser && selectableBranches.length === 1) {
       initial.branch = selectableBranches[0];
     }
+    if (isVehicleInfo) {
+      initial.status = 'Active';
+      if (effectiveSubTab === 'heavymotor') {
+        initial.type = 'BUS';
+      }
+    }
     setFormData(initial);
     setShowModal(true);
   };
@@ -961,6 +1202,8 @@ const ModulePage = ({ moduleKey }) => {
     setEditingId(row._id || row.id);
     setWasValidated(false);
     setFormErrors({});
+    setShowVehicleInfoDropdown(false);
+    setAutoPopulatedFromVehicle(false);
     const initial = {};
     activeCols.forEach(col => {
       let val = row[col.key];
@@ -980,10 +1223,24 @@ const ModulePage = ({ moduleKey }) => {
         else if (col.key === 'profilepic' || col.key === 'photo') val = row.profilepic || row.pic || row.photo;
         else if (col.key === 'employeeid') val = row.employeeid || row.empid || row.employee_id;
         else if (col.key === 'expiredate') val = row.expiredate || row.servicedate || row.expirydate;
-        else if (col.key === 'time') val = row.time || row.triptime || '';
+        else if (col.key === 'time' || col.type === 'time') val = formatTimeStr(row.time || row.triptime, row.Timestamp || row.timestamp);
       }
       initial[col.key] = val ?? '';
     });
+    if (isVehicleInfo) {
+      initial.make = row.make || row.vehiclemake || '';
+      initial.type = row.type || row.vehicletype || '';
+      initial.fuel = row.fuel || '';
+      initial.vehicleregno = row.vehicleregno || row.regno || row.vehicleno || '';
+      initial.model = row.model || row.vehiclemodel || '';
+      initial.status = row.status || 'Active';
+      initial.fueltank = row.fueltank !== undefined && row.fueltank !== null ? row.fueltank : '';
+      initial.capacity = row.capacity !== undefined && row.capacity !== null ? row.capacity : (row.sittingcapacity || '');
+      initial.ekmpl = row.ekmpl !== undefined && row.ekmpl !== null ? row.ekmpl : '';
+      initial.serviceperiod = row.serviceperiod !== undefined && row.serviceperiod !== null ? row.serviceperiod : '';
+      initial.servicemilaege = row.servicemilaege !== undefined && row.servicemilaege !== null ? row.servicemilaege : '';
+      initial.tyres = row.tyres !== undefined && row.tyres !== null ? row.tyres : '';
+    }
     if (initial.omr !== undefined && initial.cmr !== undefined) {
       const omrVal = String(initial.omr).trim();
       const cmrVal = String(initial.cmr).trim();
@@ -1050,7 +1307,8 @@ const ModulePage = ({ moduleKey }) => {
       'waterservicing', 'engineoil', 'chasis', 'springs', 'centerjoints', 'allubolts',
       'airfilling', 'greesing', 'batterymaintenance', 'lights', 'glasses', 'bodypaint',
       'seats', 'gearoil', 'difoil', 'brakeoil', 'atfoil', 'radiatorwater', 'meterreading',
-      'warranty', 'status', 'time', 'kms', 'totalkms', 'kmpl', 'avgkmpl', 'total', 'totalrate'
+      'warranty', 'status', 'time', 'kms', 'totalkms', 'kmpl', 'avgkmpl', 'total', 'totalrate',
+      'fueltank', 'capacity', 'ekmpl', 'serviceperiod', 'servicemilaege', 'tyres'
     ];
     if (optionalKeys.includes(k)) return false;
     if ((col.type === 'image' || col.type === 'file' || k === 'employeeid' || k === 'empid' || k === 'purchasedate' || k === 'expiredate') && isEditing) return false;
@@ -1065,19 +1323,12 @@ const ModulePage = ({ moduleKey }) => {
     if (!payload.branch && selectedBranch !== 'ALL' && selectedBranch !== 'College') {
       payload.branch = selectedBranch;
     }
-
-    const isVehicleInfo = (moduleKey === 'Vehicles' && (activeSub === 'info' || activeSub === 'lightmotor' || activeSub === 'heavymotor'));
-    let fieldsToRender = activeCols;
     if (isVehicleInfo) {
-      const statusCol = activeCols.find(c => c.key === 'status');
-      const otherCols = activeCols.filter(c => c.key !== 'status');
-      const modelIdx = otherCols.findIndex(c => c.key === 'model');
-      if (modelIdx !== -1 && statusCol) {
-        const copy = [...otherCols];
-        copy.splice(modelIdx + 1, 0, statusCol);
-        fieldsToRender = copy;
-      }
+      if (!payload.regno && payload.vehicleregno) payload.regno = payload.vehicleregno;
+      if (!payload.vehicleregno && payload.regno) payload.vehicleregno = payload.regno;
     }
+
+    let fieldsToRender = isVehicleInfo ? VEHICLE_INFO_FORM_FIELDS : activeCols;
 
     const newErrors = {};
     for (const col of fieldsToRender) {
@@ -1168,7 +1419,7 @@ const ModulePage = ({ moduleKey }) => {
         <p>Generated on ${new Date().toLocaleDateString()}</p>
       </div>
       <table>
-        ${activeCols.map(c => `<tr><th>${c.label}</th><td>${row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '-'}</td></tr>`).join('')}
+        ${activeCols.map(c => `<tr><th>${c.label}</th><td>${(c.key === 'time' || c.type === 'time') ? (formatTimeStr(row[c.key] || row.time || row.triptime, row.Timestamp || row.timestamp) || '-') : (row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '-')}</td></tr>`).join('')}
       </table>
       </body></html>
     `);
@@ -1194,7 +1445,11 @@ const ModulePage = ({ moduleKey }) => {
       else if (col.key === 'profilepic' || col.key === 'photo') rawVal = row.profilepic || row.pic || row.photo;
       else if (col.key === 'employeeid') rawVal = row.employeeid || row.empid || row.employee_id;
       else if (col.key === 'expiredate') rawVal = row.expiredate || row.servicedate || row.expirydate;
-      else if (col.key === 'time') rawVal = row.time || row.triptime || '';
+      else if (col.key === 'time' || col.type === 'time') rawVal = formatTimeStr(row.time || row.triptime, row.Timestamp || row.timestamp);
+    }
+    if (col.key === 'time' || col.type === 'time') {
+      const formattedTime = formatTimeStr(rawVal, row.Timestamp || row.timestamp);
+      return formattedTime || '-';
     }
     if (rawVal === undefined || rawVal === null || rawVal === '' || rawVal === 'null' || rawVal === 'undefined') {
       return '-';
@@ -2096,7 +2351,7 @@ const ModulePage = ({ moduleKey }) => {
               </button>
             )}
           </div>
-        ) : moduleKey === 'Vehicles' && (activeSub === 'trips' || activeSub === 'entrydata' || moduleChildSubTab === 'entrydata') && (
+        ) : moduleKey === 'Vehicles' && (activeSub === 'trips' || activeSub === 'entrydata' || moduleChildSubTab === 'entrydata') ? (
           <div
             style={{
               display: 'flex',
@@ -2192,7 +2447,33 @@ const ModulePage = ({ moduleKey }) => {
               Download Excel
             </button>
           </div>
-        )}
+        ) : (moduleKey === 'Vehicles' && (activeSub === 'info' || effectiveSubTab === 'lightmotor' || effectiveSubTab === 'heavymotor')) ? (
+          <div className="admin-actions-bar">
+            <button
+              type="button"
+              className="admin-action-btn"
+              disabled={moduleLoading}
+              onClick={() => fetchModuleData(effectiveSubTab, selectedBranch, true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              {moduleLoading ? (
+                <>
+                  <span className="btn-spinner" />
+                  <span>Loading...</span>
+                </>
+              ) : (
+                'View Data'
+              )}
+            </button>
+            <button
+              type="button"
+              className="admin-action-btn"
+              onClick={handleOpenAddModal}
+            >
+              Add New
+            </button>
+          </div>
+        ) : null}
 
         {/* Main Data Table Card */}
         <div className="admin-table-card">
@@ -2370,7 +2651,7 @@ const ModulePage = ({ moduleKey }) => {
         {showModal && (
           <div className="admin-modal-backdrop" onClick={() => setShowModal(false)}>
             {(() => {
-              const isVehicleInfo = (moduleKey === 'Vehicles' && (activeSub === 'info' || activeSub === 'lightmotor' || activeSub === 'heavymotor'));
+              const isVehicleInfo = (moduleKey === 'Vehicles' && (activeSub === 'info' || activeSub === 'lightmotor' || activeSub === 'heavymotor' || effectiveSubTab === 'info' || effectiveSubTab === 'lightmotor' || effectiveSubTab === 'heavymotor'));
               const isBranchVehicle = (moduleKey === 'Vehicles' && activeSub === 'branch');
               const isSingleColumnMode = isVehicleInfo || isBranchVehicle;
 
@@ -2378,7 +2659,7 @@ const ModulePage = ({ moduleKey }) => {
                 <div
                   className="admin-modal-card"
                   style={{
-                    maxWidth: isSingleColumnMode ? '520px' : '650px',
+                    maxWidth: isSingleColumnMode ? '540px' : '650px',
                     width: '100%'
                   }}
                   onClick={e => e.stopPropagation()}
@@ -2386,12 +2667,12 @@ const ModulePage = ({ moduleKey }) => {
                   <div
                     className="admin-modal-header"
                     style={
-                      isSingleColumnMode
+                      isBranchVehicle
                         ? { backgroundColor: '#54d4f3', borderBottom: 'none', padding: '14px 20px' }
                         : {}
                     }
                   >
-                    <h3 style={{ width: '100%', textAlign: isSingleColumnMode ? 'center' : 'left', fontSize: '1.2rem', fontWeight: 600 }}>
+                    <h3 style={{ width: '100%', fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#ffffff' }}>
                       {isBranchVehicle
                         ? 'Branch Vehicle Information'
                         : isVehicleInfo
@@ -2410,12 +2691,12 @@ const ModulePage = ({ moduleKey }) => {
                     <div
                       className="admin-modal-body"
                       style={{
-                        maxHeight: '65vh',
+                        maxHeight: '70vh',
                         overflowY: 'auto',
                         display: 'grid',
                         gridTemplateColumns: isSingleColumnMode ? '1fr' : '1fr 1fr',
                         gap: '14px',
-                        padding: '20px'
+                        padding: '24px'
                       }}
                     >
                       {wasValidated && Object.keys(formErrors).length > 0 && (
@@ -2425,17 +2706,7 @@ const ModulePage = ({ moduleKey }) => {
                         </div>
                       )}
                       {(() => {
-                        let fieldsToRender = activeCols;
-                        if (isVehicleInfo) {
-                          const statusCol = activeCols.find(c => c.key === 'status');
-                          const otherCols = activeCols.filter(c => c.key !== 'status');
-                          const modelIdx = otherCols.findIndex(c => c.key === 'model');
-                          if (modelIdx !== -1 && statusCol) {
-                            const copy = [...otherCols];
-                            copy.splice(modelIdx + 1, 0, statusCol);
-                            fieldsToRender = copy;
-                          }
-                        }
+                        let fieldsToRender = isVehicleInfo ? VEHICLE_INFO_FORM_FIELDS : activeCols;
                         return fieldsToRender.map(col => {
                           const colKeyLower = (col.key || '').toLowerCase();
                           const isImageField = col.type === 'image' || col.type === 'file' || [
@@ -2677,6 +2948,273 @@ const ModulePage = ({ moduleKey }) => {
                                   </select>
                                   {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
                                 </div>
+                              ) : (isVehicleInfo && (col.key === 'vehicleregno' || col.key === 'regno')) ? (
+                                <div style={{ position: 'relative' }}>
+                                  <input
+                                    type="text"
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    placeholder="Enter Vehicle Reg.No (e.g. 2211 or AP05TC6076)..."
+                                    value={formData[col.key] ?? ''}
+                                    onChange={e => handleVehicleRegInputChange(e.target.value)}
+                                    onFocus={() => setShowVehicleInfoDropdown(true)}
+                                    onBlur={() => setTimeout(() => setShowVehicleInfoDropdown(false), 250)}
+                                    autoComplete="off"
+                                    style={{
+                                      width: '100%',
+                                      padding: '10px 14px',
+                                      border: isInvalid ? '1px solid #ef4444' : (showVehicleInfoDropdown ? '1px solid #0b5299' : '1px solid #cbd5e1'),
+                                      borderRadius: '10px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#ffffff',
+                                      color: '#0d233b',
+                                      fontWeight: 600,
+                                      outline: 'none',
+                                      boxShadow: showVehicleInfoDropdown ? '0 0 0 3px rgba(11, 82, 153, 0.15)' : 'none',
+                                      transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
+                                    }}
+                                  />
+
+                                  {autoPopulatedFromVehicle && (
+                                    <div style={{
+                                      marginTop: '6px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: 600,
+                                      color: '#15803d',
+                                      backgroundColor: '#f0fdf4',
+                                      padding: '4px 10px',
+                                      borderRadius: '6px',
+                                      border: '1px solid #bbf7d0'
+                                    }}>
+                                      <span>✓</span>
+                                      <span>Details auto-populated from vehicle database</span>
+                                    </div>
+                                  )}
+
+                                  {showVehicleInfoDropdown && vehicleInfoSuggestions.length > 0 && (
+                                    <ul
+                                      style={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        left: 0,
+                                        right: 0,
+                                        maxHeight: '220px',
+                                        overflowY: 'auto',
+                                        backgroundColor: '#ffffff',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '10px',
+                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                        zIndex: 1050,
+                                        margin: '4px 0 0 0',
+                                        padding: '4px 0',
+                                        listStyle: 'none'
+                                      }}
+                                    >
+                                      <li style={{
+                                        padding: '6px 12px',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        color: '#64748b',
+                                        backgroundColor: '#f8fafc',
+                                        borderBottom: '1px solid #e2e8f0'
+                                      }}>
+                                        Select Vehicle ({vehicleInfoSuggestions.length} found)
+                                      </li>
+                                      {vehicleInfoSuggestions.map((v, idx) => {
+                                        const regNo = (v.vehicleregno || v.regno || v.vehicleno || '').trim();
+                                        const subtitle = [v.make, v.model, v.type].filter(Boolean).join(' • ');
+                                        return (
+                                          <li
+                                            key={idx}
+                                            style={{
+                                              padding: '9px 14px',
+                                              cursor: 'pointer',
+                                              borderBottom: idx === vehicleInfoSuggestions.length - 1 ? 'none' : '1px solid #f1f5f9',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'space-between',
+                                              transition: 'background-color 0.15s ease'
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#eff6ff'}
+                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ffffff'}
+                                            onMouseDown={() => handleVehicleInfoSelect(v)}
+                                          >
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0b5299', letterSpacing: '0.02em' }}>
+                                                {regNo}
+                                              </span>
+                                              {subtitle && (
+                                                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                                                  {subtitle}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <span style={{
+                                              fontSize: '11px',
+                                              padding: '3px 8px',
+                                              borderRadius: '6px',
+                                              backgroundColor: '#f1f5f9',
+                                              color: '#475569',
+                                              fontWeight: 600
+                                            }}>
+                                              {v.status || 'Active'}
+                                            </span>
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  )}
+
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : (col.type === 'make-select' || col.key === 'make' || col.key === 'vehiclemake') ? (
+                                <div>
+                                  <select
+                                    value={formData[col.key] ?? ''}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '10px 14px',
+                                      border: isInvalid ? '1px solid #ef4444' : '1px solid #cbd5e1',
+                                      borderRadius: '10px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#0d233b',
+                                      fontWeight: 500,
+                                      outline: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <option value="">-- Select Vehicle Make --</option>
+                                    {makesList.map((m, idx) => (
+                                      <option key={idx} value={m}>{m}</option>
+                                    ))}
+                                    {formData[col.key] && !makesList.includes(formData[col.key]) && (
+                                      <option value={formData[col.key]}>{formData[col.key]}</option>
+                                    )}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : (col.type === 'vehicle-type-select' || (isVehicleInfo && (col.key === 'type' || col.key === 'vehicletype'))) ? (
+                                <div>
+                                  <select
+                                    value={formData[col.key] ?? ''}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '10px 14px',
+                                      border: isInvalid ? '1px solid #ef4444' : '1px solid #cbd5e1',
+                                      borderRadius: '10px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#0d233b',
+                                      fontWeight: 500,
+                                      outline: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <option value="">-- Select Vehicle Type --</option>
+                                    {VEHICLE_TYPES_LIST.map((t, idx) => (
+                                      <option key={idx} value={t}>{t}</option>
+                                    ))}
+                                    {formData[col.key] && !VEHICLE_TYPES_LIST.includes(formData[col.key]) && (
+                                      <option value={formData[col.key]}>{formData[col.key]}</option>
+                                    )}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : (col.type === 'fuel-select' || (isVehicleInfo && col.key === 'fuel')) ? (
+                                <div>
+                                  <select
+                                    value={formData[col.key] ?? ''}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '10px 14px',
+                                      border: isInvalid ? '1px solid #ef4444' : '1px solid #cbd5e1',
+                                      borderRadius: '10px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#0d233b',
+                                      fontWeight: 500,
+                                      outline: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <option value="">-- Select Fuel --</option>
+                                    {VEHICLE_FUELS_LIST.map((f, idx) => (
+                                      <option key={idx} value={f}>{f}</option>
+                                    ))}
+                                    {formData[col.key] && !VEHICLE_FUELS_LIST.includes(formData[col.key]) && (
+                                      <option value={formData[col.key]}>{formData[col.key]}</option>
+                                    )}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : (col.type === 'model-select' || col.key === 'model' || col.key === 'vehiclemodel') ? (
+                                <div>
+                                  <select
+                                    value={formData[col.key] ?? ''}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '10px 14px',
+                                      border: isInvalid ? '1px solid #ef4444' : '1px solid #cbd5e1',
+                                      borderRadius: '10px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#0d233b',
+                                      fontWeight: 500,
+                                      outline: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <option value="">-- Select Vehicle Model --</option>
+                                    {modelsList.map((m, idx) => (
+                                      <option key={idx} value={m}>{m}</option>
+                                    ))}
+                                    {formData[col.key] && !modelsList.includes(formData[col.key]) && (
+                                      <option value={formData[col.key]}>{formData[col.key]}</option>
+                                    )}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
+                              ) : (col.type === 'status-select' || (isVehicleInfo && col.key === 'status')) ? (
+                                <div>
+                                  <select
+                                    value={formData[col.key] || 'Active'}
+                                    className={isInvalid ? 'is-invalid' : ''}
+                                    onChange={e => handleFieldChange(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '10px 14px',
+                                      border: isInvalid ? '1px solid #ef4444' : '1px solid #cbd5e1',
+                                      borderRadius: '10px',
+                                      fontSize: '13px',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#0d233b',
+                                      fontWeight: 500,
+                                      outline: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {VEHICLE_STATUSES_LIST.map((s, idx) => (
+                                      <option key={idx} value={s}>{s}</option>
+                                    ))}
+                                    {formData[col.key] && !VEHICLE_STATUSES_LIST.includes(formData[col.key]) && (
+                                      <option value={formData[col.key]}>{formData[col.key]}</option>
+                                    )}
+                                  </select>
+                                  {isInvalid && <div className="invalid-feedback">{formErrors[col.key]}</div>}
+                                </div>
                               ) : col.type === 'vehicle-select' || col.key === 'vehicleno' || col.key === 'regno' || col.key === 'vehicleregno' || col.key === 'busnumber' || col.key === 'busno' ? (
                                 <div style={{ position: 'relative' }}>
                                   <input
@@ -2905,14 +3443,14 @@ const ModulePage = ({ moduleKey }) => {
                         className="admin-modal-btn-cancel"
                         onClick={() => setShowModal(false)}
                       >
-                        Cancel
+                        {isVehicleInfo ? 'Close' : 'Cancel'}
                       </button>
                       <button
                         type="submit"
                         className="admin-modal-btn-submit"
                         disabled={submitting}
                       >
-                        {submitting ? 'Saving...' : editingId ? 'Update Record' : 'Save Record'}
+                        {submitting ? 'Saving...' : (isVehicleInfo ? 'Save' : (editingId ? 'Update Record' : 'Save Record'))}
                       </button>
                     </div>
                   </form>

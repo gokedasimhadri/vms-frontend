@@ -161,47 +161,12 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'model', label: 'Vehicle Model' },
         ];
       }
-      if (subTab === 'lightmotor') {
-        if (isVmsUser) {
-          return [
-            { key: 'society', label: 'Society', type: 'society-select' },
-            { key: 'make', label: 'Vehicle Make', type: 'make-select' },
-            { key: 'type', label: 'Vehicle Type', type: 'vehicle-type-select' },
-            { key: 'fuel', label: 'Fuel', type: 'fuel-select' },
-            { key: 'vehicleregno', label: 'Vehicle Reg.No' },
-            { key: 'model', label: 'Vehicle Model', type: 'model-select' },
-            { key: 'purchasedate', label: 'Purchase Date', type: 'date' },
-            { key: 'expiredate', label: 'Expire Date', type: 'date' },
-            { key: 'fueltank', label: 'Fuel tank Capacity' },
-            { key: 'capacity', label: 'Sitting Capacity' },
-            { key: 'ekmpl', label: 'E.KMPL' },
-            { key: 'serviceperiod', label: 'Service Period' },
-            { key: 'servicemilaege', label: 'Service Milaege' },
-            { key: 'tyres', label: 'Tyres' },
-            { key: 'status', label: 'Status', modalLabel: 'Vehicle Status :', type: 'status-select' },
-          ];
-        }
+      if (subTab === 'lightmotor' || subTab === 'info' || subTab === 'heavymotor') {
         return [
+          { key: 'vehicleregno', label: 'Vehicle Reg.No' },
           { key: 'make', label: 'Vehicle Make', type: 'make-select' },
           { key: 'type', label: 'Vehicle Type', type: 'vehicle-type-select' },
           { key: 'fuel', label: 'Fuel', type: 'fuel-select' },
-          { key: 'vehicleregno', label: 'Vehicle Reg.No' },
-          { key: 'model', label: 'Vehicle Model', type: 'model-select' },
-          { key: 'fueltank', label: 'Fuel tank Capacity' },
-          { key: 'capacity', label: 'Sitting Capacity' },
-          { key: 'ekmpl', label: 'E.KMPL' },
-          { key: 'serviceperiod', label: 'Service Period' },
-          { key: 'servicemilaege', label: 'Service Milaege' },
-          { key: 'tyres', label: 'Tyres' },
-          { key: 'status', label: 'Status', modalLabel: 'Vehicle Status :', type: 'status-select' },
-        ];
-      }
-      if (subTab === 'info' || subTab === 'heavymotor') {
-        return [
-          { key: 'make', label: 'Vehicle Make', type: 'make-select' },
-          { key: 'type', label: 'Vehicle Type', type: 'vehicle-type-select' },
-          { key: 'fuel', label: 'Fuel', type: 'fuel-select' },
-          { key: 'vehicleregno', label: 'Vehicle Reg.No' },
           { key: 'model', label: 'Vehicle Model', type: 'model-select' },
           { key: 'fueltank', label: 'Fuel tank Capacity' },
           { key: 'capacity', label: 'Sitting Capacity' },
@@ -256,6 +221,7 @@ export const SIDEBAR_MODULE_CONFIG = {
           { key: 'branch', label: 'Branch', type: 'branch-select' },
           { key: 'route', label: 'Route' },
           { key: 'date', label: 'Date', type: 'date' },
+          { key: 'time', label: 'Time', type: 'time' },
           { key: 'capacity', label: 'Capacity' },
           { key: 'studentsstrength', label: 'Students Strength' },
           { key: 'fixedstrength', label: 'Fixed Strength' },
