@@ -565,25 +565,25 @@ const Admin = () => {
     } else if (adminSubTab === 'Branches') {
       headers = ['S.No', 'Society Name', 'Branch Name'];
       rowMapper = (row, idx) => [idx + 1, row.society || '', row.branchname || row.name || ''];
-    } else if (adminSubTab === 'Route_Details') {
-      headers = ['S.No', 'Society', 'Branch', 'Registration No', 'Route Name', 'Start Point', 'Start Time', 'Distance(in kms)'];
-      rowMapper = (row, idx) => [idx + 1, row.society || '', row.branch || '', row.regno || '', row.routename || '', row.startpoint || '', row.starttime || '', row.distance ?? '0'];
+        } else if (adminSubTab === 'Route_Details') {
+      headers = ['S.No', 'Registration No', 'Society', 'Branch', 'Route Name', 'Start Point', 'Start Time', 'Distance(in kms)'];
+      rowMapper = (row, idx) => [idx + 1, row.regno || '', row.society || '', row.branch || '', row.routename || '', row.startpoint || '', row.starttime || '', row.distance ?? '0'];
     } else if (adminSubTab === 'Handovers') {
-      headers = ['S.No', 'Society', 'Branch', 'Vehicle Reg.No', 'Handover Date', 'Staff / Driver', 'Status'];
-      rowMapper = (row, idx) => [idx + 1, row.society || '', row.branch || '', row.regno || '', row.date || '', row.driver || '', row.status || 'Completed'];
+      headers = ['S.No', 'Vehicle Reg.No', 'Society', 'Branch', 'Handover Date', 'Staff / Driver', 'Status'];
+      rowMapper = (row, idx) => [idx + 1, row.regno || '', row.society || '', row.branch || '', row.date || '', row.driver || '', row.status || 'Completed'];
     } else if (adminSubTab === 'Issues') {
-      headers = ['S.No', 'Society', 'Branch', 'Vehicle Reg.No', 'Issue Date', 'Issue Description', 'Status'];
-      rowMapper = (row, idx) => [idx + 1, row.society || '', row.branch || '', row.regno || '', row.date || '', row.description || '', row.status || 'Pending'];
+      headers = ['S.No', 'Vehicle Reg.No', 'Society', 'Branch', 'Issue Date', 'Issue Description', 'Status'];
+      rowMapper = (row, idx) => [idx + 1, row.regno || '', row.society || '', row.branch || '', row.date || '', row.description || '', row.status || 'Pending'];
     } else if (adminSubTab === 'Transfers') {
-      headers = ['S.No', 'Society', 'Present Branch', 'CMR', 'Make', 'Model', 'Registration No.', 'Service No', 'Transfered To', 'Date of transfer'];
+      headers = ['S.No', 'Registration No.', 'Society', 'Present Branch', 'CMR', 'Make', 'Model', 'Service No', 'Transfered To', 'Date of transfer'];
       rowMapper = (row, idx) => [
         idx + 1,
+        row.regno || '',
         row.society || '',
         row.branch || '',
         row.cmr || '',
         row.make || '',
         row.model || '',
-        row.regno || '',
         row.service || '',
         row.transferbranch || '',
         row.transferdate || ''
@@ -972,12 +972,12 @@ const Admin = () => {
                     <th style={{ width: '60px', textAlign: 'center' }}>Print</th>
                   </tr>
                 )}
-                {adminSubTab === 'Route_Details' && (
+                                {adminSubTab === 'Route_Details' && (
                   <tr>
                     <th className="sortable">▴ S.No</th>
+                    <th>Registration No</th>
                     <th>Society</th>
                     <th>Branch</th>
-                    <th>Registration No</th>
                     <th>Route Name</th>
                     <th>Start Point</th>
                     <th>Start Time</th>
@@ -990,9 +990,9 @@ const Admin = () => {
                 {adminSubTab === 'Handovers' && (
                   <tr>
                     <th className="sortable">▴ S.No</th>
+                    <th>Vehicle Reg.No</th>
                     <th>Society</th>
                     <th>Branch</th>
-                    <th>Vehicle Reg.No</th>
                     <th>Handover Date</th>
                     <th>Staff / Driver</th>
                     <th>Status</th>
@@ -1004,9 +1004,9 @@ const Admin = () => {
                 {adminSubTab === 'Issues' && (
                   <tr>
                     <th className="sortable">▴ S.No</th>
+                    <th>Vehicle Reg.No</th>
                     <th>Society</th>
                     <th>Branch</th>
-                    <th>Vehicle Reg.No</th>
                     <th>Issue Date</th>
                     <th>Issue Description</th>
                     <th>Status</th>
@@ -1018,12 +1018,12 @@ const Admin = () => {
                 {adminSubTab === 'Transfers' && (
                   <tr>
                     <th className="sortable">▴ S.No</th>
+                    <th>Registration No.</th>
                     <th>Society</th>
                     <th>Present Branch</th>
                     <th>CMR</th>
                     <th>Make</th>
                     <th>Model</th>
-                    <th>Registration No.</th>
                     <th>Service No</th>
                     <th>Transfered To</th>
                     <th>Date of transfer</th>
@@ -1057,11 +1057,11 @@ const Admin = () => {
                           <td>{row.branchname || row.name || '-'}</td>
                         </>
                       )}
-                      {adminSubTab === 'Route_Details' && (
+                                            {adminSubTab === 'Route_Details' && (
                         <>
+                          <td><strong>{row.regno || '-'}</strong></td>
                           <td>{row.society || '-'}</td>
                           <td>{row.branch || '-'}</td>
-                          <td><strong>{row.regno || '-'}</strong></td>
                           <td>{row.routename || '-'}</td>
                           <td>{row.startpoint || '-'}</td>
                           <td>{formatTableTime(row.starttime)}</td>
@@ -1070,9 +1070,9 @@ const Admin = () => {
                       )}
                       {adminSubTab === 'Handovers' && (
                         <>
+                          <td><strong>{row.regno || '-'}</strong></td>
                           <td>{row.society || '-'}</td>
                           <td>{row.branch || '-'}</td>
-                          <td><strong>{row.regno || '-'}</strong></td>
                           <td>{row.date || '-'}</td>
                           <td>{row.driver || '-'}</td>
                           <td>{row.status || 'Completed'}</td>
@@ -1080,9 +1080,9 @@ const Admin = () => {
                       )}
                       {adminSubTab === 'Issues' && (
                         <>
+                          <td><strong>{row.regno || '-'}</strong></td>
                           <td>{row.society || '-'}</td>
                           <td>{row.branch || '-'}</td>
-                          <td><strong>{row.regno || '-'}</strong></td>
                           <td>{row.date || '-'}</td>
                           <td>{row.description || '-'}</td>
                           <td>{row.status || 'Pending'}</td>
@@ -1090,12 +1090,12 @@ const Admin = () => {
                       )}
                       {adminSubTab === 'Transfers' && (
                         <>
+                          <td><strong>{row.regno || '-'}</strong></td>
                           <td>{row.society || '-'}</td>
                           <td>{row.branch || '-'}</td>
                           <td>{row.cmr || '-'}</td>
                           <td>{row.make || '-'}</td>
                           <td>{row.model || '-'}</td>
-                          <td><strong>{row.regno || '-'}</strong></td>
                           <td>{row.service || '-'}</td>
                           <td>{row.transferbranch || '-'}</td>
                           <td>{row.transferdate || '-'}</td>

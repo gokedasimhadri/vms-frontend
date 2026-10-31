@@ -41,9 +41,9 @@ const EMPTY_WORKER = { workername: '', workerdesignation: '' };
 const STATUS_OPTIONS = ['Completed', 'Pending', 'In Progress'];
 
 const ALL_COLUMNS = [
+  { key: 'busno', label: 'Vehicle Registration No.' },
   { key: 'society', label: 'Society' },
   { key: 'branch', label: 'Branch' },
-  { key: 'busno', label: 'Vehicle No.' },
   { key: 'drivername', label: 'Name of the Driver' },
   { key: 'driverphoneno', label: 'Driver Phone NO' },
   { key: 'breakedownplace', label: 'Break Down Place' },

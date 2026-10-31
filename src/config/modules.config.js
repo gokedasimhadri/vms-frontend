@@ -472,21 +472,21 @@ export const SIDEBAR_MODULE_CONFIG = {
       }
       if (subTab === 'fuelfill' || subTab === 'bunkfillings') {
         return [
+          { key: 'tankerno', label: 'Tanker Register No' },
           { key: 'bunk', label: 'Bunk' },
           { key: 'fuelsupplier', label: 'Fuel Supplier' },
           { key: 'billno', label: 'Bill No.' },
           { key: 'billdate', label: 'Bill Date' },
           { key: 'filldate', label: 'Filling Date' },
-          { key: 'tankerno', label: 'Tanker Register No' },
           { key: 'quantity', label: 'Quantity' },
           { key: 'rate', label: 'Rate Per Liter' },
           { key: 'totalrate', label: 'Total Rate' },
         ];
       }
-                  if (subTab === 'otherfillings') {
+                        if (subTab === 'otherfillings') {
         return [
-          { key: 'vehicletype', label: 'Vehicle Type', type: 'fuel-type-select', defaultValue: 'Private' },
           { key: 'vehicleregno', label: 'Vehicle Registration No.', type: 'vehicle-select' },
+          { key: 'vehicletype', label: 'Vehicle Type', type: 'fuel-type-select', defaultValue: 'Private' },
           { key: 'description', label: 'Description', type: 'textarea' },
           { key: 'date', label: 'Date', type: 'date' },
           { key: 'rate', label: 'Rate per Ltr' },
